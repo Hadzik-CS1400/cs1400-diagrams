@@ -230,18 +230,21 @@
      sized to read from the back of a room. */
   .panels { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;
             align-items: flex-start; }
-  /* Sized to its CONTENTS, not to the window. These files hold two short
-     lines; letting the panel grow stretched it most of the way across a
-     projector and pushed the handle beside it off to the far right, where
-     a room loses it. `max-width` is the long line in any demo
-     (f.write("milk
-eggs
-")) with room to spare. */
+  /* Sized to its CONTENTS, not to the window: letting a panel grow stretched
+     it most of the way across a projector and pushed the handle beside it off
+     to the far right, where a room loses it. */
   .dwrap {
-    flex: 0 1 auto; min-width: 19rem; max-width: 32rem;
+    flex: 0 1 auto; min-width: 13rem; max-width: 32rem;
     border: 2px solid var(--line); border-radius: 10px;
     padding: .7rem .9rem .9rem; background: #fcfdfd;
   }
+  /* The file and the handle get a FIXED width, because they are on screen at
+     every step and content-sizing made them twitch as you pressed Next: an
+     empty file's caption is longer than a line of its contents, so the panel
+     was WIDER at step 1 than at step 2 and everything to its right jumped
+     left. A panel that moves while you are pointing at it is worse than a
+     panel with some white space in it. */
+  .dwrap.fwrap { flex: 0 0 24rem; }
   .dhead {
     font-size: .82rem; font-weight: 700; letter-spacing: .04em;
     text-transform: uppercase; color: var(--muted); margin-bottom: .35rem;
@@ -288,7 +291,7 @@ eggs
   /* The mode and the closed flag are two of the four things this module
      exists to teach, so they are sized to be read from the back of a room
      rather than squeezed into whatever space the file panel left over. */
-  .dwrap.hwrap { background: #fdfbfe; flex: 0 0 auto; min-width: 0; }
+  .dwrap.hwrap { background: #fdfbfe; flex: 0 0 21rem; }
   .dwrap.hwrap .dhead .var { color: #4a148c; }
   .hrow { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .3rem; }
   .hchip {
@@ -1271,7 +1274,7 @@ function fileHTML(p) {
   var rows = [];
   var lines = p.lines || [];
   if (!lines.length && !(p.gone || []).length) {
-    rows.push('<p class="fempty">0 bytes &mdash; the file is there and ' +
+    rows.push('<p class="fempty">0 bytes &mdash; it is there, and ' +
               "there is nothing in it</p>");
   }
   /* The read marker sits BETWEEN rows, because that is where a file position
@@ -1351,7 +1354,7 @@ function panelHTML(p) {
   var count = p.absent ? "does not exist"
             : (p.lines || []).length +
               ((p.lines || []).length === 1 ? " line" : " lines");
-  return '<div class="dwrap' + (p.absent ? " missing" : "") +
+  return '<div class="dwrap fwrap' + (p.absent ? " missing" : "") +
     '"><div class="dhead"><span class="var">' + esc(p.file) +
     "</span> &middot; " + count + ", on disk</div>" + fileHTML(p) + "</div>";
 }
