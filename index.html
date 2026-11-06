@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CS 1400 Steppers</title>
+<style>
+  :root { --ink: #1a1a2e; --muted: #555; --line: #cbd5e1; --teal: #00695c; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif; color: var(--ink);
+    margin: 0 auto; padding: 2rem 1.25rem 4rem; max-width: 52rem;
+    background: #fff; line-height: 1.6;
+  }
+  h1 { font-size: 1.7rem; margin: 0 0 .3rem; }
+  .sub { color: var(--muted); margin: 0 0 2rem; }
+  a.card {
+    display: block; border: 2px solid var(--line); border-left: 6px solid var(--teal);
+    border-radius: 10px; padding: 1rem 1.2rem; margin-bottom: .9rem;
+    text-decoration: none; color: inherit; background: #fcfdfd;
+  }
+  a.card:hover { border-color: var(--teal); background: #f1f8f7; }
+  a.card .t { font-size: 1.15rem; font-weight: 700; color: var(--teal); }
+  a.card .m { font-size: .82rem; font-weight: 700; letter-spacing: .06em;
+              text-transform: uppercase; color: var(--muted); }
+  a.card p { margin: .35rem 0 0; font-size: .95rem; color: var(--muted); }
+  .note {
+    border: 2px solid var(--line); border-left: 6px solid #8f6a00;
+    background: #fffdf5; border-radius: 10px; padding: 1rem 1.2rem;
+    margin: 2rem 0 0; font-size: .95rem;
+  }
+  .note strong { color: var(--ink); }
+  code { font-family: Consolas, monospace; background: #eef2f6;
+         padding: .05rem .3rem; border-radius: 3px; font-size: .92em; }
+  footer { margin-top: 2.5rem; font-size: .88rem; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<h1>CS 1400 Steppers</h1>
+<p class="sub">Weber State University &middot; Fundamentals of Programming
+  (Python)</p>
+
+<p>Each of these puts a short, real Python program on screen and walks a
+  highlight down it <strong>one line per press</strong>, drawing what the
+  program is actually doing beside the code. Before that, it shows
+  <strong>what you are about to write</strong> &mdash; the session's tasks,
+  with the decisions left blank.</p>
+
+<p>Nothing to install, nothing to sign in to, and no internet needed once the
+  page has loaded. Arrow keys work.</p>
+
+<a class="card" href="demos/files-exceptions.html">
+  <span class="m">Module 10 &middot; Code-Together 12</span>
+  <span class="t">Files &amp; Exceptions</span>
+  <p>A file drawn on disk, line by line, next to the program writing to it.
+    Watch <code>"w"</code> empty a file at <code>open</code> before anything is
+    written, a newline ride along into every line you read, a
+    <code>with</code> block close a handle nobody closed &mdash; and an
+    exception <strong>jump straight over two lines</strong> that go struck
+    through and stay that way.</p>
+</a>
+
+<div class="note">
+  <p style="margin:0 0 .5rem;"><strong>For students in the course:</strong>
+    you already have these. An identical copy ships in your Code-Together
+    starter repo at <code>images/stepper.html</code> &mdash; double-click it
+    there and it works offline. This page exists so the link can be shared
+    without asking anybody to clone a repository first.</p>
+  <p style="margin:0;">Every program shown here is checked against real
+    CPython before it is published: each demo is re-run under a line tracer
+    and every state drawn on screen is compared with what the interpreter
+    actually did.</p>
+</div>
+
+<footer>
+  Source: <code>Hadzik-CS1400/cs1400-diagrams</code>. These pages are
+  generated from the course repository &mdash; edit them there, not here.
+</footer>
+
+</body>
+</html>

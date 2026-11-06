@@ -1,0 +1,1760 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Files &amp; Exceptions Stepper</title>
+<!--
+  Files & Exceptions Stepper -- CT12, Module 10
+
+  Open this file in a browser. Double-click it, or right-click in VS Code ->
+  "Reveal in File Explorer" and double-click there. Nothing to install, no
+  internet needed, no extension: it is one self-contained file.
+
+  WHY NOT IN VS CODE: VS Code has no built-in HTML preview that runs
+  JavaScript. The markdown preview strips scripts and Simple Browser needs a
+  URL. Every student already has a browser.
+
+  SHAPE: the same page CT10 and CT11 use -- whole program on screen, Next
+  walks an arrow down it, the THIS STEP band shows the executing line with its
+  real values filled in, and a console collects what print() produced. A
+  student who can read one can read the other.
+
+  WHAT IS DIFFERENT, AND WHY IT MATTERS HERE:
+
+    1. The panel draws a FILE ON DISK, line by line, plus the handle that is
+       pointed at it -- its mode, whether it is still open, and where it will
+       read from next. Two of this module's surprises are invisible without
+       it: "w" empties the file at open() and not at write(), and a `with`
+       block closes the handle with nobody typing close().
+
+    2. A line that an exception ABANDONED is drawn struck through and marked
+       "never runs". That is the only one of this course's steppers where the
+       arrow does not simply move down by one, and the whole of Part 5 is
+       about lines that did not happen for a reason nothing on them explains.
+
+  ONE STEP IS ONE LINE EXECUTION. Never two frames for one statement. The
+  loops rely on it (a print inside a loop runs once per pass and the console
+  has to show it once per pass), and the test harness enforces it by
+  comparing the step sequence against a real CPython line trace.
+
+  BUFFERING: a .write() does not necessarily reach the disk before .close().
+  The panel draws the line as landing immediately, because "it is in the file
+  now, modulo a buffer nobody can observe from Python" is the true and useful
+  model at this level. The harness flushes every open handle before it
+  snapshots, so what is checked is the same model, honestly.
+
+  VERIFIED: Scripts/test_stepper_files.js rebuilds each program below from
+  this file, runs it in a scratch directory under CPython with a line tracer,
+  and compares -- in order -- every line executed, the contents of every file
+  on disk, every handle's mode and closed flag, every loop variable, every
+  line claimed dead, and the whole console. The code shown IS the code
+  checked.
+-->
+<style>
+  :root {
+    --ink: #1a1a2e; --muted: #555; --line: #cbd5e1; --panel: #f8fafc;
+    --teal: #00695c; --green: #1b5e20; --red: #c62828; --blue: #1565c0;
+    --code-bg: #1e1e2e; --code-fg: #cdd6f4; --code-hit: #45475a;
+    /* #6c7086 is the Catppuccin comment grey and it is 3.36:1 on this
+       background -- under AA. This is the course-wide replacement. */
+    --code-dim: #83889a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif; color: var(--ink);
+    margin: 0; padding: 1.25rem; background: #fff; line-height: 1.5;
+  }
+  h1 { font-size: 1.35rem; margin: 0 0 .25rem; }
+  .sub { color: var(--muted); font-size: .9rem; margin: 0 0 1rem; }
+  .tabs { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; }
+  .tab {
+    border: 2px solid var(--line); background: #fff; color: var(--ink);
+    border-radius: 999px; padding: .3rem 1.1rem .4rem; font-size: .95rem;
+    cursor: pointer; font-family: inherit; line-height: 1.25; text-align: center;
+  }
+  /* The Part number rides above the demo name so a student holding main.py
+     open can find the right tab without reading all seven. */
+  .tab .tpart {
+    display: block; font-size: .68rem; font-weight: 800; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--teal);
+  }
+  .tab[aria-pressed="true"] .tpart { color: #b7e4dd; }
+  .covers { margin: -.5rem 0 1rem; font-size: .92rem; color: var(--muted); }
+  .covers strong { color: var(--ink); }
+  .tab[aria-pressed="true"] {
+    background: var(--teal); border-color: var(--teal); color: #fff;
+    font-weight: 700;
+  }
+  .wrap { border: 2px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .bar {
+    display: flex; align-items: center; gap: .5rem; padding: .6rem .9rem;
+    background: var(--panel); border-bottom: 2px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .bar button {
+    font-family: inherit; font-size: .9rem; padding: .35rem .9rem;
+    border-radius: 6px; border: 2px solid var(--teal); background: #fff;
+    color: var(--teal); cursor: pointer; font-weight: 600;
+  }
+  .bar button[disabled] { opacity: .45; cursor: default; }
+  .count { margin-left: auto; font-size: .85rem; color: var(--muted); }
+  .stage { padding: 1rem .9rem 1.25rem; }
+  code, .mono { font-family: Consolas, 'Courier New', monospace; }
+
+  /* ---- the program, with one line lit ---------------------------------- */
+  .code {
+    background: var(--code-bg); color: var(--code-fg); border-radius: 8px;
+    padding: .6rem 0; overflow-x: auto;
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 1.35rem; line-height: 1.6;
+  }
+  .code div { padding: 0 .8rem; white-space: pre; }
+  .code div[data-k] { cursor: pointer; }
+  .code div[data-k]:hover { background: #313244; }
+  .code div.active[data-k]:hover { background: var(--code-hit); }
+  .code div[data-k]:focus-visible { outline: 2px solid #89dceb;
+                                    outline-offset: -2px; }
+  .code div.active {
+    background: var(--code-hit); display: flex; align-items: center;
+    flex-wrap: wrap;
+  }
+  .code div.active .src { white-space: pre; padding-right: 1.6rem; }
+  /* A marker in the gutter, not just a colour -- the line a student is on
+     has to survive a projector and a colour-blind reader.
+
+     Two spaces, not one: CSS consumes the whitespace that TERMINATES a hex
+     escape, so "\25B8 " is the arrow with nothing after it and the code
+     starts flush against the triangle. */
+  .code div.active::before { content: "\25B8  "; color: #f9e2af; }
+  .code div:not(.active)::before { content: "  "; }
+  .code div.done, .code div.done span { color: #9aa3b8; font-style: normal; }
+  /* The line an exception walked past. Struck through AND labelled, because
+     the whole difficulty of Part 5 is that nothing ON the line explains why
+     it did not happen. */
+  .code div.dead, .code div.dead span {
+    color: #f38ba8; text-decoration: line-through; font-style: normal;
+  }
+  /* inline-block, and not merely `text-decoration: none`: a line-through set
+     on an ancestor is drawn ACROSS its descendants and a child cannot turn it
+     off. Only a new formatting context escapes it -- without this the label
+     reading "never runs" is itself struck through, which is the one piece of
+     text on the row that must not look cancelled. */
+  .code div.dead::after {
+    content: "\2717  never runs"; display: inline-block; margin-left: 1.4rem;
+    font-size: .78rem; font-weight: 800; letter-spacing: .04em;
+    color: #f38ba8; text-decoration: none;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+  /* Same reason: the two-space gutter prefix would otherwise carry the strike
+     out into the left margin, so the rule starts before the code does. */
+  .code div.dead::before { display: inline-block; text-decoration: none; }
+  .code .kw { color: #cba6f7; } .code .fn { color: #89dceb; }
+  .code .st { color: #a6e3a1; } .code .nm { color: #fab387; }
+  .code .cm { color: var(--code-dim); font-style: italic; }
+  /* NOT source: the executing line with its real values substituted in, so it
+     gets a highlighter band and dark text. Nothing else in the panel has a
+     light background, which is what makes it unmistakable. */
+  .code .calc {
+    background: #f9e2af; color: #1e1e2e; font-weight: 600;
+    white-space: pre-wrap; border-radius: 5px; padding: .1rem .75rem;
+    font-size: 1.1rem;
+  }
+  .code .calc::before {
+    content: "THIS STEP"; font-size: .72rem; font-weight: 800;
+    letter-spacing: .06em; color: #4a3600; background: rgba(0,0,0,.10);
+    border-radius: 3px; padding: .08em .32em; margin-right: .55rem;
+    vertical-align: .1em;
+  }
+  /* A pass counter for lines inside a loop: "pass 2 of 3". Without it, two
+     consecutive steps on the same line look like the stepper is stuck. */
+  .code .pass.ends { background: #f5c2c2; }
+  .code .pass {
+    margin-left: .6rem; font-size: .72rem; font-weight: 800;
+    letter-spacing: .06em; color: #1e1e2e; background: #b7e4dd;
+    border-radius: 999px; padding: .12em .6em;
+  }
+
+  /* ---- the aside -------------------------------------------------------- */
+  .aside {
+    border: 2px solid var(--line); border-left: 6px solid var(--blue);
+    border-radius: 10px; margin-top: 1rem; background: #f8fafc;
+  }
+  .aside summary {
+    cursor: pointer; list-style: none; padding: .7rem .9rem;
+    font-weight: 700; font-size: 1.02rem; color: var(--blue);
+  }
+  .aside summary::-webkit-details-marker { display: none; }
+  .aside summary::before { content: "\25B8  "; }
+  .aside[open] summary::before { content: "\25BE  "; }
+  .aside .body { padding: 0 .9rem 1rem; font-size: .95rem; }
+  .aside p { margin: .5rem 0; }
+  .aside table {
+    border-collapse: collapse; width: 100%; margin: .7rem 0; font-size: .92rem;
+  }
+  .aside th, .aside td {
+    border: 1px solid var(--line); padding: .35rem .6rem; text-align: left;
+  }
+  .aside thead th { background: #eef2f6; }
+  .aside code { font-family: Consolas, monospace; background: #eef2f6;
+                padding: .05rem .3rem; border-radius: 3px; }
+  .aside .big { font-size: 1rem; }
+
+  /* ---- what we are about to write --------------------------------------
+     THE POINT OF THE PAGE, and it leads for that reason. A student who gets
+     to the IDE with no idea what they are writing will have Copilot write it
+     in four seconds and will have learned nothing, so the shape of the code
+     gets discussed HERE, slowly, with the parts they have to supply left
+     blank. Every TODO in the Part is listed, not only the one the current
+     step demonstrates -- a TODO nobody walked through is a TODO nobody
+     thought about. */
+  .writes {
+    border: 3px solid #8f6a00; background: #fffdf5; border-radius: 12px;
+    padding: .7rem .9rem .85rem; margin-bottom: 1rem;
+  }
+  .whead {
+    font-size: .95rem; font-weight: 800; color: #4a3600;
+    letter-spacing: .02em;
+  }
+  .wsub { font-weight: 600; color: var(--muted); font-size: .85rem;
+          margin-left: .5rem; letter-spacing: 0; }
+  details.todo {
+    border: 2px solid #e6dcc0; border-radius: 8px; background: #fff;
+    margin-top: .45rem;
+  }
+  details.todo.now { border-color: #8f6a00; box-shadow: 0 0 0 3px #f6e7bd; }
+  details.todo summary {
+    cursor: pointer; list-style: none; padding: .45rem .6rem;
+    font-size: .95rem; color: var(--ink);
+  }
+  details.todo summary::-webkit-details-marker { display: none; }
+  .tl {
+    display: inline-block; font-weight: 800; font-size: .72rem;
+    letter-spacing: .06em; background: #8f6a00; color: #fff;
+    border-radius: 999px; padding: .12em .6em; margin-right: .5rem;
+    vertical-align: .1em; font-family: 'Segoe UI', Arial, sans-serif;
+  }
+  details.todo.now .tl { background: #c62828; }
+  .tbody { padding: 0 .6rem .6rem; }
+  /* The skeleton, at the same size as the stepped program, because they are
+     the same thing at two moments and should look it. */
+  pre.skel {
+    background: var(--code-bg); color: var(--code-fg); border-radius: 8px;
+    padding: .6rem .85rem; font-size: 1.2rem; line-height: 1.6;
+    overflow-x: auto; margin: .35rem 0 .55rem;
+    font-family: Consolas, 'Courier New', monospace;
+  }
+  /* A blank is a question, so it is coloured like the THIS STEP band rather
+     than like code -- it is the one thing on the line that is not decided. */
+  .bl {
+    background: #f9e2af; color: #4a3600; border-radius: 4px;
+    padding: 0 .15em; font-weight: 800;
+  }
+  .asks { margin: .2rem 0 0; padding-left: 1.2rem; font-size: .92rem;
+          color: var(--muted); }
+  .asks li { margin: .22rem 0; }
+
+  /* ---- the console ------------------------------------------------------ */
+  .term {
+    background: #11111b; color: #cdd6f4; border-radius: 8px;
+    margin-top: .7rem; padding: .55rem 0 .7rem;
+    font-family: Consolas, 'Courier New', monospace; font-size: 1.2rem;
+    line-height: 1.55;
+  }
+  .term .thead {
+    font-family: 'Segoe UI', Arial, sans-serif; font-size: .74rem;
+    font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    color: #9aa3b8; padding: 0 .9rem .25rem;
+  }
+  .term .line { padding: 0 .9rem; white-space: pre-wrap; }
+  .term .line.err { color: #f38ba8; font-weight: 700; }
+  .term .none {
+    padding: 0 .9rem; color: #9aa3b8; font-style: italic;
+    font-family: 'Segoe UI', Arial, sans-serif; font-size: .95rem;
+  }
+
+  /* ---- the file on disk, first and large -------------------------------- */
+  /* This is the lesson, not a footnote to the code, so it leads and it is
+     sized to read from the back of a room. */
+  .panels { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .dwrap {
+    flex: 1 1 300px;
+    border: 2px solid var(--line); border-radius: 10px;
+    padding: .7rem .9rem .9rem; background: #fcfdfd;
+  }
+  .dhead {
+    font-size: .82rem; font-weight: 700; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: .35rem;
+  }
+  .dhead .var { font-family: Consolas, monospace; text-transform: none;
+                font-size: 1.1rem; font-weight: 700; color: var(--teal);
+                letter-spacing: 0; }
+  .flines { display: flex; flex-direction: column; gap: .3rem; }
+  /* One box per line of the file, with its newline drawn in. The newline is
+     the single most surprising character in this module and leaving it out of
+     the picture is how a student ends up comparing 'done' with 'done\n'. */
+  .fline {
+    border: 3px solid var(--teal); background: #f1f8f7; border-radius: 8px;
+    padding: .35rem .7rem; font-family: Consolas, 'Courier New', monospace;
+    font-size: 1.15rem; display: flex; align-items: center; gap: .5rem;
+  }
+  .fline .no {
+    font-size: .76rem; font-weight: 800; color: #00564b; min-width: 1.6em;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+  .fline.added { border-color: var(--green); background: #c8e6c9; }
+  .fline.at { border-color: #6a1b9a; background: #f3e5f5; }
+  .fline.gone {
+    border-color: var(--red); background: #ffebee; color: #8b1111;
+    text-decoration: line-through;
+  }
+  .cursor {
+    display: flex; align-items: center; gap: .4rem; margin: .1rem 0;
+    font-size: .8rem; font-weight: 800; color: #4a148c;
+  }
+  .cursor .caret { font-family: Consolas, monospace; font-size: 1rem; }
+  .fempty { color: var(--muted); font-style: italic; font-size: 1rem;
+            margin: .4rem 0 .1rem; }
+  /* A file that is not there. Drawn rather than simply absent, because "no
+     box" reads as "I forgot to draw it" and this is the state that raises. */
+  .fgone {
+    border: 3px dashed var(--red); background: #fff5f5; border-radius: 8px;
+    padding: .6rem .7rem; color: #8b1111; font-weight: 700; font-size: 1rem;
+  }
+  .dwrap.missing { background: #fffafa; border-color: var(--red); }
+  .dwrap.missing .dhead .var { color: #8b1111; }
+
+  /* ---- the handle ------------------------------------------------------- */
+  .dwrap.hwrap { background: #fdfbfe; flex: 0 1 260px; }
+  .dwrap.hwrap .dhead .var { color: #4a148c; }
+  .hrow { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .2rem; }
+  .hchip {
+    border: 3px solid #6a1b9a; background: #f3e5f5; border-radius: 8px;
+    padding: .3rem .7rem; font-family: Consolas, monospace; font-size: 1.05rem;
+  }
+  .hchip .hk {
+    display: block; font-size: .68rem; font-weight: 800; letter-spacing: .06em;
+    text-transform: uppercase; color: #4a148c;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+  .hchip.open { border-color: var(--green); background: #e8f5e9; }
+  .hchip.open .hk { color: #0d3b11; }
+  .hchip.shut { border-color: var(--line); background: #eef2f6; color: #4a4a4a; }
+  .hchip.shut .hk { color: var(--muted); }
+  .hchip.wipe { border-color: var(--red); background: #ffebee; color: #8b1111; }
+  .hchip.wipe .hk { color: #8b1111; }
+
+  /* a plain value -- a string or a list, in memory, not on disk */
+  .viewrow { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .2rem; }
+  .vcell {
+    border: 3px solid #6a1b9a; background: #f3e5f5; border-radius: 8px;
+    padding: .4rem .75rem; font-family: Consolas, monospace; font-size: 1.1rem;
+  }
+  .dwrap.view { background: #fdfbfe; }
+  .dwrap.view .dhead .var { color: #4a148c; }
+
+  .binds { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: .9rem; }
+  .bind {
+    border: 2px solid var(--line); border-left-width: 7px;
+    border-left-color: #6a1b9a; border-radius: 8px; padding: .4rem .7rem;
+    background: #fff; font-family: Consolas, monospace; font-size: 1.05rem;
+  }
+  .bind .bn { font-weight: 700; color: #4a148c; }
+  .bind.unset { border-left-color: var(--red); background: #fffafa; }
+  .bind.unset .bv { color: #a01b1b; font-family: 'Segoe UI', Arial, sans-serif;
+                    font-size: .88rem; font-style: italic; }
+  .ret {
+    display: inline-block; margin-top: .6rem; padding: .3rem .7rem;
+    border-radius: 6px; font-family: Consolas, monospace; font-size: .9rem;
+  }
+  .ret.val { background: #e8f5e9; border: 2px solid var(--green); }
+  .ret.none { background: #ffebee; border: 2px solid var(--red);
+              font-weight: 700; }
+  .note { margin: .7rem 0 0; font-size: .92rem; color: var(--muted);
+          min-height: 2.6em; }
+  .note strong { color: var(--ink); }
+  /* The hand-off. Everything above is "watch"; this line is "now go and
+     write it", which is the whole reason the page exists. */
+  .todobar {
+    margin: 0; padding: .55rem .9rem; font-size: 1rem;
+    background: #fff8e1; border-bottom: 2px solid var(--line);
+    color: #4a3600;
+  }
+  .todobar b { font-size: 1.05rem; }
+  .todobar.bg { background: var(--panel); color: var(--muted); }
+  .legend { font-size: .82rem; color: var(--muted); margin-top: .9rem; }
+  .kbd {
+    border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px;
+    padding: 0 .35rem; font-family: Consolas, monospace; font-size: .8rem;
+    background: #fff;
+  }
+</style>
+</head>
+<body>
+
+<h1>Files &amp; Exceptions Stepper</h1>
+<p class="sub"><strong>What we are about to write is at the top</strong>
+  &mdash; every TODO in the Part, with the decisions left blank, because the
+  shape of the code is worth more argument than the typing of it. Underneath,
+  <strong>Next</strong> walks a working version of the same idea a line at a
+  time: lines land in a file, a file gets emptied, and &mdash; in Part 5
+  &mdash; the arrow jumps over code that never runs.
+  <strong>Click any line</strong> to jump straight to it. Use
+  <span class="kbd">&larr;</span> <span class="kbd">&rarr;</span> at any time
+  &mdash; no need to click first.</p>
+
+<div class="tabs" id="tabs" role="group" aria-label="Choose a demo"></div>
+<p class="covers" id="covers"></p>
+
+<div class="wrap">
+  <div class="bar">
+    <button id="back" type="button">&larr; Back</button>
+    <button id="next" type="button">Next &rarr;</button>
+    <button id="reset" type="button">Reset</button>
+    <span class="count" id="count"></span>
+  </div>
+  <p class="todobar" id="todobar"></p>
+  <div class="stage" id="stage" tabindex="0" aria-live="polite"></div>
+</div>
+
+<p class="legend">
+  &#9656; = the line running now &nbsp;&middot;&nbsp;
+  <span style="color:#f38ba8">&#10007; never runs</span> = a line an exception
+  walked straight past &nbsp;&middot;&nbsp; Green = just written, or a handle
+  still open &nbsp;&middot;&nbsp; Purple = where the next read will start
+  &nbsp;&middot;&nbsp; Red strike = erased, or never there
+  &nbsp;&middot;&nbsp; Every line box ends in <code>\n</code> because the file
+  really does.
+</p>
+
+<script>
+/* Each demo is a REAL, RUNNABLE program in `code`, plus `steps` that walk it.
+
+   INVARIANT: one step is one line execution. A line inside a loop gets one
+   step per pass, in order, and the console is derived from that -- so a print
+   in a loop prints once per pass with no bookkeeping.
+
+   A step carries:
+     line    the `k` of the code line it is on
+     panels  what to draw above the code, left to right. A panel is one of
+             { file, lines: [...], added, at, gone: [...], absent }  a file
+                      on disk; `lines` are Python literals, `gone` is drawn
+                      struck through, `at` marks where the next read starts
+             { handle, of, mode, closed }                  an open file object
+             { name, items: [...], view: true }            a value in memory
+     bind    loop variables this pass, null value = "this loop never fills
+             that name in"
+     dead    `k`s of lines an exception has abandoned -- drawn struck through
+             and labelled, because nothing ON those lines explains it
+     calc    the same line with its real values filled in -- the THIS STEP band
+     ret     what the line handed back (console gets it when the line prints)
+     err     the traceback line, if this line raises
+     note    the sentence under the panel
+
+   File lines are written as Python literals ("milk\n") because the test
+   harness compares them with repr() of what CPython actually left on disk. */
+
+var DEMOS = {
+  modes: {
+    todos: { open1: "a", w1: "a", w2: "a", shut1: "a",
+             open2: "b", w3: "b", shut2: "b",
+             open3: "", shut3: "" },
+    writes: [
+      { todo: "a",
+        says: 'Write 3 lines to "sample.txt" using open() and write() ' +
+              'Remember: add "\\n" at the end of each line',
+        lines: ['f = open("____", "____")',
+                'f.write("____\\n")',
+                'f.write("____\\n")',
+                'f.write("____\\n")',
+                "f.____()"],
+        asks: ["Two blanks on the first line: what is the file called, and " +
+               "which mode starts it empty?",
+               "Leave the \\n off all three writes. What is in the file then?"] },
+      { todo: "b",
+        says: 'Append a 4th line using "a" mode',
+        lines: ['f = open("sample.txt", "____")',
+                'f.write("____\\n")',
+                "f.close()"],
+        asks: ['Why can the mode not be "w" here?',
+               "The file is opened a second time. What happened to the first " +
+               "handle?"] }
+    ],
+    label: "Empty it, or add to the end",
+    part: 1,
+    covers: "Both TODOs — write three lines, then append a fourth without losing them.",
+    aside: {
+      title: "Why does \"w\" not just wait until I write something?",
+      html:
+        "<p>Because <code>open</code> asks the operating system for a handle " +
+        "to a file of a particular shape, and <em>&#8220;a file of length " +
+        "zero&#8221;</em> is the shape <code>\"w\"</code> asks for. The " +
+        "truncation is part of opening it, not part of writing to it.</p>" +
+        "<table><thead><tr>" +
+        "<th scope=\"col\">Mode</th><th scope=\"col\">File is missing</th>" +
+        "<th scope=\"col\">File exists</th></tr></thead><tbody>" +
+        "<tr><th scope=\"row\"><code>\"r\"</code> (the default)</th>" +
+        "<td><code>FileNotFoundError</code></td>" +
+        "<td>reads from the start</td></tr>" +
+        "<tr><th scope=\"row\"><code>\"w\"</code></th>" +
+        "<td>creates it, empty</td>" +
+        "<td><strong>empties it</strong></td></tr>" +
+        "<tr><th scope=\"row\"><code>\"a\"</code></th>" +
+        "<td>creates it, empty</td>" +
+        "<td>keeps it, writes at the end</td></tr>" +
+        "</tbody></table>" +
+        "<p class=\"big\">Read the second column too. <code>\"a\"</code> " +
+        "creating a missing file is what makes a notes app work on its very " +
+        "first run &mdash; and it is why Part 8 can append before it can " +
+        "read.</p>" +
+        "<p>There is no undo. The old contents are not in a recycle bin, not " +
+        "in Git unless you had committed them, and not recoverable by " +
+        "closing without writing. The moment <code>open</code> returned, " +
+        "they were gone.</p>"
+    },
+    steps: [
+      { line: "open1",
+        panels: [{ file: "sample.txt", lines: [] },
+                 { handle: "f", of: "sample.txt", mode: "w", closed: false }],
+        calc: 'open("sample.txt", "w")  ->  a brand new, empty file',
+        note: "There was no file called sample.txt, so <code>\"w\"</code> made " +
+              "one. It is <strong>empty before any write</strong> &mdash; " +
+              "hold on to that, because the last two lines do it to a file " +
+              "that was not empty." },
+      { line: "w1",
+        panels: [{ file: "sample.txt", lines: ['"milk\\n"'], added: 0 },
+                 { handle: "f", of: "sample.txt", mode: "w", closed: false }],
+        ret: "5",
+        calc: 'f.write("milk\\n")  ->  5 characters land in the file',
+        note: "Five characters, not four: the <code>\\n</code> is one of them, " +
+              "and it is what makes this a <em>line</em> rather than the " +
+              "start of a longer one." },
+      { line: "w2",
+        panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], added: 1 },
+                 { handle: "f", of: "sample.txt", mode: "w", closed: false }],
+        ret: "5",
+        calc: 'f.write("eggs\\n")  ->  the file now has two lines',
+        note: "Leave the <code>\\n</code> off the first write and these two " +
+              "would be one line reading <code>milkeggs</code>. " +
+              "<strong><code>write()</code> adds nothing for you</strong> " +
+              "&mdash; unlike <code>print()</code>, which always adds one." },
+      { line: "shut1",
+        panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'] },
+                 { handle: "f", of: "sample.txt", mode: "w", closed: true }],
+        calc: "f.close()  ->  the handle is shut, the file is on disk",
+        note: "Closing flushes whatever was still buffered and hands the file " +
+              "back to the operating system. Writing to <code>f</code> now " +
+              "raises <code>ValueError: I/O operation on closed file</code>." },
+      { line: "open2",
+        panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'] },
+                 { handle: "f", of: "sample.txt", mode: "a", closed: false }],
+        calc: 'open("sample.txt", "a")  ->  both lines still there',
+        note: "<strong>Same file, same two lines.</strong> This is the whole " +
+              "difference: <code>\"a\"</code> opened it without touching " +
+              "what was in it, and set the writing position to the end." },
+      { line: "w3",
+        panels: [{ file: "sample.txt",
+                   lines: ['"milk\\n"', '"eggs\\n"', '"bread\\n"'], added: 2 },
+                 { handle: "f", of: "sample.txt", mode: "a", closed: false }],
+        ret: "6",
+        calc: 'f.write("bread\\n")  ->  added after the last line',
+        note: "Three lines. Had this been <code>\"w\"</code>, the file would " +
+              "hold <code>bread</code> and nothing else &mdash; and nobody " +
+              "would have been told." },
+      { line: "shut2",
+        panels: [{ file: "sample.txt",
+                   lines: ['"milk\\n"', '"eggs\\n"', '"bread\\n"'] },
+                 { handle: "f", of: "sample.txt", mode: "a", closed: true }],
+        calc: "f.close()  ->  three lines, safely written",
+        note: "This is the state the TODOs ask you to reach. The next two " +
+              "lines are the mistake, so you have seen it happen once." },
+      { line: "open3",
+        panels: [{ file: "sample.txt", lines: [],
+                   gone: ['"milk\\n"', '"eggs\\n"', '"bread\\n"'] },
+                 { handle: "f", of: "sample.txt", mode: "w", closed: false }],
+        calc: 'open("sample.txt", "w")  ->  three lines, gone, right now',
+        note: "<strong>Nothing has been written and the file is already " +
+              "empty.</strong> Not on the next write, not at close &mdash; " +
+              "at <code>open</code>. There is no undo, and no warning was " +
+              "printed." },
+      { line: "shut3",
+        panels: [{ file: "sample.txt", lines: [] },
+                 { handle: "f", of: "sample.txt", mode: "w", closed: true }],
+        calc: "f.close()  ->  an empty file, and no way back",
+        note: "Closing without writing does not restore anything. Read the " +
+              "mode twice before you run a program, every single time." }
+    ],
+    code: [
+      { k: "open1", t: 'f = open("sample.txt", "w")' },
+      { k: "w1",    t: 'f.write("milk\\n")' },
+      { k: "w2",    t: 'f.write("eggs\\n")' },
+      { k: "shut1", t: "f.close()" },
+      { k: "open2", t: 'f = open("sample.txt", "a")' },
+      { k: "w3",    t: 'f.write("bread\\n")' },
+      { k: "shut2", t: "f.close()" },
+      { k: "open3", t: 'f = open("sample.txt", "w")' },
+      { k: "shut3", t: "f.close()" }
+    ]
+  },
+
+  reading: {
+    todos: { mk: "", wr: "", shut0: "",
+             open1: "a", read: "a", len: "a", shut1: "a",
+             open2: "b", loop: "b", say: "b", shut2: "b" },
+    writes: [
+      { todo: "a",
+        says: 'Read "sample.txt" with read() and print it',
+        lines: ['f = open("____")',
+                "text = f.____()",
+                "print(text)",
+                "f.close()"],
+        asks: ["One argument, not two. Which mode does that give you?",
+               "print(text) looks tidy. Where did the newlines go?"] },
+      { todo: "b",
+        says: "Read line by line with a for loop. Strip the trailing newline.",
+        lines: ['f = open("sample.txt")',
+                "for ____ in f:",
+                "    print(____.strip())",
+                "f.close()"],
+        asks: ["Run it once WITHOUT the .strip(). What do you see between " +
+               "the lines, and where did that come from?",
+               "The file was opened again. Why not keep using the handle " +
+               "from TODO a?"] }
+    ],
+    label: "The newline comes along",
+    part: 2,
+    covers: "Both TODOs — the whole file as one string, then a line at a time.",
+    steps: [
+      { line: "mk",
+        panels: [{ file: "sample.txt", lines: [] },
+                 { handle: "f", of: "sample.txt", mode: "w", closed: false }],
+        calc: 'open("sample.txt", "w")  ->  an empty file to read back',
+        note: "Three lines of setup so there is something to read. The " +
+              "reading starts at line 4." },
+      { line: "wr",
+        panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], added: 1 },
+                 { handle: "f", of: "sample.txt", mode: "w", closed: false }],
+        ret: "10",
+        calc: 'f.write("milk\\neggs\\n")  ->  10 characters, two lines',
+        note: "<strong>One call, two lines.</strong> Python did not decide " +
+              "that &mdash; the <code>\\n</code> in the middle did. A line " +
+              "is whatever sits between newlines." },
+      { line: "shut0",
+        panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'] },
+                 { handle: "f", of: "sample.txt", mode: "w", closed: true }],
+        calc: "f.close()  ->  setup done",
+        note: "Now read it back two different ways." },
+      { line: "open1",
+        panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], at: 0 },
+                 { handle: "f", of: "sample.txt", mode: "r", closed: false }],
+        calc: 'open("sample.txt")  ->  no mode given, so "r"',
+        note: "No second argument means <code>\"r\"</code>. The purple marker " +
+              "is where the next read will start &mdash; the very beginning." },
+      { line: "read",
+        panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], at: 2 },
+                 { handle: "f", of: "sample.txt", mode: "r", closed: false },
+                 { name: "text", items: ["'milk\\neggs\\n'"], view: true }],
+        calc: "text = f.read()  ->  the whole file as ONE string",
+        note: "One string, newlines and all. The marker has moved to the end " +
+              "&mdash; <strong>calling <code>read()</code> again now returns " +
+              "<code>''</code></strong>, which is a confusing afternoon if " +
+              "you do not know it." },
+      { line: "len",
+        panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], at: 2 },
+                 { handle: "f", of: "sample.txt", mode: "r", closed: false },
+                 { name: "text", items: ["'milk\\neggs\\n'"], view: true }],
+        ret: "10", calc: "len(text)  ->  10",
+        note: "<strong>Ten, not eight.</strong> <code>milk</code> and " +
+              "<code>eggs</code> are eight characters; the other two are the " +
+              "newlines, which are as real as the letters." },
+      { line: "shut1",
+        panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'] },
+                 { handle: "f", of: "sample.txt", mode: "r", closed: true },
+                 { name: "text", items: ["'milk\\neggs\\n'"], view: true }],
+        calc: "f.close()  ->  text survives, the handle does not",
+        note: "The string stays in memory after the file is closed. They are " +
+              "two separate things, and only one of them is on the disk." },
+      { line: "open2",
+        panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], at: 0 },
+                 { handle: "f", of: "sample.txt", mode: "r", closed: false }],
+        calc: 'open("sample.txt")  ->  back to the beginning',
+        note: "A fresh handle starts at the top again. You cannot rewind the " +
+              "old one by wishing; opening again is how you re-read." },
+      { line: "loop",
+        panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], at: 1 },
+                 { handle: "f", of: "sample.txt", mode: "r", closed: false }],
+        bind: [{ n: "line", v: "'milk\\n'" }],
+        calc: "for line in f:  ->  line = 'milk\\n'",
+        note: "Looping over the file hands you one line per pass, " +
+              "<strong>newline still attached</strong>. No one took it off." },
+      { line: "say",
+        panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], at: 1 },
+                 { handle: "f", of: "sample.txt", mode: "r", closed: false }],
+        bind: [{ n: "line", v: "'milk\\n'" }],
+        ret: "milk", calc: "print(line.strip())  ->  milk",
+        note: "Without <code>.strip()</code> you would get a blank row after " +
+              "each one: the line brings its own newline and " +
+              "<code>print</code> adds a second." },
+      { line: "loop",
+        panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], at: 2 },
+                 { handle: "f", of: "sample.txt", mode: "r", closed: false }],
+        bind: [{ n: "line", v: "'eggs\\n'" }],
+        calc: "for line in f:  ->  line = 'eggs\\n'",
+        note: "Second pass. The marker has moved down; the file has not " +
+              "changed." },
+      { line: "say",
+        panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], at: 2 },
+                 { handle: "f", of: "sample.txt", mode: "r", closed: false }],
+        bind: [{ n: "line", v: "'eggs\\n'" }],
+        ret: "eggs", calc: "print(line.strip())  ->  eggs",
+        note: "<code>strip()</code> hands back a <em>new</em> string and " +
+              "leaves <code>line</code> alone &mdash; same as every other " +
+              "string method you have met." },
+      { line: "loop", end: true, endText: "loop ends",
+        panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], at: 2 },
+                 { handle: "f", of: "sample.txt", mode: "r", closed: false }],
+        bind: [{ n: "line", v: "'eggs\\n'" }],
+        calc: "for line in f:  ->  nothing left, so the loop stops",
+        note: "<strong>A third press of the line.</strong> The loop asked the " +
+              "file for another line, the file had none, and that is how a " +
+              "<code>for</code> over a file ends &mdash; not by counting, and " +
+              "with nothing printed." },
+      { line: "shut2",
+        panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], at: 2 },
+                 { handle: "f", of: "sample.txt", mode: "r", closed: true }],
+        bind: [{ n: "line", v: "'eggs\\n'" }],
+        calc: "f.close()  ->  the loop ran out of lines and stopped",
+        note: "Nothing announced the end: the loop simply had no third line " +
+              "to hand over. <strong><code>line</code> still holds the " +
+              "last one</strong> after the loop &mdash; a loop variable " +
+              "outlives its loop." }
+    ],
+    code: [
+      { k: "mk",    t: 'f = open("sample.txt", "w")' },
+      { k: "wr",    t: 'f.write("milk\\neggs\\n")' },
+      { k: "shut0", t: "f.close()" },
+      { k: "open1", t: 'f = open("sample.txt")' },
+      { k: "read",  t: "text = f.read()" },
+      { k: "len",   t: "print(len(text))" },
+      { k: "shut1", t: "f.close()" },
+      { k: "open2", t: 'f = open("sample.txt")' },
+      { k: "loop",  t: "for line in f:" },
+      { k: "say",   t: "    print(line.strip())" },
+      { k: "shut2", t: "f.close()" }
+    ]
+  },
+
+  withblock: {
+    todos: { open1: "", wr1: "", ask1: "", shut: "", ask2: "",
+             wth: "a", wr2: "a", ask3: "a", ask4: "a" },
+    writes: [
+      { todo: "a",
+        says: "Rewrite Part 1 using with",
+        lines: ['____ open("sample.txt", "w") ____ f:',
+                '    f.write("milk\\n")',
+                '    f.write("eggs\\n")'],
+        asks: ["Go back to your Part 1 and count the lines. Which one is " +
+               "missing here, and who does it instead?",
+               "What tells Python the block has finished?"] },
+      { todo: "b",
+        says: "Rewrite Part 2 using with",
+        lines: ['with open("sample.txt") as f:',
+                "    for line in f:",
+                "        print(line.strip())",
+                "print(f.____)"],
+        asks: ["The last line is outside the block. What will it print?",
+               "Try reading from f after the block ends. What happens, and " +
+               "why is that the behaviour you want?"] }
+    ],
+    label: "with closes it, and you never typed close",
+    part: 3,
+    covers: "Both TODOs — the same writing and reading, handed to `with`.",
+    steps: [
+      { line: "open1",
+        panels: [{ file: "notes.txt", lines: [] },
+                 { handle: "f", of: "notes.txt", mode: "w", closed: false }],
+        calc: 'open("notes.txt", "w")  ->  the long way, by hand',
+        note: "The form from Part 1. Everything here is your responsibility, " +
+              "including the closing." },
+      { line: "wr1",
+        panels: [{ file: "notes.txt", lines: ['"milk\\n"'], added: 0 },
+                 { handle: "f", of: "notes.txt", mode: "w", closed: false }],
+        ret: "5", calc: 'f.write("milk\\n")  ->  one line written',
+        note: "So far identical to Part 1." },
+      { line: "ask1",
+        panels: [{ file: "notes.txt", lines: ['"milk\\n"'] },
+                 { handle: "f", of: "notes.txt", mode: "w", closed: false }],
+        ret: "False", calc: "print(f.closed)  ->  False",
+        note: "<code>.closed</code> is a plain True/False you can print, " +
+              "which is what makes the rest of this demo checkable rather " +
+              "than a claim." },
+      { line: "shut",
+        panels: [{ file: "notes.txt", lines: ['"milk\\n"'] },
+                 { handle: "f", of: "notes.txt", mode: "w", closed: true }],
+        calc: "f.close()  ->  you remembered",
+        note: "You remembered <em>this</em> time. The next person to edit " +
+              "this file adds a line above it and returns early, and now " +
+              "nobody closes anything." },
+      { line: "ask2",
+        panels: [{ file: "notes.txt", lines: ['"milk\\n"'] },
+                 { handle: "f", of: "notes.txt", mode: "w", closed: true }],
+        ret: "True", calc: "print(f.closed)  ->  True",
+        note: "Shut, because a line of your program said so." },
+      { line: "wth",
+        panels: [{ file: "notes.txt", lines: ['"milk\\n"'] },
+                 { handle: "g", of: "notes.txt", mode: "a", closed: false }],
+        calc: 'with open("notes.txt", "a") as g:  ->  g is open',
+        note: "<code>with</code> opens the file and binds it to <code>g</code> " +
+              "exactly as <code>=</code> would. The difference is what " +
+              "happens at the end of the indented block." },
+      { line: "wr2",
+        panels: [{ file: "notes.txt", lines: ['"milk\\n"', '"eggs\\n"'], added: 1 },
+                 { handle: "g", of: "notes.txt", mode: "a", closed: false }],
+        ret: "5", calc: 'g.write("eggs\\n")  ->  appended',
+        note: "Ordinary writing. Nothing about <code>with</code> changes how " +
+              "you use the file inside the block." },
+      { line: "ask3",
+        panels: [{ file: "notes.txt", lines: ['"milk\\n"', '"eggs\\n"'] },
+                 { handle: "g", of: "notes.txt", mode: "a", closed: false }],
+        ret: "False", calc: "print(g.closed)  ->  False",
+        note: "Still open &mdash; we are inside the block. Watch this exact " +
+              "value in two presses." },
+      { line: "wth", end: true, endText: "block ends",
+        panels: [{ file: "notes.txt", lines: ['"milk\\n"', '"eggs\\n"'] },
+                 { handle: "g", of: "notes.txt", mode: "a", closed: true }],
+        calc: "the indented block ended  ->  with closes g, here",
+        note: "<strong>The arrow came back to the <code>with</code> line.</strong> " +
+              "Nothing is left to run on it &mdash; this is the dedent, and " +
+              "closing the file is what it does. Python really does execute " +
+              "something here, which is why the step exists at all." },
+      { line: "ask4",
+        panels: [{ file: "notes.txt", lines: ['"milk\\n"', '"eggs\\n"'] },
+                 { handle: "g", of: "notes.txt", mode: "a", closed: true }],
+        ret: "True", calc: "print(g.closed)  ->  True",
+        note: "<strong>True, and nowhere in this program is there a " +
+              "<code>g.close()</code>.</strong> The dedent closed it. It " +
+              "would also have closed it had the block raised halfway " +
+              "through &mdash; which is the case the long form gets wrong." }
+    ],
+    code: [
+      { k: "open1", t: 'f = open("notes.txt", "w")' },
+      { k: "wr1",   t: 'f.write("milk\\n")' },
+      { k: "ask1",  t: "print(f.closed)" },
+      { k: "shut",  t: "f.close()" },
+      { k: "ask2",  t: "print(f.closed)" },
+      { k: "wth",   t: 'with open("notes.txt", "a") as g:' },
+      { k: "wr2",   t: '    g.write("eggs\\n")' },
+      { k: "ask3",  t: "    print(g.closed)" },
+      { k: "ask4",  t: "print(g.closed)" }
+    ]
+  },
+
+  text: {
+    todos: { mk: "a", wr: "a", shut0: "a", open1: "a", r1: "a", r2: "a",
+             shut1: "a", glue: "a", sum: "a" },
+    writes: [
+      { todo: "a",
+        says: 'Create "scores.txt" with 5 scores (one per line). ' +
+              "Read it back, convert each line to int, calculate the average.",
+        lines: ['with open("scores.txt", "____") as f:',
+                "    for score in [__, __, __, __, __]:",
+                '        f.write(____(score) + "\\n")',
+                "total = 0",
+                'with open("scores.txt") as f:',
+                "    for line in f:",
+                "        total = total + ____(line.strip())",
+                "print(total / ____)"],
+        asks: ["write() takes strings only. What has to wrap the number " +
+               "before it can go in the file?",
+               "And what has to wrap it on the way back out?",
+               "What do you divide by &mdash; and what would happen if the " +
+               "file turned out to be empty?"] }
+    ],
+    label: "Everything out of a file is text",
+    part: 4,
+    covers: "The one TODO — write the scores, read them back, add them up.",
+    steps: [
+      { line: "mk",
+        panels: [{ file: "scores.txt", lines: [] },
+                 { handle: "f", of: "scores.txt", mode: "w", closed: false }],
+        calc: 'open("scores.txt", "w")  ->  an empty file',
+        note: "A data file is just a text file with a shape you agreed on. " +
+              "Here the shape is &#8220;one number per line&#8221;." },
+      { line: "wr",
+        panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'], added: 1 },
+                 { handle: "f", of: "scores.txt", mode: "w", closed: false }],
+        ret: "6", calc: 'f.write("91\\n85\\n")  ->  two lines',
+        note: "<code>write()</code> takes <strong>strings only</strong>. " +
+              "<code>f.write(91)</code> is a <code>TypeError</code> &mdash; " +
+              "you would need <code>str(91)</code>." },
+      { line: "shut0",
+        panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'] },
+                 { handle: "f", of: "scores.txt", mode: "w", closed: true }],
+        calc: "f.close()  ->  two numbers, stored as text",
+        note: "They look like numbers. On disk they are the characters " +
+              "<code>9</code>, <code>1</code> and a newline." },
+      { line: "open1",
+        panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'], at: 0 },
+                 { handle: "f", of: "scores.txt", mode: "r", closed: false }],
+        calc: 'open("scores.txt")  ->  ready to read',
+        note: "Reading starts at the top." },
+      { line: "r1",
+        panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'], at: 1 },
+                 { handle: "f", of: "scores.txt", mode: "r", closed: false },
+                 { name: "first", items: ["'91\\n'"], view: true }],
+        calc: "first = f.readline()  ->  '91\\n'",
+        note: "<code>readline()</code> hands back one line and moves the " +
+              "marker past it &mdash; the same marker the <code>for</code> " +
+              "loop moves." },
+      { line: "r2",
+        panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'], at: 2 },
+                 { handle: "f", of: "scores.txt", mode: "r", closed: false },
+                 { name: "second", items: ["'85\\n'"], view: true }],
+        calc: "second = f.readline()  ->  '85\\n'",
+        note: "Both are <strong>strings</strong>. Nothing in this program has " +
+              "turned anything into a number yet." },
+      { line: "shut1",
+        panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'] },
+                 { handle: "f", of: "scores.txt", mode: "r", closed: true },
+                 { name: "first", items: ["'91\\n'"], view: true },
+                 { name: "second", items: ["'85\\n'"], view: true }],
+        calc: "f.close()  ->  two strings in hand",
+        note: "Now the two ways of adding them." },
+      { line: "glue",
+        panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'] },
+                 { name: "first", items: ["'91\\n'"], view: true },
+                 { name: "second", items: ["'85\\n'"], view: true }],
+        ret: "9185",
+        calc: 'print(first.strip() + second.strip())  ->  "91" + "85" = "9185"',
+        note: "<strong>Not 176.</strong> <code>+</code> on two strings glues " +
+              "them, and nothing raised &mdash; which is what makes this bug " +
+              "so quiet. It shows up as a wrong total three screens later." },
+      { line: "sum",
+        panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'] },
+                 { name: "first", items: ["'91\\n'"], view: true },
+                 { name: "second", items: ["'85\\n'"], view: true }],
+        ret: "176",
+        calc: "print(int(first) + int(second))  ->  91 + 85 = 176",
+        note: "<code>int()</code> forgives the trailing newline, so no " +
+              "<code>.strip()</code> was needed here. It does " +
+              "<strong>not</strong> forgive <code>\"ninety\"</code> &mdash; " +
+              "that is a <code>ValueError</code>, and Part 6 reads the " +
+              "traceback it produces." }
+    ],
+    code: [
+      { k: "mk",    t: 'f = open("scores.txt", "w")' },
+      { k: "wr",    t: 'f.write("91\\n85\\n")' },
+      { k: "shut0", t: "f.close()" },
+      { k: "open1", t: 'f = open("scores.txt")' },
+      { k: "r1",    t: "first = f.readline()" },
+      { k: "r2",    t: "second = f.readline()" },
+      { k: "shut1", t: "f.close()" },
+      { k: "glue",  t: "print(first.strip() + second.strip())" },
+      { k: "sum",   t: "print(int(first) + int(second))" }
+    ]
+  },
+
+  skip: {
+    todos: { a: "b", tryline: "b", bad: "b", b: "b", rd: "b",
+             handler: "b", c: "b", d: "b" },
+    writes: [
+      { todo: "a",
+        says: 'Try to open "does_not_exist.txt" and read it. Run it. ' +
+              "Read the crash.",
+        lines: ['f = open("does_not_exist.txt")',
+                "print(f.read())",
+                "",
+                "# Run it. The last line of the traceback said:",
+                "#     ____________: ____________"],
+        asks: ["There is nothing to decide in the two lines of code, and " +
+               "that is the point &mdash; this TODO is the <em>running</em> " +
+               "of it. Fill the comment in from what you actually saw.",
+               "You need that first blank, exactly as spelled, for TODO 5b.",
+               "How many lines of your program ran before it stopped?"] },
+      { todo: "b",
+        says: "Wrap that same code in try/except FileNotFoundError and print " +
+              "a friendly message instead. Run it again — no crash, and " +
+              "the program continues.",
+        lines: ["try:",
+                '    f = open("does_not_exist.txt")',
+                "    print(f.read())",
+                "except ____:",
+                '    print("____")'],
+        asks: ["First blank: the name TODO a just showed you. Do not guess " +
+               "it &mdash; go and read it.",
+               "Second blank: what would somebody who is not you want to be " +
+               "told here?",
+               "Which line of the try block never runs now, and why is that " +
+               "not a bug?"] },
+      { todo: "c",
+        says: "Ask the user for a filename and try to read it. Handle the " +
+              "missing-file case. Then try it with a folder name instead of " +
+              "a file and see what different error you get.",
+        lines: ['name = input("____")',
+                "try:",
+                "    with open(____) as f:",
+                "        print(f.read())",
+                "except ____:",
+                '    print("____")'],
+        asks: ["Third blank: no quotes round it. Why not?",
+               "Now type a FOLDER name at the prompt. What is that error " +
+               "called, and does your except catch it?"] }
+    ],
+    label: "The lines that never run",
+    part: 5,
+    covers: "TODO b — wrap the crash in try/except and watch what it skips.",
+    aside: {
+      title: "Which exception do I name?",
+      html:
+        "<p>The one the crash told you about. Run it without the " +
+        "<code>try</code> first &mdash; that is what TODO a is for &mdash; " +
+        "and the last line of the traceback names it exactly.</p>" +
+        "<table><thead><tr><th scope=\"col\">What you did</th>" +
+        "<th scope=\"col\">What it raises</th></tr></thead><tbody>" +
+        "<tr><td>opened a file that is not there</td>" +
+        "<td><code>FileNotFoundError</code></td></tr>" +
+        "<tr><td>opened a folder as if it were a file</td>" +
+        "<td><code>IsADirectoryError</code> " +
+        "(<code>PermissionError</code> on Windows)</td></tr>" +
+        "<tr><td><code>int(\"banana\")</code></td>" +
+        "<td><code>ValueError</code></td></tr>" +
+        "<tr><td><code>f.write(42)</code></td>" +
+        "<td><code>TypeError</code></td></tr>" +
+        "<tr><td>wrote to a file you closed</td>" +
+        "<td><code>ValueError</code></td></tr>" +
+        "</tbody></table>" +
+        "<p class=\"big\">A bare <code>except:</code> catches all of them " +
+        "<em>and</em> the ones you did not think of &mdash; including " +
+        "<code>NameError</code> from a misspelt variable of your own. The " +
+        "program then reports your typo as a missing file, and you look in " +
+        "the wrong place for an hour.</p>" +
+        "<p>Names you have not met yet are fine to look up. Causing the " +
+        "error on purpose and reading what it is called is a faster way to " +
+        "find out than searching for it.</p>"
+    },
+    steps: [
+      { line: "a",
+        panels: [{ file: "missing.txt", absent: true }],
+        ret: "A", calc: 'print("A")  ->  A',
+        note: "An ordinary line, so the console has something in it before " +
+              "anything goes wrong. There is no file called missing.txt " +
+              "&mdash; that is the point." },
+      { line: "tryline",
+        panels: [{ file: "missing.txt", absent: true }],
+        calc: "try:  ->  the risky part starts here",
+        note: "<code>try</code> does nothing on its own. It marks which lines " +
+              "are covered: everything indented under it, and nothing else." },
+      { line: "bad",
+        panels: [{ file: "missing.txt", absent: true }],
+        dead: ["b", "rd"],
+        calc: 'open("missing.txt")  ->  FileNotFoundError, caught',
+        note: "<strong>This line raised.</strong> It did not finish, so " +
+              "<code>f</code> was never assigned &mdash; and the two lines " +
+              "below it have just been abandoned. Look at the struck-out " +
+              "rows: nothing <em>on</em> them explains why." },
+      { line: "handler",
+        panels: [{ file: "missing.txt", absent: true }],
+        dead: ["b", "rd"],
+        calc: "except FileNotFoundError:  ->  this is the one that was raised",
+        note: "Python looked for a handler naming " +
+              "<code>FileNotFoundError</code> and found this one. Had the " +
+              "<code>except</code> named <code>ValueError</code>, it would " +
+              "not have matched and the program would have crashed." },
+      { line: "c",
+        panels: [{ file: "missing.txt", absent: true }],
+        dead: ["b", "rd"],
+        ret: "C", calc: 'print("C")  ->  C',
+        note: "The handler runs instead of the rest of the " +
+              "<code>try</code>, not as well as it. There is no way back " +
+              "into the abandoned lines." },
+      { line: "d",
+        panels: [{ file: "missing.txt", absent: true }],
+        dead: ["b", "rd"],
+        ret: "D", calc: 'print("D")  ->  D',
+        note: "<strong>A, C, D.</strong> No B, no traceback, no crash &mdash; " +
+              "the program handled a missing file and carried on, which is " +
+              "the entire reason this construct exists." }
+    ],
+    code: [
+      { k: "a",       t: 'print("A")' },
+      { k: "tryline", t: "try:" },
+      { k: "bad",     t: '    f = open("missing.txt")' },
+      { k: "b",       t: '    print("B")' },
+      { k: "rd",      t: "    print(f.read())" },
+      { k: "handler", t: "except FileNotFoundError:" },
+      { k: "c",       t: '    print("C")' },
+      { k: "d",       t: 'print("D")' }
+    ]
+  },
+
+  raising: {
+    todos: { mk: "", shut0: "", open1: "", rl: "", shut1: "", howmany: "",
+             tryline: "b", test: "a", raiseline: "a", avg: "a",
+             handler: "b", say: "b", after: "b" },
+    writes: [
+      { todo: "a",
+        says: "In read_scores, raise a ValueError if the file turns out to " +
+              "be empty.",
+        lines: ["def read_scores(filename):",
+                "    scores = []",
+                "    ...",
+                "    if ____ scores:",
+                '        ____ ValueError("____" + filename)',
+                "    return scores"],
+        asks: ["What is the alternative &mdash; return an empty list? Say " +
+               "out loud where that goes wrong, and how far from here.",
+               "The message is glued to the filename on purpose. Why does " +
+               'raise ValueError("bad") barely help anybody?'] },
+      { todo: "b",
+        says: "Call it on an empty file, catch that ValueError, and print " +
+              "the message.",
+        lines: ["try:",
+                '    read_scores("empty.txt")',
+                "except ValueError ____ problem:",
+                '    print("____", problem)'],
+        asks: ["Where did the text that gets printed come from? Trace it " +
+               "back to the line you wrote in TODO a.",
+               "You raised it and you caught it, in the same program. Is " +
+               "that silly? When would it not be?"] }
+    ],
+    label: "Raising your own, and catching it",
+    part: 7,
+    covers: "Both TODOs — refuse an empty file, then catch the refusal and print it.",
+    steps: [
+      { line: "mk",
+        panels: [{ file: "empty.txt", lines: [] },
+                 { handle: "f", of: "empty.txt", mode: "w", closed: false }],
+        calc: 'open("empty.txt", "w")  ->  a file with nothing in it',
+        note: "An empty file is not a broken file. It opens, it reads, it " +
+              "closes &mdash; it just has no lines, and that is the case " +
+              "most programs forget." },
+      { line: "shut0",
+        panels: [{ file: "empty.txt", lines: [] },
+                 { handle: "f", of: "empty.txt", mode: "w", closed: true }],
+        calc: "f.close()  ->  zero lines on disk",
+        note: "Nothing was written, so nothing is there." },
+      { line: "open1",
+        panels: [{ file: "empty.txt", lines: [], at: 0 },
+                 { handle: "f", of: "empty.txt", mode: "r", closed: false }],
+        calc: 'open("empty.txt")  ->  opens fine',
+        note: "<strong>No error.</strong> The file exists, so opening it is " +
+              "perfectly legal. Emptiness is not the same as absence." },
+      { line: "rl",
+        panels: [{ file: "empty.txt", lines: [], at: 0 },
+                 { handle: "f", of: "empty.txt", mode: "r", closed: false },
+                 { name: "lines", items: [], view: true }],
+        calc: "lines = f.readlines()  ->  []",
+        note: "<code>readlines()</code> hands back a list of lines &mdash; an " +
+              "empty one here. Still no error, and this is where the trouble " +
+              "starts travelling." },
+      { line: "shut1",
+        panels: [{ file: "empty.txt", lines: [] },
+                 { handle: "f", of: "empty.txt", mode: "r", closed: true },
+                 { name: "lines", items: [], view: true }],
+        calc: "f.close()  ->  an empty list in hand",
+        note: "Nothing so far has gone wrong by Python's standards. Every " +
+              "line did exactly what it promised." },
+      { line: "howmany",
+        panels: [{ file: "empty.txt", lines: [] },
+                 { name: "lines", items: [], view: true }],
+        ret: "0", calc: "print(len(lines))  ->  0",
+        note: "Zero. If this list were handed back to a caller that averaged " +
+              "it, the crash would be a <code>ZeroDivisionError</code> " +
+              "somewhere else entirely, with nothing pointing back here." },
+      { line: "tryline",
+        panels: [{ file: "empty.txt", lines: [] },
+                 { name: "lines", items: [], view: true }],
+        calc: "try:  ->  covering the lines below",
+        note: "You can catch an exception you raised yourself. It is the same " +
+              "machinery &mdash; there is no separate kind." },
+      { line: "test",
+        panels: [{ file: "empty.txt", lines: [] },
+                 { name: "lines", items: [], view: true }],
+        ret: "True", calc: "not lines  ->  True (the list is empty)",
+        note: "An empty list is falsy, so <code>not lines</code> is True. " +
+              "This is your code noticing the problem &mdash; Python has no " +
+              "opinion about it." },
+      { line: "raiseline",
+        panels: [{ file: "empty.txt", lines: [] },
+                 { name: "lines", items: [], view: true }],
+        dead: ["avg"],
+        calc: 'raise ValueError("no scores in empty.txt")',
+        note: "<strong>You raised it.</strong> Same effect as " +
+              "<code>open</code> failing: this line does not finish, the " +
+              "rest of the <code>try</code> is abandoned, and Python goes " +
+              "looking for a handler." },
+      { line: "handler",
+        panels: [{ file: "empty.txt", lines: [] },
+                 { name: "lines", items: [], view: true }],
+        dead: ["avg"],
+        bind: [{ n: "problem", v: "ValueError('no scores in empty.txt')" }],
+        calc: "except ValueError as problem:  ->  matched",
+        note: "<code>as problem</code> gives the exception object a name so " +
+              "you can print what it said. Without it you know something " +
+              "went wrong but not what." },
+      { line: "say",
+        panels: [{ file: "empty.txt", lines: [] },
+                 { name: "lines", items: [], view: true }],
+        dead: ["avg"],
+        ret: "refused: no scores in empty.txt",
+        calc: 'print("refused:", problem)  ->  refused: no scores in empty.txt',
+        note: "<strong>That string came from your own " +
+              "<code>raise</code>.</strong> Which is why " +
+              "<code>raise ValueError(\"bad\")</code> is barely worth " +
+              "writing &mdash; name the file, say what was wrong with it." },
+      { line: "after",
+        panels: [{ file: "empty.txt", lines: [] },
+                 { name: "lines", items: [], view: true }],
+        dead: ["avg"],
+        ret: "still running", calc: 'print("still running")',
+        note: "Caught means handled. The program refused to average nothing, " +
+              "said so, and kept going &mdash; which is a better outcome " +
+              "than either crashing or quietly averaging zero things." }
+    ],
+    code: [
+      { k: "mk",        t: 'f = open("empty.txt", "w")' },
+      { k: "shut0",     t: "f.close()" },
+      { k: "open1",     t: 'f = open("empty.txt")' },
+      { k: "rl",        t: "lines = f.readlines()" },
+      { k: "shut1",     t: "f.close()" },
+      { k: "howmany",   t: "print(len(lines))" },
+      { k: "tryline",   t: "try:" },
+      { k: "test",      t: "    if not lines:" },
+      { k: "raiseline", t: '        raise ValueError("no scores in empty.txt")' },
+      { k: "avg",       t: '    print("averaging")' },
+      { k: "handler",   t: "except ValueError as problem:" },
+      { k: "say",       t: '    print("refused:", problem)' },
+      { k: "after",     t: 'print("still running")' }
+    ]
+  },
+
+  firstrun: {
+    todos: { tryline: "c", open1: "c", show: "c", shut1: "c",
+             handler: "c", sorry: "c",
+             open2: "a", wr: "a", shut2: "a",
+             open3: "b", loop: "b", say: "b", shut3: "b" },
+    writes: [
+      { todo: "a",
+        says: 'Ask for a note and append it to "notes.txt"',
+        lines: ['note = input("____")',
+                'with open("notes.txt", "____") as f:',
+                '    f.write(note + "____")'],
+        asks: ['Which mode keeps the notes that are already there?',
+               "What goes in the third blank, and what does the file look " +
+               "like after three notes if you leave it out?"] },
+      { todo: "b",
+        says: "Print every note back, numbered",
+        lines: ['with open("notes.txt") as f:',
+                "    for n, line in ____(f, start=1):",
+                "        print(n, line.strip())"],
+        asks: ["Which Module 8 function numbers things as it loops? You " +
+               "used it on a list; it works on a file unchanged.",
+               "Why start=1 rather than the default?"] },
+      { todo: "c",
+        says: "Handle the first run, when notes.txt does not exist yet — " +
+              "that is the FileNotFoundError from Part 5, in a program " +
+              "someone would actually use.",
+        lines: ["try:",
+                '    with open("notes.txt") as f:',
+                "        ...",
+                "except ____:",
+                '    print("____")'],
+        asks: ["TODO a worked on the very first run and TODO b did not. " +
+               "What is different about them?",
+               "This is the whole difference between a program and a demo. " +
+               "Name one other program you use that has to survive its own " +
+               "first run."] }
+    ],
+    label: "The very first run, when there is no file",
+    part: 8,
+    covers: "All three TODOs — add a note, show them all, and survive run one.",
+    steps: [
+      { line: "tryline",
+        panels: [{ file: "notes.txt", absent: true }],
+        calc: "try:  ->  because this might be the first run",
+        note: "The first time anybody runs a notes app there are no notes. " +
+              "<strong>A program that crashes on its own first run is not " +
+              "finished.</strong>" },
+      { line: "open1",
+        panels: [{ file: "notes.txt", absent: true }],
+        dead: ["show", "shut1"],
+        calc: 'open("notes.txt")  ->  FileNotFoundError, caught',
+        note: "Reading a file that is not there raises. Both lines under it " +
+              "are abandoned &mdash; including the <code>close()</code>, " +
+              "which never needed to run because nothing was ever opened." },
+      { line: "handler",
+        panels: [{ file: "notes.txt", absent: true }],
+        dead: ["show", "shut1"],
+        calc: "except FileNotFoundError:  ->  the expected first run",
+        note: "This is not an error being hidden. It is a case the program " +
+              "knows about and has an answer for." },
+      { line: "sorry",
+        panels: [{ file: "notes.txt", absent: true }],
+        dead: ["show", "shut1"],
+        ret: "No notes yet.", calc: 'print("No notes yet.")',
+        note: "A sentence a person can read, instead of a traceback. Same " +
+              "information, told to the right audience." },
+      { line: "open2",
+        panels: [{ file: "notes.txt", lines: [] },
+                 { handle: "f", of: "notes.txt", mode: "a", closed: false }],
+        calc: 'open("notes.txt", "a")  ->  created it, empty',
+        note: "<strong>Here is the asymmetry worth keeping.</strong> Reading " +
+              "a missing file raised four lines ago; opening the same " +
+              "missing file in <code>\"a\"</code> just made it. That is why " +
+              "adding a note works on run one and showing them does not." },
+      { line: "wr",
+        panels: [{ file: "notes.txt", lines: ['"buy milk\\n"'], added: 0 },
+                 { handle: "f", of: "notes.txt", mode: "a", closed: false }],
+        ret: "9", calc: 'f.write("buy milk\\n")  ->  the first note',
+        note: "Append, never <code>\"w\"</code>. A notes app that opened in " +
+              "<code>\"w\"</code> would throw away every earlier note on " +
+              "each new one, and nobody would notice until it mattered." },
+      { line: "shut2",
+        panels: [{ file: "notes.txt", lines: ['"buy milk\\n"'] },
+                 { handle: "f", of: "notes.txt", mode: "a", closed: true }],
+        calc: "f.close()  ->  one note, saved",
+        note: "This is what makes it a notes app rather than a prompt: the " +
+              "note is still there after the program ends." },
+      { line: "open3",
+        panels: [{ file: "notes.txt", lines: ['"buy milk\\n"'], at: 0 },
+                 { handle: "f", of: "notes.txt", mode: "r", closed: false }],
+        calc: 'open("notes.txt")  ->  no error this time',
+        note: "The same line that raised at the top of the program now works, " +
+              "because the file exists. <em>Nothing in the line changed.</em>" },
+      { line: "loop",
+        panels: [{ file: "notes.txt", lines: ['"buy milk\\n"'], at: 1 },
+                 { handle: "f", of: "notes.txt", mode: "r", closed: false }],
+        bind: [{ n: "line", v: "'buy milk\\n'" }],
+        calc: "for line in f:  ->  line = 'buy milk\\n'",
+        note: "One note, so one pass." },
+      { line: "say",
+        panels: [{ file: "notes.txt", lines: ['"buy milk\\n"'], at: 1 },
+                 { handle: "f", of: "notes.txt", mode: "r", closed: false }],
+        bind: [{ n: "line", v: "'buy milk\\n'" }],
+        ret: "buy milk", calc: "print(line.strip())  ->  buy milk",
+        note: "Numbering them is your TODO b: <code>enumerate(f, start=1)</code> " +
+              "from Module 8 works on a file exactly as it worked on a list." },
+      { line: "loop", end: true, endText: "loop ends",
+        panels: [{ file: "notes.txt", lines: ['"buy milk\\n"'], at: 1 },
+                 { handle: "f", of: "notes.txt", mode: "r", closed: false }],
+        bind: [{ n: "line", v: "'buy milk\\n'" }],
+        calc: "for line in f:  ->  one note, so one pass, and then out",
+        note: "Add a second note and this line runs a third time. The program " +
+              "does not need to know how many there are &mdash; which is the " +
+              "point of looping over the file rather than over a count." },
+      { line: "shut3",
+        panels: [{ file: "notes.txt", lines: ['"buy milk\\n"'], at: 1 },
+                 { handle: "f", of: "notes.txt", mode: "r", closed: true }],
+        bind: [{ n: "line", v: "'buy milk\\n'" }],
+        calc: "f.close()  ->  done",
+        note: "Run it a second time and the top of the program takes the " +
+              "other path: the file is there, the <code>try</code> succeeds, " +
+              "and the handler never fires. <strong>Both paths are " +
+              "correct.</strong>" }
+    ],
+    code: [
+      { k: "tryline", t: "try:" },
+      { k: "open1",   t: '    f = open("notes.txt")' },
+      { k: "show",    t: "    print(f.read())" },
+      { k: "shut1",   t: "    f.close()" },
+      { k: "handler", t: "except FileNotFoundError:" },
+      { k: "sorry",   t: '    print("No notes yet.")' },
+      { k: "open2",   t: 'f = open("notes.txt", "a")' },
+      { k: "wr",      t: 'f.write("buy milk\\n")' },
+      { k: "shut2",   t: "f.close()" },
+      { k: "open3",   t: 'f = open("notes.txt")' },
+      { k: "loop",    t: "for line in f:" },
+      { k: "say",     t: "    print(line.strip())" },
+      { k: "shut3",   t: "f.close()" }
+    ]
+  }
+};
+
+var order = ["modes", "reading", "withblock", "text", "skip",
+             "raising", "firstrun"];
+
+var current = order[0];
+var at = 0;
+var stage = document.getElementById("stage");
+var tabsEl = document.getElementById("tabs");
+var countEl = document.getElementById("count");
+var nextBtn = document.getElementById("next");
+var backBtn = document.getElementById("back");
+
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;");
+}
+
+/* One pass, first alternative wins, so a keyword inside a string is never
+   re-coloured. Written against the handful of constructs these short
+   programs use -- it is a colourer, not a parser. */
+var TOKENS = new RegExp([
+  "(#.*$)",                                   // comment
+  "(\"[^\"]*\"|'[^']*')",                     // string
+  "\\b(print|len|open|int|str|read|readline|readlines|write|close|strip)\\b",
+  "\\b(try|except|raise|with|as|for|if|not|in|else|None|True|False)\\b",
+  "\\b(\\d+\\.\\d+|\\d+)\\b"                  // number
+].join("|"), "g");
+
+function hi(src) {
+  return esc(src).replace(TOKENS, function (m, cm, st, fn, kw, nm) {
+    if (cm) { return '<span class="cm">' + cm + "</span>"; }
+    if (st) { return '<span class="st">' + st + "</span>"; }
+    if (fn) { return '<span class="fn">' + fn + "</span>"; }
+    if (kw) { return '<span class="kw">' + kw + "</span>"; }
+    return '<span class="nm">' + nm + "</span>";
+  });
+}
+
+/* Which pass of its own line this step is, and how many there are in total.
+   Only meaningful inside a loop; one-pass lines get nothing. */
+function passInfo(demo, i) {
+  if (demo.steps[i].end) {
+    return { ends: true, text: demo.steps[i].endText || "loop ends" };
+  }
+  var key = demo.steps[i].line, n = 0, mine = 0;
+  for (var j = 0; j < demo.steps.length; j++) {
+    if (demo.steps[j].line !== key || demo.steps[j].end) { continue; }
+    n++;
+    if (j === i) { mine = n; }
+  }
+  return n > 1 ? { pass: mine, of: n } : null;
+}
+
+function codeHTML(demo, step, stepIndex) {
+  /* "done" dims lines already executed, so the boundary between what has run
+     and what has not is visible without counting. Inside a loop a line below
+     the cursor may already have run on an earlier pass -- dimming by
+     POSITION would then be a lie, so a line is dimmed only if some earlier
+     step was on it. */
+  var activeAt = -1;
+  demo.code.forEach(function (ln, i) { if (ln.k === step.line) { activeAt = i; } });
+  var ran = {};
+  for (var s = 0; s < stepIndex; s++) { ran[demo.steps[s].line] = true; }
+  var dead = {};
+  (step.dead || []).forEach(function (k) { dead[k] = true; });
+  var lengths = demo.code.map(function (ln) { return ln.t.length; })
+                         .sort(function (a, b) { return b - a; });
+  var column = (lengths[1] || lengths[0]) + 2;
+  var info = passInfo(demo, stepIndex);
+  return '<div class="code">' + demo.code.map(function (ln, i) {
+    var cls = i === activeAt ? "active"
+            : (dead[ln.k] ? "dead" : (ran[ln.k] ? "done" : ""));
+    var jump = ' data-k="' + ln.k + '" role="button" tabindex="0"' +
+               ' title="Jump to this line"';
+    if (i !== activeAt) {
+      return '<div' + (cls ? ' class="' + cls + '"' : "") + jump + ">" +
+             hi(ln.t) + "</div>";
+    }
+    /* The source is wrapped so the band can be pushed to the right of the
+       same row rather than onto a row of its own, where it read like the next
+       statement to run. */
+    return '<div class="active"' + jump + '><span class="src" style="min-width:' +
+           column + 'ch">' + hi(ln.t) + "</span>" +
+           (step.calc ? '<span class="calc">' + esc(step.calc) + "</span>" : "") +
+           (info ? '<span class="pass' + (info.ends ? " ends" : "") + '">' +
+                   (info.ends ? info.text
+                              : "pass " + info.pass + " of " + info.of) +
+                   "</span>" : "") +
+           "</div>";
+  }).join("") + "</div>";
+}
+
+function fileHTML(p) {
+  if (p.absent) {
+    return '<div class="fgone">no such file &mdash; opening it to read ' +
+           "raises FileNotFoundError</div>";
+  }
+  var rows = [];
+  var lines = p.lines || [];
+  if (!lines.length && !(p.gone || []).length) {
+    rows.push('<p class="fempty">0 bytes &mdash; the file is there and ' +
+              "there is nothing in it</p>");
+  }
+  /* The read marker sits BETWEEN rows, because that is where a file position
+     actually is: before a line, not on one. `at` 0 is the top of the file and
+     `at` === lines.length is "nothing left to read". */
+  function caret(label) {
+    return '<div class="cursor"><span class="caret">&#9656;</span>' +
+           esc(label) + "</div>";
+  }
+  if (p.at === 0) { rows.push(caret("next read starts here")); }
+  lines.forEach(function (lit, i) {
+    var cls = "fline" + (p.added === i ? " added" : "");
+    rows.push('<div class="' + cls + '"><span class="no">' + (i + 1) +
+              "</span>" + esc(lit) + "</div>");
+    if (p.at === i + 1) {
+      rows.push(caret(p.at === lines.length
+                        ? "end of file — the next read gives ''"
+                        : "next read starts here"));
+    }
+  });
+  (p.gone || []).forEach(function (lit, i) {
+    rows.push('<div class="fline gone"><span class="no">' + (i + 1) +
+              "</span>" + esc(lit) + "</div>");
+  });
+  return '<div class="flines">' + rows.join("") + "</div>";
+}
+
+function handleHTML(p) {
+  var shut = p.closed;
+  var modeCls = shut ? "shut" : (p.mode === "w" ? "wipe" : "open");
+  return '<div class="hrow">' +
+    '<div class="hchip ' + modeCls + '"><span class="hk">mode</span>"' +
+    esc(p.mode) + '"</div>' +
+    '<div class="hchip ' + (shut ? "shut" : "open") + '">' +
+    '<span class="hk">closed</span>' + (shut ? "True" : "False") + "</div>" +
+    "</div>";
+}
+
+function viewHTML(p) {
+  if (!p.items.length) { return '<p class="fempty">[] &mdash; nothing in it</p>'; }
+  return '<div class="viewrow">' + p.items.map(function (it) {
+    return '<div class="vcell">' + esc(it) + "</div>";
+  }).join("") + "</div>";
+}
+
+function panelHTML(p) {
+  if (p.handle) {
+    return '<div class="dwrap hwrap"><div class="dhead"><span class="var">' +
+      esc(p.handle) + '</span> &middot; a handle on ' + esc(p.of) + "</div>" +
+      handleHTML(p) + "</div>";
+  }
+  if (p.view) {
+    var n = p.items.length;
+    return '<div class="dwrap view"><div class="dhead"><span class="var">' +
+      esc(p.name) + "</span> &middot; in memory, not on disk</div>" +
+      viewHTML(p) + "</div>";
+  }
+  var count = p.absent ? "does not exist"
+            : (p.lines || []).length +
+              ((p.lines || []).length === 1 ? " line" : " lines");
+  return '<div class="dwrap' + (p.absent ? " missing" : "") +
+    '"><div class="dhead"><span class="var">' + esc(p.file) +
+    "</span> &middot; " + count + ", on disk</div>" + fileHTML(p) + "</div>";
+}
+
+/* A run of underscores is a decision the student has to make, so it is drawn
+   as a gap rather than as code. Applied AFTER highlighting: the colourer only
+   ever emits tags and class names, and neither contains an underscore. */
+function blanks(line) {
+  return hi(line).replace(/_{2,}/g, function (m) {
+    return '<span class="bl">' + m + "</span>";
+  });
+}
+
+/* Every TODO in this Part, with the one the current step demonstrates open
+   and the rest collapsed to their one-line instruction.
+
+   The instruction text is NOT paraphrased -- it is the sentence from main.py,
+   checked against it by Scripts/test_stepper_files.js, because a stepper that
+   describes a slightly different task than the file is worse than one that
+   says nothing. */
+function writesHTML(demo, step) {
+  var ws = demo.writes || [];
+  if (!ws.length) { return ""; }
+  var here = (demo.todos || {})[step.line] || null;
+  var rows = ws.map(function (w) {
+    var now = w.todo === here;
+    return '<details class="todo' + (now ? " now" : "") + '"' +
+      (now ? " open" : "") + "><summary>" +
+      '<span class="tl">TODO ' + demo.part + w.todo + "</span>" +
+      esc(w.says) + "</summary><div class=\"tbody\">" +
+      '<pre class="skel">' + w.lines.map(blanks).join("\n") + "</pre>" +
+      '<ul class="asks">' +
+      w.asks.map(function (a) { return "<li>" + a + "</li>"; }).join("") +
+      "</ul></div></details>";
+  }).join("");
+  return '<div class="writes"><div class="whead">&#9997; What we are about ' +
+    'to write<span class="wsub">main.py, Part ' + demo.part + " &middot; " +
+    ws.length + (ws.length === 1 ? " TODO" : " TODOs") +
+    (here ? ", you are on " + demo.part + here : "") +
+    "</span></div>" + rows + "</div>";
+}
+
+function lineOf(demo, key) {
+  var hit = null;
+  demo.code.forEach(function (ln) { if (ln.k === key) { hit = ln; } });
+  return hit;
+}
+
+function consoleHTML(demo, upto) {
+  /* Derived from the steps, never authored separately. One step is one line
+     execution, so a print line contributes exactly once per step it appears
+     on -- which is what makes a print inside a loop come out once per pass
+     with no special handling. */
+  var rows = [];
+  for (var i = 0; i <= upto; i++) {
+    var st = demo.steps[i];
+    var ln = lineOf(demo, st.line);
+    if (!ln) { continue; }
+    if (st.err) {
+      rows.push('<div class="line err">' + esc(st.err) + "</div>");
+    } else if (ln.t.trim().indexOf("print(") === 0 && st.ret !== undefined) {
+      rows.push('<div class="line">' +
+                esc(st.ret === null ? "None" : st.ret) + "</div>");
+    }
+  }
+  var body = rows.length ? rows.join("")
+           : '<div class="none">Nothing yet. Only print() puts text here &mdash; ' +
+             "writing to a file does not.</div>";
+  return '<div class="term"><div class="thead">Console</div>' + body + "</div>";
+}
+
+function render() {
+  var demo = DEMOS[current];
+  var step = demo.steps[at];
+  var html = "";
+
+  /* What they are about to write comes FIRST, above the demo. The demo
+     exists to make the TODO make sense, not the other way round. */
+  html += writesHTML(demo, step);
+
+  /* Then the file. The code moves underneath it, so the disk stays in one
+     place while the arrow walks down the program. */
+  html += '<div class="panels">' +
+          step.panels.map(panelHTML).join("") + "</div>";
+
+  if (step.bind) {
+    html += '<div class="binds">' + step.bind.map(function (b) {
+      var unset = b.v === null;
+      return '<div class="bind' + (unset ? " unset" : "") + '">' +
+             '<span class="bn">' + esc(b.n) + "</span> = " +
+             '<span class="bv">' + (unset ? "not set by this loop"
+                                          : esc(b.v)) + "</span></div>";
+    }).join("") + "</div>";
+  }
+
+  html += codeHTML(demo, step, at);
+  html += consoleHTML(demo, at);
+
+  var printsIt = (lineOf(demo, step.line) || { t: "" })
+                   .t.trim().indexOf("print(") === 0;
+  if (step.err) {
+    /* already in the console */
+  } else if (step.ret !== undefined && !printsIt) {
+    var shown = step.ret === null ? "None" : step.ret;
+    var isNone = shown === "None";
+    html += '<div class="ret ' + (isNone ? "none" : "val") + '">' +
+            "handed back: " + esc(shown) + "</div>";
+  }
+
+  html += '<p class="note">' + step.note + "</p>";
+  /* Collapsed: it is an aside, and the demo is the lesson. Rendered last so
+     it never pushes the panels or the code down the page. */
+  if (demo.aside) {
+    html += '<details class="aside"><summary>' + esc(demo.aside.title) +
+            '</summary><div class="body">' + demo.aside.html + "</div></details>";
+  }
+  stage.innerHTML = html;
+  document.getElementById("covers").innerHTML =
+    "<strong>main.py Part " + demo.part + "</strong> &middot; " +
+    esc(demo.covers);
+  countEl.textContent = "Step " + (at + 1) + " of " + demo.steps.length;
+
+  /* Which TODO this step is. Steps that demonstrate background rather than an
+     instruction say so outright -- sending somebody to look for a TODO that
+     does not exist is worse than saying nothing. */
+  var letter = (demo.todos || {})[step.line];
+  var tb = document.getElementById("todobar");
+  if (letter) {
+    tb.className = "todobar";
+    tb.innerHTML = "&#9997; <b>This step is TODO " + demo.part + letter +
+      "</b> &mdash; its skeleton is open above. Talk the blanks through " +
+      "before anyone opens <code>main.py</code>.";
+  } else {
+    tb.className = "todobar bg";
+    tb.innerHTML = "Background for Part " + demo.part +
+      " &mdash; no TODO of its own. Worth seeing, nothing to write yet.";
+  }
+  backBtn.disabled = at === 0;
+  nextBtn.disabled = at === demo.steps.length - 1;
+}
+
+function buildTabs() {
+  tabsEl.innerHTML = "";
+  order.forEach(function (key) {
+    var b = document.createElement("button");
+    b.className = "tab";
+    b.type = "button";
+    var ls = [];
+    Object.keys(DEMOS[key].todos || {}).forEach(function (k) {
+      var v = DEMOS[key].todos[k];
+      if (v && ls.indexOf(v) === -1) { ls.push(v); }
+    });
+    ls.sort();
+    var span = ls.length > 1 ? ls[0] + "–" + ls[ls.length - 1] : ls[0];
+    b.innerHTML = '<span class="tpart">Part ' + DEMOS[key].part +
+                  (span ? " · TODO " + span : "") + "</span>" +
+                  esc(DEMOS[key].label);
+    b.setAttribute("aria-pressed", String(key === current));
+    b.addEventListener("click", function () {
+      current = key; at = 0; buildTabs(); render(); stage.focus();
+    });
+    tabsEl.appendChild(b);
+  });
+}
+
+function go(n) {
+  var max = DEMOS[current].steps.length - 1;
+  at = Math.max(0, Math.min(max, n));
+  render();
+}
+
+nextBtn.addEventListener("click", function () { go(at + 1); });
+backBtn.addEventListener("click", function () { go(at - 1); });
+document.getElementById("reset").addEventListener("click", function () {
+  go(0);
+});
+/* Arrows work anywhere on the page, not only once the stage has been clicked.
+   Bound to the document rather than to the stage: a presenter who has just
+   pressed a tab, or who has not clicked at all, still expects Right to go
+   forward, and "click the panel first" is not something anyone reads.
+
+   Deliberately NOT also bound to the stage -- the event bubbles, so two
+   listeners would advance two steps on one press. */
+document.addEventListener("keydown", function (e) {
+  if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+  var t = e.target || {};
+  var tag = t.tagName;
+  // Leave the arrow keys alone where they already mean something.
+  if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA"
+      || t.isContentEditable) { return; }
+  if (e.key === "ArrowRight" || e.key === "PageDown") {
+    go(at + 1); e.preventDefault();
+  } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+    go(at - 1); e.preventDefault();
+  } else if (e.key === "Home") {
+    go(0); e.preventDefault();
+  } else if (e.key === "End") {
+    go(DEMOS[current].steps.length - 1); e.preventDefault();
+  }
+});
+
+/* Delegated: render() rewrites the stage on every step, so listeners bound to
+   individual lines would have to be rebound each time. A line inside a loop
+   is several steps; the click lands on the FIRST pass, which is where you
+   want to be when you jump to it. A line an exception abandoned has no step
+   of its own, so clicking it does nothing -- which is the honest answer. */
+function jumpToLine(key) {
+  var demo = DEMOS[current];
+  for (var i = 0; i < demo.steps.length; i++) {
+    if (demo.steps[i].line === key) { go(i); return; }
+  }
+}
+stage.addEventListener("click", function (e) {
+  var row = e.target.closest ? e.target.closest("[data-k]") : null;
+  if (row) { jumpToLine(row.getAttribute("data-k")); }
+});
+stage.addEventListener("keydown", function (e) {
+  if (e.key !== "Enter" && e.key !== " ") { return; }
+  var row = e.target.closest ? e.target.closest("[data-k]") : null;
+  if (row) { e.preventDefault(); jumpToLine(row.getAttribute("data-k")); }
+});
+
+buildTabs();
+render();
+</script>
+</body>
+</html>
