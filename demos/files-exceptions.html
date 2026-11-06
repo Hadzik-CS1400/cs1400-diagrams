@@ -705,10 +705,10 @@ var DEMOS = {
         "<td>runs <code>open(...)</code> and puts the result in " +
         "<code>g</code> &mdash; <em>identical</em> to " +
         "<code>g = open(...)</code></td></tr>" +
-        "<tr><th scope=\"row\">At the <strong>dedent</strong></th>" +
-        "<td>calls <code>g.close()</code> for you, and it is the dedent " +
-        "that triggers it &mdash; not the end of the program, and not " +
-        "anything you type</td></tr></tbody></table>" +
+        "<tr><th scope=\"row\">When the indented block ends</th>" +
+        "<td>calls <code>g.close()</code> for you. The indenting " +
+        "running out is what triggers it &mdash; not the end of the " +
+        "program, and not anything you type</td></tr></tbody></table>" +
         "<p>That second row is the whole feature. Watch for it in this " +
         "demo: the arrow comes <em>back up</em> to the <code>with</code> " +
         "line after the last indented line, and that is the step where the " +
@@ -795,17 +795,19 @@ var DEMOS = {
                  { handle: "g", of: "notes.txt", mode: "a", closed: true }],
         calc: "the indented block ended  ->  with closes g, here",
         note: "<strong>The arrow came back to the <code>with</code> line.</strong> " +
-              "Nothing is left to run on it &mdash; this is the dedent, and " +
-              "closing the file is what it does. Python really does execute " +
-              "something here, which is why the step exists at all." },
+              "Nothing is left to run on it &mdash; this is the moment the " +
+              "indented block ends, and closing the file is what that " +
+              "moment does. Python really executes something here, which " +
+              "is why the step exists at all." },
       { line: "ask4",
         panels: [{ file: "notes.txt", lines: ['"milk\\n"', '"eggs\\n"'] },
                  { handle: "g", of: "notes.txt", mode: "a", closed: true }],
         ret: "True", calc: "print(g.closed)  ->  True",
         note: "<strong>True, and nowhere in this program is there a " +
-              "<code>g.close()</code>.</strong> The dedent closed it. It " +
-              "would also have closed it had the block raised halfway " +
-              "through &mdash; which is the case the long form gets wrong." }
+              "<code>g.close()</code>.</strong> Running out of indented " +
+              "lines closed it. It would also have closed it had the " +
+              "block raised halfway through &mdash; which is the case " +
+              "the long form gets wrong." }
     ],
     code: [
       { k: "open1", t: 'f = open("notes.txt", "w")' },
