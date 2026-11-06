@@ -20,6 +20,12 @@
   real values filled in, and a console collects what print() produced. A
   student who can read one can read the other.
 
+  SHAPE, CONTINUED: the bar above the stage names the TODO each step is for.
+  Watch the step, then go and write that TODO -- the same hand-off CT10 and
+  CT11 use. A version of this page also drew the TODO's code as a skeleton
+  with the decisions blanked out; it was dropped because it put the
+  instruction on screen twice and pushed the demo below the fold.
+
   WHAT IS DIFFERENT, AND WHY IT MATTERS HERE:
 
     1. The panel draws a FILE ON DISK, line by line, plus the handle that is
@@ -200,43 +206,7 @@
                 padding: .05rem .3rem; border-radius: 3px; }
   .aside .big { font-size: 1rem; }
 
-  /* ---- the code we are about to write ----------------------------------
-     A student who reaches the IDE with no idea what they are writing will
-     have Copilot produce it in four seconds and will have learned nothing,
-     so the shape of the code gets argued about HERE, with the parts they
-     have to supply left blank.
-
-     Deliberately just the skeleton. An earlier version boxed it up with a
-     heading and listed every TODO in the Part above it; the instruction then
-     appeared twice on one screen and the demo itself fell below the fold.
-     The bar above carries the instruction, once. */
-  .skelwrap { margin-bottom: 1rem; }
-  pre.skel {
-    background: var(--code-bg); color: var(--code-fg);
-    border-left: 6px solid #8f6a00; border-radius: 8px;
-    padding: .6rem .85rem; font-size: 1.2rem; line-height: 1.55;
-    overflow-x: auto; margin: 0;
-    font-family: Consolas, 'Courier New', monospace;
-  }
-  /* A blank is a question, so it is coloured like the THIS STEP band rather
-     than like code -- it is the one thing on the line that is not decided. */
-  .bl {
-    background: #f9e2af; color: #4a3600; border-radius: 4px;
-    padding: 0 .15em; font-weight: 800;
-  }
-  details.asks { margin-top: .3rem; }
-  details.asks summary {
-    cursor: pointer; list-style: none; font-size: .85rem; font-weight: 700;
-    color: #8f6a00; padding: .15rem 0;
-  }
-  details.asks summary::-webkit-details-marker { display: none; }
-  details.asks summary::before { content: "\25B8  "; }
-  details.asks[open] summary::before { content: "\25BE  "; }
-  details.asks ul { margin: .15rem 0 0; padding-left: 1.2rem;
-                    font-size: .92rem; color: var(--muted); }
-  details.asks li { margin: .22rem 0; }
-
-  /* ---- the console ------------------------------------------------------ */
+  /* ---- the console ---  /* ---- the console ------------------------------------------------------ */
   .term {
     background: #11111b; color: #cdd6f4; border-radius: 8px;
     margin-top: .7rem; padding: .55rem 0 .7rem;
@@ -375,12 +345,12 @@
 <body>
 
 <h1>Files &amp; Exceptions Stepper</h1>
-<p class="sub"><strong>The TODO you are on is named at the top</strong>,
-  with its code underneath and the decisions left blank &mdash; the shape of
-  it is worth more argument than the typing of it. Below that,
-  <strong>Next</strong> walks a working version of the same idea a line at a
-  time: lines land in a file, a file gets emptied, and &mdash; in Part 5
-  &mdash; the arrow jumps over code that never runs.
+<p class="sub">The file on disk is at the top and stays put.
+  <strong>Next</strong> walks the arrow down the program beneath it, and you
+  watch lines land, a file get emptied, and &mdash; in Part 5 &mdash; the
+  arrow jump over code that never runs. The bar above the demo names the
+  <strong>TODO</strong> each step is for, so you can watch it and then go and
+  write it.
   <strong>Click any line</strong> to jump straight to it. Use
   <span class="kbd">&larr;</span> <span class="kbd">&rarr;</span> at any time
   &mdash; no need to click first.</p>
@@ -441,27 +411,6 @@ var DEMOS = {
     todos: { open1: "a", w1: "a", w2: "a", shut1: "a",
              open2: "b", w3: "b", shut2: "b",
              open3: "", shut3: "" },
-    writes: [
-      { todo: "a",
-        says: 'Write 3 lines to "sample.txt" using open() and write() ' +
-              'Remember: add "\\n" at the end of each line',
-        lines: ['f = open("____", "____")',
-                'f.write("____\\n")',
-                'f.write("____\\n")',
-                'f.write("____\\n")',
-                "f.____()"],
-        asks: ["Two blanks on the first line: what is the file called, and " +
-               "which mode starts it empty?",
-               "Leave the \\n off all three writes. What is in the file then?"] },
-      { todo: "b",
-        says: 'Append a 4th line using "a" mode',
-        lines: ['f = open("sample.txt", "____")',
-                'f.write("____\\n")',
-                "f.close()"],
-        asks: ['Why can the mode not be "w" here?',
-               "The file is opened a second time. What happened to the first " +
-               "handle?"] }
-    ],
     label: "Empty it, or add to the end",
     part: 1,
     covers: "Both TODOs — write three lines, then append a fourth without losing them.",
@@ -583,26 +532,6 @@ var DEMOS = {
     todos: { mk: "", wr: "", shut0: "",
              open1: "a", read: "a", len: "a", shut1: "a",
              open2: "b", loop: "b", say: "b", shut2: "b" },
-    writes: [
-      { todo: "a",
-        says: 'Read "sample.txt" with read() and print it',
-        lines: ['f = open("____")',
-                "text = f.____()",
-                "print(text)",
-                "f.close()"],
-        asks: ["One argument, not two. Which mode does that give you?",
-               "print(text) looks tidy. Where did the newlines go?"] },
-      { todo: "b",
-        says: "Read line by line with a for loop. Strip the trailing newline.",
-        lines: ['f = open("sample.txt")',
-                "for ____ in f:",
-                "    print(____.strip())",
-                "f.close()"],
-        asks: ["Run it once WITHOUT the .strip(). What do you see between " +
-               "the lines, and where did that come from?",
-               "The file was opened again. Why not keep using the handle " +
-               "from TODO a?"] }
-    ],
     label: "The newline comes along",
     part: 2,
     covers: "Both TODOs — the whole file as one string, then a line at a time.",
@@ -729,25 +658,6 @@ var DEMOS = {
   withblock: {
     todos: { open1: "", wr1: "", ask1: "", shut: "", ask2: "",
              wth: "a", wr2: "a", ask3: "a", ask4: "a" },
-    writes: [
-      { todo: "a",
-        says: "Rewrite Part 1 using with",
-        lines: ['____ open("sample.txt", "w") ____ f:',
-                '    f.write("milk\\n")',
-                '    f.write("eggs\\n")'],
-        asks: ["Go back to your Part 1 and count the lines. Which one is " +
-               "missing here, and who does it instead?",
-               "What tells Python the block has finished?"] },
-      { todo: "b",
-        says: "Rewrite Part 2 using with",
-        lines: ['with open("sample.txt") as f:',
-                "    for line in f:",
-                "        print(line.strip())",
-                "print(f.____)"],
-        asks: ["The last line is outside the block. What will it print?",
-               "Try reading from f after the block ends. What happens, and " +
-               "why is that the behaviour you want?"] }
-    ],
     label: "with closes it, and you never typed close",
     part: 3,
     covers: "Both TODOs — the same writing and reading, handed to `with`.",
@@ -834,24 +744,6 @@ var DEMOS = {
   text: {
     todos: { mk: "a", wr: "a", shut0: "a", open1: "a", r1: "a", r2: "a",
              shut1: "a", glue: "a", sum: "a" },
-    writes: [
-      { todo: "a",
-        says: 'Create "scores.txt" with 5 scores (one per line). ' +
-              "Read it back, convert each line to int, calculate the average.",
-        lines: ['with open("scores.txt", "____") as f:',
-                "    for score in [__, __, __, __, __]:",
-                '        f.write(____(score) + "\\n")',
-                "total = 0",
-                'with open("scores.txt") as f:',
-                "    for line in f:",
-                "        total = total + ____(line.strip())",
-                "print(total / ____)"],
-        asks: ["write() takes strings only. What has to wrap the number " +
-               "before it can go in the file?",
-               "And what has to wrap it on the way back out?",
-               "What do you divide by &mdash; and what would happen if the " +
-               "file turned out to be empty?"] }
-    ],
     label: "Everything out of a file is text",
     part: 4,
     covers: "The one TODO — write the scores, read them back, add them up.",
@@ -939,49 +831,6 @@ var DEMOS = {
   skip: {
     todos: { a: "b", tryline: "b", bad: "b", b: "b", rd: "b",
              handler: "b", c: "b", d: "b" },
-    writes: [
-      { todo: "a",
-        says: 'Try to open "does_not_exist.txt" and read it. Run it. ' +
-              "Read the crash.",
-        lines: ['f = open("does_not_exist.txt")',
-                "print(f.read())",
-                "",
-                "# Run it. The last line of the traceback said:",
-                "#     ____________: ____________"],
-        asks: ["There is nothing to decide in the two lines of code, and " +
-               "that is the point &mdash; this TODO is the <em>running</em> " +
-               "of it. Fill the comment in from what you actually saw.",
-               "You need that first blank, exactly as spelled, for TODO 5b.",
-               "How many lines of your program ran before it stopped?"] },
-      { todo: "b",
-        says: "Wrap that same code in try/except FileNotFoundError and print " +
-              "a friendly message instead. Run it again — no crash, and " +
-              "the program continues.",
-        lines: ["try:",
-                '    f = open("does_not_exist.txt")',
-                "    print(f.read())",
-                "except ____:",
-                '    print("____")'],
-        asks: ["First blank: the name TODO a just showed you. Do not guess " +
-               "it &mdash; go and read it.",
-               "Second blank: what would somebody who is not you want to be " +
-               "told here?",
-               "Which line of the try block never runs now, and why is that " +
-               "not a bug?"] },
-      { todo: "c",
-        says: "Ask the user for a filename and try to read it. Handle the " +
-              "missing-file case. Then try it with a folder name instead of " +
-              "a file and see what different error you get.",
-        lines: ['name = input("____")',
-                "try:",
-                "    with open(____) as f:",
-                "        print(f.read())",
-                "except ____:",
-                '    print("____")'],
-        asks: ["Third blank: no quotes round it. Why not?",
-               "Now type a FOLDER name at the prompt. What is that error " +
-               "called, and does your except catch it?"] }
-    ],
     label: "The lines that never run",
     part: 5,
     covers: "TODO b — wrap the crash in try/except and watch what it skips.",
@@ -1073,32 +922,6 @@ var DEMOS = {
     todos: { mk: "", shut0: "", open1: "", rl: "", shut1: "", howmany: "",
              tryline: "b", test: "a", raiseline: "a", avg: "a",
              handler: "b", say: "b", after: "b" },
-    writes: [
-      { todo: "a",
-        says: "In read_scores, raise a ValueError if the file turns out to " +
-              "be empty.",
-        lines: ["def read_scores(filename):",
-                "    scores = []",
-                "    ...",
-                "    if ____ scores:",
-                '        ____ ValueError("____" + filename)',
-                "    return scores"],
-        asks: ["What is the alternative &mdash; return an empty list? Say " +
-               "out loud where that goes wrong, and how far from here.",
-               "The message is glued to the filename on purpose. Why does " +
-               'raise ValueError("bad") barely help anybody?'] },
-      { todo: "b",
-        says: "Call it on an empty file, catch that ValueError, and print " +
-              "the message.",
-        lines: ["try:",
-                '    read_scores("empty.txt")',
-                "except ValueError ____ problem:",
-                '    print("____", problem)'],
-        asks: ["Where did the text that gets printed come from? Trace it " +
-               "back to the line you wrote in TODO a.",
-               "You raised it and you caught it, in the same program. Is " +
-               "that silly? When would it not be?"] }
-    ],
     label: "Raising your own, and catching it",
     part: 7,
     covers: "Both TODOs — refuse an empty file, then catch the refusal and print it.",
@@ -1215,38 +1038,6 @@ var DEMOS = {
              handler: "c", sorry: "c",
              open2: "a", wr: "a", shut2: "a",
              open3: "b", loop: "b", say: "b", shut3: "b" },
-    writes: [
-      { todo: "a",
-        says: 'Ask for a note and append it to "notes.txt"',
-        lines: ['note = input("____")',
-                'with open("notes.txt", "____") as f:',
-                '    f.write(note + "____")'],
-        asks: ['Which mode keeps the notes that are already there?',
-               "What goes in the third blank, and what does the file look " +
-               "like after three notes if you leave it out?"] },
-      { todo: "b",
-        says: "Print every note back, numbered",
-        lines: ['with open("notes.txt") as f:',
-                "    for n, line in ____(f, start=1):",
-                "        print(n, line.strip())"],
-        asks: ["Which Module 8 function numbers things as it loops? You " +
-               "used it on a list; it works on a file unchanged.",
-               "Why start=1 rather than the default?"] },
-      { todo: "c",
-        says: "Handle the first run, when notes.txt does not exist yet — " +
-              "that is the FileNotFoundError from Part 5, in a program " +
-              "someone would actually use.",
-        lines: ["try:",
-                '    with open("notes.txt") as f:',
-                "        ...",
-                "except ____:",
-                '    print("____")'],
-        asks: ["TODO a worked on the very first run and TODO b did not. " +
-               "What is different about them?",
-               "This is the whole difference between a program and a demo. " +
-               "Name one other program you use that has to survive its own " +
-               "first run."] }
-    ],
     label: "The very first run, when there is no file",
     part: 8,
     covers: "All three TODOs — add a note, show them all, and survive run one.",
@@ -1517,43 +1308,6 @@ function panelHTML(p) {
     "</span> &middot; " + count + ", on disk</div>" + fileHTML(p) + "</div>";
 }
 
-/* A run of underscores is a decision the student has to make, so it is drawn
-   as a gap rather than as code. Applied AFTER highlighting: the colourer only
-   ever emits tags and class names, and neither contains an underscore. */
-function blanks(line) {
-  return hi(line).replace(/_{2,}/g, function (m) {
-    return '<span class="bl">' + m + "</span>";
-  });
-}
-
-/* The TODO the current step is on, if it is on one. `writes` carries every
-   TODO in the Part so the bar can name any of them, but only this one is ever
-   drawn -- listing all of them cost more vertical space than it was worth,
-   and the instruction already sits in the bar above. */
-function writeHere(demo, step) {
-  var here = (demo.todos || {})[step.line] || null;
-  if (!here) { return null; }
-  var hit = null;
-  (demo.writes || []).forEach(function (w) { if (w.todo === here) { hit = w; } });
-  return hit;
-}
-
-/* Just the skeleton, with the decisions blank. No heading and no repeat of
-   the instruction: the bar above already says what the TODO is, and saying it
-   twice pushed the demo itself below the fold. The questions are one click
-   away rather than four lines down the page. */
-function writesHTML(demo, step) {
-  var w = writeHere(demo, step);
-  if (!w) { return ""; }
-  return '<div class="skelwrap"><pre class="skel">' +
-    w.lines.map(blanks).join("\n") + "</pre>" +
-    (w.asks && w.asks.length
-      ? '<details class="asks"><summary>Questions to ask about it</summary>' +
-        "<ul>" + w.asks.map(function (a) { return "<li>" + a + "</li>"; })
-                       .join("") + "</ul></details>"
-      : "") + "</div>";
-}
-
 function lineOf(demo, key) {
   var hit = null;
   demo.code.forEach(function (ln) { if (ln.k === key) { hit = ln; } });
@@ -1588,12 +1342,7 @@ function render() {
   var step = demo.steps[at];
   var html = "";
 
-  /* The code they are about to write comes FIRST -- the demo exists to make
-     the TODO make sense, not the other way round. One block, no heading:
-     the bar above already named the TODO and said what it asks for. */
-  html += writesHTML(demo, step);
-
-  /* Then the file. The code moves underneath it, so the disk stays in one
+  /* The file leads. The code moves underneath it, so the disk stays in one
      place while the arrow walks down the program. */
   html += '<div class="panels">' +
           step.panels.map(panelHTML).join("") + "</div>";
@@ -1641,14 +1390,10 @@ function render() {
   var letter = (demo.todos || {})[step.line];
   var tb = document.getElementById("todobar");
   if (letter) {
-    /* The instruction itself, once, at the top -- and nowhere else on the
-       page. It is the sentence from main.py verbatim, so a student reading
-       the bar and a student reading the file are reading the same words. */
-    var w = writeHere(demo, step);
     tb.className = "todobar";
-    tb.innerHTML = "&#9997; <b>TODO " + demo.part + letter + "</b> &mdash; " +
-      (w ? esc(w.says) : "go and write it in <code>main.py</code>, Part " +
-                         demo.part + ".");
+    tb.innerHTML = "&#9997; <b>This is TODO " + demo.part + letter +
+      "</b> &mdash; when it makes sense, go and write it in " +
+      "<code>main.py</code>, Part " + demo.part + ".";
   } else {
     tb.className = "todobar bg";
     tb.innerHTML = "Background for Part " + demo.part +
