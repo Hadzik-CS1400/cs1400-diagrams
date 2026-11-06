@@ -400,6 +400,16 @@
   }
   .todobar b { font-size: 1.05rem; }
   .todobar.bg { background: var(--panel); color: var(--muted); }
+  /* Both variants to one height. Measured: the TODO wording comes out at
+     44.78px and the background wording at 43.59px, because the first carries
+     an inline <code> whose monospace line box is taller. The bar sits ABOVE
+     the stage, so that one pixel moved the whole demo -- and every demo that
+     mixes TODO steps with background steps wobbled, while the three that do
+     not were already steady. 2.9rem clears both. */
+  /* min-height ALONE. `display: flex` also equalises them, and also turns
+     every inline child into a flex item -- which drops the whitespace
+     between them, so the bar read "go and write it inmain.py". */
+  .todobar { min-height: 2.9rem; }
   .legend { font-size: .82rem; color: var(--muted); margin-top: .9rem; }
   .kbd {
     border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px;
@@ -1582,6 +1592,67 @@ function varsHTML(step) {
     }).join("") + "</div>";
 }
 
+/* The tallest the panel row ever gets in THIS demo, so the row can be given a
+   floor and everything under it -- the variables, the program, the console --
+   stops sliding up and down as lines land in the file. A demo's file grows
+   from nothing to three lines, and without this the code jumped on nearly
+   every press.
+
+   Measured rather than hard-coded, and measured per DEMO rather than once for
+   the page: the four-panel Part 4 row is a third taller than Part 1's, and one
+   global floor would have parked a band of white space under every other demo.
+   Re-measured when the stage changes width, so a resize does not strand it.
+
+   Returns 0 under the test harness's stub DOM, which has no layout -- the
+   floor is a presentation nicety and nothing is verified about it. */
+var ghost = null;
+function panelsFloor(demo) {
+  if (!document.body || !document.createElement || !window.getComputedStyle) {
+    return 0;
+  }
+  /* The width .panels will actually get, which is the stage MINUS its
+     padding. Measuring at stage.clientWidth instead was 29px too generous --
+     just enough for Part 4's four panels to sit on one row in the ghost and
+     wrap to two in reality, so the floor came out at 193px against a real
+     maximum of 316 and the code still jumped 122px on one press. */
+  var cs = window.getComputedStyle(stage);
+  var width = (stage.clientWidth || 0) -
+              (parseFloat(cs.paddingLeft) || 0) -
+              (parseFloat(cs.paddingRight) || 0);
+  if (width <= 0) { return 0; }
+  if (demo._floor !== undefined && demo._floorAt === width) {
+    return demo._floor;
+  }
+  if (!ghost) {
+    ghost = document.createElement("div");
+    ghost.setAttribute("aria-hidden", "true");
+    ghost.style.cssText = "position:absolute;visibility:hidden;left:-9999px;" +
+                          "top:0;pointer-events:none";
+    document.body.appendChild(ghost);
+  }
+  ghost.style.width = width + "px";
+  var worst = 0;
+  demo.steps.forEach(function (st) {
+    /* Panels AND the variables strip: the strip grows a chip at a time and
+       wraps to a second row on a narrow screen, so flooring only the panels
+       left the code still sliding -- 15px in Part 8, 48px in Part 7 at 940. */
+    ghost.innerHTML = '<div class="above"><div class="panels">' +
+                      st.panels.map(panelHTML).join("") + "</div>" +
+                      varsHTML(st) + "</div>";
+    var box = ghost.firstChild;
+    var h = box && box.getBoundingClientRect
+              ? box.getBoundingClientRect().height : 0;
+    if (h > worst) { worst = h; }
+  });
+  ghost.innerHTML = "";
+  /* +2, because these heights are fractional and min-height is not: a floor
+     of ceil(192.4) still lets a 193.6px step push everything down a pixel.
+     Two pixels of slack costs nothing and settles it. */
+  demo._floor = Math.ceil(worst) + 2;
+  demo._floorAt = width;
+  return demo._floor;
+}
+
 function lineOf(demo, key) {
   var hit = null;
   demo.code.forEach(function (ln) { if (ln.k === key) { hit = ln; } });
@@ -1618,12 +1689,15 @@ function render() {
 
   /* The file leads. The code moves underneath it, so the disk stays in one
      place while the arrow walks down the program. */
-  html += '<div class="panels">' +
+  var floor = panelsFloor(demo);
+  html += '<div class="above"' +
+          (floor ? ' style="min-height:' + floor + 'px"' : "") + ">" +
+          '<div class="panels">' +
           step.panels.map(panelHTML).join("") + "</div>";
 
   /* Between the panels and the code, because it is filled in BY the code and
      read BY the code. */
-  html += varsHTML(step);
+  html += varsHTML(step) + "</div>";
 
   /* `bind` is still carried and still checked against CPython, but it is no
      longer DRAWN: the variables strip above shows the same loop variable, and
