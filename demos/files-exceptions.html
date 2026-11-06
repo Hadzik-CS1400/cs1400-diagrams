@@ -302,6 +302,22 @@ eggs
     text-transform: uppercase; color: #4a148c; margin-bottom: .15rem;
     font-family: 'Segoe UI', Arial, sans-serif;
   }
+  .hchip .hsub {
+    display: block; font-size: .72rem; font-weight: 700; color: #4a148c;
+    font-family: 'Segoe UI', Arial, sans-serif; margin-top: .1rem;
+    letter-spacing: .01em;
+  }
+  .hchip.shut .hsub { color: var(--muted); }
+  /* What the mode letter actually means, spelled out under the chips. The
+     destructive one is marked, because "w" is the only mode that can lose
+     work and it looks exactly as harmless as the other two. */
+  .hmeans {
+    margin: .5rem 0 0; font-size: .86rem; color: var(--muted);
+    max-width: 18.5rem; line-height: 1.4;
+  }
+  .hmeans b { color: #4a148c; font-family: Consolas, monospace; }
+  .hmeans.warn { color: #8b1111; }
+  .hmeans.warn b { color: #8b1111; }
   .hchip.open { border-color: var(--green); background: #e8f5e9; }
   .hchip.open .hk { color: #0d3b11; }
   .hchip.shut { border-color: var(--line); background: #eef2f6; color: #4a4a4a; }
@@ -385,7 +401,7 @@ eggs
 <p class="legend">
   &#9656; = the line running now &nbsp;&middot;&nbsp;
   <span style="color:#f38ba8">&#10007; never runs</span> = a line an exception
-  walked straight past &nbsp;&middot;&nbsp; Green = just written, or a handle
+  walked straight past &nbsp;&middot;&nbsp; Green = just written, or a file
   still open &nbsp;&middot;&nbsp; Purple = where the next read will start
   &nbsp;&middot;&nbsp; Red strike = erased, or never there
   &nbsp;&middot;&nbsp; Every line box ends in <code>\n</code> because the file
@@ -1283,15 +1299,34 @@ function fileHTML(p) {
   return '<div class="flines">' + rows.join("") + "</div>";
 }
 
+/* The mode letter is spelled out underneath, every time it is on screen.
+   Part 1 is the first a student has ever seen of "w", and a lone letter in a
+   box teaches nobody anything -- least of all that this one is the
+   destructive one. Derived from p.mode rather than authored per step, so the
+   caption cannot drift away from the chip above it. */
+var MODE_MEANS = {
+  w: '<b>"w" = write</b> &mdash; empties the file as it opens',
+  a: '<b>"a" = append</b> &mdash; keeps what is there, adds at the end',
+  r: '<b>"r" = read</b> &mdash; the default; you cannot write through it'
+};
+
 function handleHTML(p) {
   var shut = p.closed;
   var modeCls = shut ? "shut" : (p.mode === "w" ? "wipe" : "open");
+  var means = MODE_MEANS[p.mode];
   return '<div class="hrow">' +
     '<div class="hchip ' + modeCls + '"><span class="hk">mode</span>"' +
     esc(p.mode) + '"</div>' +
+    /* The VALUE stays True/False, because that is what `print(f.closed)`
+       puts on screen two lines later and the student has to match the two.
+       The plain word under it is for the double negative: "closed: False"
+       reads as nothing at all until you have met it a few times. */
     '<div class="hchip ' + (shut ? "shut" : "open") + '">' +
-    '<span class="hk">closed</span>' + (shut ? "True" : "False") + "</div>" +
-    "</div>";
+    '<span class="hk">closed</span>' + (shut ? "True" : "False") +
+    '<span class="hsub">' + (shut ? "shut" : "still open") + "</span></div>" +
+    "</div>" +
+    (means ? '<p class="hmeans' + (p.mode === "w" ? " warn" : "") + '">' +
+             means + "</p>" : "");
 }
 
 function viewHTML(p) {
@@ -1304,7 +1339,7 @@ function viewHTML(p) {
 function panelHTML(p) {
   if (p.handle) {
     return '<div class="dwrap hwrap"><div class="dhead"><span class="var">' +
-      esc(p.handle) + '</span> &middot; a handle on ' + esc(p.of) + "</div>" +
+      esc(p.handle) + '</span> &middot; your way into ' + esc(p.of) + "</div>" +
       handleHTML(p) + "</div>";
   }
   if (p.view) {
