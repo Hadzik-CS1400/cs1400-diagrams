@@ -693,6 +693,53 @@ var DEMOS = {
     label: "with closes it, and you never typed close",
     part: 3,
     covers: "Both TODOs — the same writing and reading, handed to `with`.",
+    aside: {
+      title: "What is with actually doing? (this is the first one you have met)",
+      html:
+        "<p>It is a keyword you have not seen before, and nothing earlier in " +
+        "this course used one. It does exactly <strong>two</strong> " +
+        "things:</p>" +
+        "<table><thead><tr><th scope=\"col\">When</th>" +
+        "<th scope=\"col\">What Python does</th></tr></thead><tbody>" +
+        "<tr><th scope=\"row\">At the <code>with</code> line</th>" +
+        "<td>runs <code>open(...)</code> and puts the result in " +
+        "<code>g</code> &mdash; <em>identical</em> to " +
+        "<code>g = open(...)</code></td></tr>" +
+        "<tr><th scope=\"row\">At the <strong>dedent</strong></th>" +
+        "<td>calls <code>g.close()</code> for you, and it is the dedent " +
+        "that triggers it &mdash; not the end of the program, and not " +
+        "anything you type</td></tr></tbody></table>" +
+        "<p>That second row is the whole feature. Watch for it in this " +
+        "demo: the arrow comes <em>back up</em> to the <code>with</code> " +
+        "line after the last indented line, and that is the step where the " +
+        "closing happens. Python really does execute something there.</p>" +
+        "<p class=\"big\"><strong>And it closes even when the block " +
+        "crashes.</strong> That is the part the long form cannot promise:" +
+        "</p>" +
+        "<table><thead><tr><td></td>" +
+        "<th scope=\"col\">block finishes</th>" +
+        "<th scope=\"col\">a line inside raises</th></tr></thead><tbody>" +
+        "<tr><th scope=\"row\"><code>open</code> then <code>close</code></th>" +
+        "<td>closed</td>" +
+        "<td><strong>still open</strong> &mdash; the exception abandoned " +
+        "the rest of the block, including your <code>close()</code></td></tr>" +
+        "<tr><th scope=\"row\"><code>with</code></th>" +
+        "<td>closed</td><td>closed</td></tr></tbody></table>" +
+        "<p>You will meet exactly that abandoning in Part 5. It is why " +
+        "<strong>the answer to &#8220;when should I use <code>with</code>?&#8221; " +
+        "is <em>always</em></strong>, and why nothing after this page in " +
+        "the course opens a file the long way.</p>" +
+        "<p><strong>Two things it is not.</strong> It is not only for files " +
+        "&mdash; anything that has to be set up and then put away can be " +
+        "used this way, and you will meet network connections and database " +
+        "handles written exactly like this. And <code>as g</code> is not " +
+        "special syntax to memorise: it is a name you choose, the same way " +
+        "you chose <code>f</code>.</p>" +
+        "<p>One rule comes with it: <strong>the file is only open inside " +
+        "the indented block.</strong> Reading from <code>g</code> after the " +
+        "block has ended is an error &mdash; which is the point, not a " +
+        "limitation. The file has stopped being your problem.</p>"
+    },
     steps: [
       { line: "open1",
         panels: [{ file: "notes.txt", lines: [] },
