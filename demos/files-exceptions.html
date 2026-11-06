@@ -228,9 +228,17 @@
   /* ---- the file on disk, first and large -------------------------------- */
   /* This is the lesson, not a footnote to the code, so it leads and it is
      sized to read from the back of a room. */
-  .panels { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .panels { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;
+            align-items: flex-start; }
+  /* Sized to its CONTENTS, not to the window. These files hold two short
+     lines; letting the panel grow stretched it most of the way across a
+     projector and pushed the handle beside it off to the far right, where
+     a room loses it. `max-width` is the long line in any demo
+     (f.write("milk
+eggs
+")) with room to spare. */
   .dwrap {
-    flex: 1 1 300px;
+    flex: 0 1 auto; min-width: 19rem; max-width: 32rem;
     border: 2px solid var(--line); border-radius: 10px;
     padding: .7rem .9rem .9rem; background: #fcfdfd;
   }
@@ -277,16 +285,21 @@
   .dwrap.missing .dhead .var { color: #8b1111; }
 
   /* ---- the handle ------------------------------------------------------- */
-  .dwrap.hwrap { background: #fdfbfe; flex: 0 1 260px; }
+  /* The mode and the closed flag are two of the four things this module
+     exists to teach, so they are sized to be read from the back of a room
+     rather than squeezed into whatever space the file panel left over. */
+  .dwrap.hwrap { background: #fdfbfe; flex: 0 0 auto; min-width: 0; }
   .dwrap.hwrap .dhead .var { color: #4a148c; }
-  .hrow { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .2rem; }
+  .hrow { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .3rem; }
   .hchip {
-    border: 3px solid #6a1b9a; background: #f3e5f5; border-radius: 8px;
-    padding: .3rem .7rem; font-family: Consolas, monospace; font-size: 1.05rem;
+    border: 3px solid #6a1b9a; background: #f3e5f5; border-radius: 10px;
+    padding: .45rem 1rem .55rem; font-family: Consolas, monospace;
+    font-size: 1.7rem; font-weight: 700; line-height: 1.15;
+    min-width: 6.4rem; text-align: center;
   }
   .hchip .hk {
-    display: block; font-size: .68rem; font-weight: 800; letter-spacing: .06em;
-    text-transform: uppercase; color: #4a148c;
+    display: block; font-size: .72rem; font-weight: 800; letter-spacing: .07em;
+    text-transform: uppercase; color: #4a148c; margin-bottom: .15rem;
     font-family: 'Segoe UI', Arial, sans-serif;
   }
   .hchip.open { border-color: var(--green); background: #e8f5e9; }
