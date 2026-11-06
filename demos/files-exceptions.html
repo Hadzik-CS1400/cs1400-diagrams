@@ -200,48 +200,22 @@
                 padding: .05rem .3rem; border-radius: 3px; }
   .aside .big { font-size: 1rem; }
 
-  /* ---- what we are about to write --------------------------------------
-     THE POINT OF THE PAGE, and it leads for that reason. A student who gets
-     to the IDE with no idea what they are writing will have Copilot write it
-     in four seconds and will have learned nothing, so the shape of the code
-     gets discussed HERE, slowly, with the parts they have to supply left
-     blank. Every TODO in the Part is listed, not only the one the current
-     step demonstrates -- a TODO nobody walked through is a TODO nobody
-     thought about. */
-  .writes {
-    border: 3px solid #8f6a00; background: #fffdf5; border-radius: 12px;
-    padding: .7rem .9rem .85rem; margin-bottom: 1rem;
-  }
-  .whead {
-    font-size: .95rem; font-weight: 800; color: #4a3600;
-    letter-spacing: .02em;
-  }
-  .wsub { font-weight: 600; color: var(--muted); font-size: .85rem;
-          margin-left: .5rem; letter-spacing: 0; }
-  details.todo {
-    border: 2px solid #e6dcc0; border-radius: 8px; background: #fff;
-    margin-top: .45rem;
-  }
-  details.todo.now { border-color: #8f6a00; box-shadow: 0 0 0 3px #f6e7bd; }
-  details.todo summary {
-    cursor: pointer; list-style: none; padding: .45rem .6rem;
-    font-size: .95rem; color: var(--ink);
-  }
-  details.todo summary::-webkit-details-marker { display: none; }
-  .tl {
-    display: inline-block; font-weight: 800; font-size: .72rem;
-    letter-spacing: .06em; background: #8f6a00; color: #fff;
-    border-radius: 999px; padding: .12em .6em; margin-right: .5rem;
-    vertical-align: .1em; font-family: 'Segoe UI', Arial, sans-serif;
-  }
-  details.todo.now .tl { background: #c62828; }
-  .tbody { padding: 0 .6rem .6rem; }
-  /* The skeleton, at the same size as the stepped program, because they are
-     the same thing at two moments and should look it. */
+  /* ---- the code we are about to write ----------------------------------
+     A student who reaches the IDE with no idea what they are writing will
+     have Copilot produce it in four seconds and will have learned nothing,
+     so the shape of the code gets argued about HERE, with the parts they
+     have to supply left blank.
+
+     Deliberately just the skeleton. An earlier version boxed it up with a
+     heading and listed every TODO in the Part above it; the instruction then
+     appeared twice on one screen and the demo itself fell below the fold.
+     The bar above carries the instruction, once. */
+  .skelwrap { margin-bottom: 1rem; }
   pre.skel {
-    background: var(--code-bg); color: var(--code-fg); border-radius: 8px;
-    padding: .6rem .85rem; font-size: 1.2rem; line-height: 1.6;
-    overflow-x: auto; margin: .35rem 0 .55rem;
+    background: var(--code-bg); color: var(--code-fg);
+    border-left: 6px solid #8f6a00; border-radius: 8px;
+    padding: .6rem .85rem; font-size: 1.2rem; line-height: 1.55;
+    overflow-x: auto; margin: 0;
     font-family: Consolas, 'Courier New', monospace;
   }
   /* A blank is a question, so it is coloured like the THIS STEP band rather
@@ -250,9 +224,17 @@
     background: #f9e2af; color: #4a3600; border-radius: 4px;
     padding: 0 .15em; font-weight: 800;
   }
-  .asks { margin: .2rem 0 0; padding-left: 1.2rem; font-size: .92rem;
-          color: var(--muted); }
-  .asks li { margin: .22rem 0; }
+  details.asks { margin-top: .3rem; }
+  details.asks summary {
+    cursor: pointer; list-style: none; font-size: .85rem; font-weight: 700;
+    color: #8f6a00; padding: .15rem 0;
+  }
+  details.asks summary::-webkit-details-marker { display: none; }
+  details.asks summary::before { content: "\25B8  "; }
+  details.asks[open] summary::before { content: "\25BE  "; }
+  details.asks ul { margin: .15rem 0 0; padding-left: 1.2rem;
+                    font-size: .92rem; color: var(--muted); }
+  details.asks li { margin: .22rem 0; }
 
   /* ---- the console ------------------------------------------------------ */
   .term {
@@ -393,9 +375,9 @@
 <body>
 
 <h1>Files &amp; Exceptions Stepper</h1>
-<p class="sub"><strong>What we are about to write is at the top</strong>
-  &mdash; every TODO in the Part, with the decisions left blank, because the
-  shape of the code is worth more argument than the typing of it. Underneath,
+<p class="sub"><strong>The TODO you are on is named at the top</strong>,
+  with its code underneath and the decisions left blank &mdash; the shape of
+  it is worth more argument than the typing of it. Below that,
   <strong>Next</strong> walks a working version of the same idea a line at a
   time: lines land in a file, a file gets emptied, and &mdash; in Part 5
   &mdash; the arrow jumps over code that never runs.
@@ -1544,33 +1526,32 @@ function blanks(line) {
   });
 }
 
-/* Every TODO in this Part, with the one the current step demonstrates open
-   and the rest collapsed to their one-line instruction.
-
-   The instruction text is NOT paraphrased -- it is the sentence from main.py,
-   checked against it by Scripts/test_stepper_files.js, because a stepper that
-   describes a slightly different task than the file is worse than one that
-   says nothing. */
-function writesHTML(demo, step) {
-  var ws = demo.writes || [];
-  if (!ws.length) { return ""; }
+/* The TODO the current step is on, if it is on one. `writes` carries every
+   TODO in the Part so the bar can name any of them, but only this one is ever
+   drawn -- listing all of them cost more vertical space than it was worth,
+   and the instruction already sits in the bar above. */
+function writeHere(demo, step) {
   var here = (demo.todos || {})[step.line] || null;
-  var rows = ws.map(function (w) {
-    var now = w.todo === here;
-    return '<details class="todo' + (now ? " now" : "") + '"' +
-      (now ? " open" : "") + "><summary>" +
-      '<span class="tl">TODO ' + demo.part + w.todo + "</span>" +
-      esc(w.says) + "</summary><div class=\"tbody\">" +
-      '<pre class="skel">' + w.lines.map(blanks).join("\n") + "</pre>" +
-      '<ul class="asks">' +
-      w.asks.map(function (a) { return "<li>" + a + "</li>"; }).join("") +
-      "</ul></div></details>";
-  }).join("");
-  return '<div class="writes"><div class="whead">&#9997; What we are about ' +
-    'to write<span class="wsub">main.py, Part ' + demo.part + " &middot; " +
-    ws.length + (ws.length === 1 ? " TODO" : " TODOs") +
-    (here ? ", you are on " + demo.part + here : "") +
-    "</span></div>" + rows + "</div>";
+  if (!here) { return null; }
+  var hit = null;
+  (demo.writes || []).forEach(function (w) { if (w.todo === here) { hit = w; } });
+  return hit;
+}
+
+/* Just the skeleton, with the decisions blank. No heading and no repeat of
+   the instruction: the bar above already says what the TODO is, and saying it
+   twice pushed the demo itself below the fold. The questions are one click
+   away rather than four lines down the page. */
+function writesHTML(demo, step) {
+  var w = writeHere(demo, step);
+  if (!w) { return ""; }
+  return '<div class="skelwrap"><pre class="skel">' +
+    w.lines.map(blanks).join("\n") + "</pre>" +
+    (w.asks && w.asks.length
+      ? '<details class="asks"><summary>Questions to ask about it</summary>' +
+        "<ul>" + w.asks.map(function (a) { return "<li>" + a + "</li>"; })
+                       .join("") + "</ul></details>"
+      : "") + "</div>";
 }
 
 function lineOf(demo, key) {
@@ -1607,8 +1588,9 @@ function render() {
   var step = demo.steps[at];
   var html = "";
 
-  /* What they are about to write comes FIRST, above the demo. The demo
-     exists to make the TODO make sense, not the other way round. */
+  /* The code they are about to write comes FIRST -- the demo exists to make
+     the TODO make sense, not the other way round. One block, no heading:
+     the bar above already named the TODO and said what it asks for. */
   html += writesHTML(demo, step);
 
   /* Then the file. The code moves underneath it, so the disk stays in one
@@ -1659,10 +1641,14 @@ function render() {
   var letter = (demo.todos || {})[step.line];
   var tb = document.getElementById("todobar");
   if (letter) {
+    /* The instruction itself, once, at the top -- and nowhere else on the
+       page. It is the sentence from main.py verbatim, so a student reading
+       the bar and a student reading the file are reading the same words. */
+    var w = writeHere(demo, step);
     tb.className = "todobar";
-    tb.innerHTML = "&#9997; <b>This step is TODO " + demo.part + letter +
-      "</b> &mdash; its skeleton is open above. Talk the blanks through " +
-      "before anyone opens <code>main.py</code>.";
+    tb.innerHTML = "&#9997; <b>TODO " + demo.part + letter + "</b> &mdash; " +
+      (w ? esc(w.says) : "go and write it in <code>main.py</code>, Part " +
+                         demo.part + ".");
   } else {
     tb.className = "todobar bg";
     tb.innerHTML = "Background for Part " + demo.part +
