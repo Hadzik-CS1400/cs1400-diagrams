@@ -343,15 +343,13 @@
      a name's ABSENCE. In Part 5 the strip is empty at the moment open()
      raises, which is the clearest possible statement that `f` was never
      assigned -- the thing the note has to spend two sentences on. */
+  /* A panel in the row, beside the file and the handle, rather than a bar
+     underneath them. There was always space to the right and the bar was
+     costing a whole band of height for two or three chips. */
+  .dwrap.vwrap { background: #fbfbfd; flex: 1 1 15rem; max-width: 30rem; }
   .vars {
-    display: flex; gap: .5rem; flex-wrap: wrap; align-items: stretch;
-    margin-bottom: 1rem; padding: .55rem .7rem;
-    border: 2px solid var(--line); border-radius: 10px; background: #fbfbfd;
-  }
-  .vars .vhead {
-    font-size: .72rem; font-weight: 800; letter-spacing: .07em;
-    text-transform: uppercase; color: var(--muted); align-self: center;
-    padding-right: .2rem; font-family: 'Segoe UI', Arial, sans-serif;
+    display: flex; gap: .4rem; flex-wrap: wrap; align-items: flex-start;
+    margin-top: .2rem;
   }
   .vchip {
     border: 2px solid var(--line); border-left: 5px solid #6a1b9a;
@@ -367,9 +365,10 @@
     color: var(--muted);
   }
   .vars .vnone {
-    font-family: 'Segoe UI', Arial, sans-serif; font-size: .95rem;
-    font-style: italic; color: #8b1111; align-self: center;
+    font-family: 'Segoe UI', Arial, sans-serif; font-size: 1rem;
+    font-style: italic; color: #8b1111;
   }
+  .dwrap.vwrap .dhead .var { color: #4a148c; }
 
   .binds { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: .9rem; }
   .bind {
@@ -469,7 +468,8 @@
                       on disk; `lines` are Python literals, `gone` is drawn
                       struck through, `at` marks where the next read starts
              { handle, of, mode, closed }                  an open file object
-             { name, items: [...], view: true }            a value in memory
+             (a plain value is NOT a panel -- it appears in the
+             variables panel, which is drawn from `vars`)
      bind    loop variables this pass, null value = "this loop never fills
              that name in"
      dead    `k`s of lines an exception has abandoned -- drawn struck through
@@ -522,7 +522,6 @@ var DEMOS = {
     steps: [
       { line: "open1",
         vars: [{ n: "sample_file", of: "w", closed: false }],
-        vars: [{ n: "sample_file", of: "w", closed: false }],
         panels: [{ file: "sample.txt", lines: [] },
                  { handle: "sample_file", of: "sample.txt", mode: "w", closed: false }],
         calc: 'open("sample.txt", "w")  ->  a brand new, empty file',
@@ -532,7 +531,6 @@ var DEMOS = {
               "that was not empty." },
       { line: "w1",
         vars: [{ n: "sample_file", of: "w", closed: false }],
-        vars: [{ n: "sample_file", of: "w", closed: false }],
         panels: [{ file: "sample.txt", lines: ['"milk\\n"'], added: 0 },
                  { handle: "sample_file", of: "sample.txt", mode: "w", closed: false }],
         ret: "5",
@@ -541,7 +539,6 @@ var DEMOS = {
               "and it is what makes this a <em>line</em> rather than the " +
               "start of a longer one." },
       { line: "w2",
-        vars: [{ n: "sample_file", of: "w", closed: false }],
         vars: [{ n: "sample_file", of: "w", closed: false }],
         panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], added: 1 },
                  { handle: "sample_file", of: "sample.txt", mode: "w", closed: false }],
@@ -553,7 +550,6 @@ var DEMOS = {
               "&mdash; unlike <code>print()</code>, which always adds one." },
       { line: "shut1",
         vars: [{ n: "sample_file", of: "w", closed: true }],
-        vars: [{ n: "sample_file", of: "w", closed: true }],
         panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'] },
                  { handle: "sample_file", of: "sample.txt", mode: "w", closed: true }],
         calc: "sample_file.close()  ->  the handle is shut, the file is on disk",
@@ -562,7 +558,6 @@ var DEMOS = {
               "raises <code>ValueError: I/O operation on closed file</code>." },
       { line: "open2",
         vars: [{ n: "sample_file", of: "a", closed: false }],
-        vars: [{ n: "sample_file", of: "a", closed: false }],
         panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'] },
                  { handle: "sample_file", of: "sample.txt", mode: "a", closed: false }],
         calc: 'open("sample.txt", "a")  ->  both lines still there',
@@ -570,7 +565,6 @@ var DEMOS = {
               "difference: <code>\"a\"</code> opened it without touching " +
               "what was in it, and set the writing position to the end." },
       { line: "w3",
-        vars: [{ n: "sample_file", of: "a", closed: false }],
         vars: [{ n: "sample_file", of: "a", closed: false }],
         panels: [{ file: "sample.txt",
                    lines: ['"milk\\n"', '"eggs\\n"', '"bread\\n"'], added: 2 },
@@ -582,7 +576,6 @@ var DEMOS = {
               "would have been told." },
       { line: "shut2",
         vars: [{ n: "sample_file", of: "a", closed: true }],
-        vars: [{ n: "sample_file", of: "a", closed: true }],
         panels: [{ file: "sample.txt",
                    lines: ['"milk\\n"', '"eggs\\n"', '"bread\\n"'] },
                  { handle: "sample_file", of: "sample.txt", mode: "a", closed: true }],
@@ -590,7 +583,6 @@ var DEMOS = {
         note: "This is the state the TODOs ask you to reach. The next two " +
               "lines are the mistake, so you have seen it happen once." },
       { line: "open3",
-        vars: [{ n: "sample_file", of: "w", closed: false }],
         vars: [{ n: "sample_file", of: "w", closed: false }],
         panels: [{ file: "sample.txt", lines: [],
                    gone: ['"milk\\n"', '"eggs\\n"', '"bread\\n"'] },
@@ -601,7 +593,6 @@ var DEMOS = {
               "at <code>open</code>. There is no undo, and no warning was " +
               "printed." },
       { line: "shut3",
-        vars: [{ n: "sample_file", of: "w", closed: true }],
         vars: [{ n: "sample_file", of: "w", closed: true }],
         panels: [{ file: "sample.txt", lines: [] },
                  { handle: "sample_file", of: "sample.txt", mode: "w", closed: true }],
@@ -632,14 +623,12 @@ var DEMOS = {
     steps: [
       { line: "mk",
         vars: [{ n: "sample_file", of: "w", closed: false }],
-        vars: [{ n: "sample_file", of: "w", closed: false }],
         panels: [{ file: "sample.txt", lines: [] },
                  { handle: "sample_file", of: "sample.txt", mode: "w", closed: false }],
         calc: 'open("sample.txt", "w")  ->  an empty file to read back',
         note: "Three lines of setup so there is something to read. The " +
               "reading starts at line 4." },
       { line: "wr",
-        vars: [{ n: "sample_file", of: "w", closed: false }],
         vars: [{ n: "sample_file", of: "w", closed: false }],
         panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], added: 1 },
                  { handle: "sample_file", of: "sample.txt", mode: "w", closed: false }],
@@ -650,13 +639,11 @@ var DEMOS = {
               "is whatever sits between newlines." },
       { line: "shut0",
         vars: [{ n: "sample_file", of: "w", closed: true }],
-        vars: [{ n: "sample_file", of: "w", closed: true }],
         panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'] },
                  { handle: "sample_file", of: "sample.txt", mode: "w", closed: true }],
         calc: "sample_file.close()  ->  setup done",
         note: "Now read it back two different ways." },
       { line: "open1",
-        vars: [{ n: "sample_file", of: "r", closed: false }],
         vars: [{ n: "sample_file", of: "r", closed: false }],
         panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], at: 0 },
                  { handle: "sample_file", of: "sample.txt", mode: "r", closed: false }],
@@ -666,11 +653,8 @@ var DEMOS = {
       { line: "read",
         vars: [{ n: "sample_file", of: "r", closed: false },
                { n: "text", v: "'milk\\neggs\\n'" }],
-        vars: [{ n: "sample_file", of: "r", closed: false },
-               { n: "text", v: "'milk\\neggs\\n'" }],
         panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], at: 2 },
-                 { handle: "sample_file", of: "sample.txt", mode: "r", closed: false },
-                 { name: "text", items: ["'milk\\neggs\\n'"], view: true }],
+                 { handle: "sample_file", of: "sample.txt", mode: "r", closed: false }],
         calc: "text = sample_file.read()  ->  the whole file as ONE string",
         note: "One string, newlines and all. The marker has moved to the end " +
               "&mdash; <strong>calling <code>read()</code> again now returns " +
@@ -679,11 +663,8 @@ var DEMOS = {
       { line: "len",
         vars: [{ n: "sample_file", of: "r", closed: false },
                { n: "text", v: "'milk\\neggs\\n'" }],
-        vars: [{ n: "sample_file", of: "r", closed: false },
-               { n: "text", v: "'milk\\neggs\\n'" }],
         panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], at: 2 },
-                 { handle: "sample_file", of: "sample.txt", mode: "r", closed: false },
-                 { name: "text", items: ["'milk\\neggs\\n'"], view: true }],
+                 { handle: "sample_file", of: "sample.txt", mode: "r", closed: false }],
         ret: "10", calc: "len(text)  ->  10",
         note: "<strong>Ten, not eight.</strong> <code>milk</code> and " +
               "<code>eggs</code> are eight characters; the other two are the " +
@@ -691,17 +672,12 @@ var DEMOS = {
       { line: "shut1",
         vars: [{ n: "sample_file", of: "r", closed: true },
                { n: "text", v: "'milk\\neggs\\n'" }],
-        vars: [{ n: "sample_file", of: "r", closed: true },
-               { n: "text", v: "'milk\\neggs\\n'" }],
         panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'] },
-                 { handle: "sample_file", of: "sample.txt", mode: "r", closed: true },
-                 { name: "text", items: ["'milk\\neggs\\n'"], view: true }],
+                 { handle: "sample_file", of: "sample.txt", mode: "r", closed: true }],
         calc: "sample_file.close()  ->  text survives, the handle does not",
         note: "The string stays in memory after the file is closed. They are " +
               "two separate things, and only one of them is on the disk." },
       { line: "open2",
-        vars: [{ n: "sample_file", of: "r", closed: false },
-               { n: "text", v: "'milk\\neggs\\n'" }],
         vars: [{ n: "sample_file", of: "r", closed: false },
                { n: "text", v: "'milk\\neggs\\n'" }],
         panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], at: 0 },
@@ -713,9 +689,6 @@ var DEMOS = {
         vars: [{ n: "sample_file", of: "r", closed: false },
                { n: "line", v: "'milk\\n'" },
                { n: "text", v: "'milk\\neggs\\n'" }],
-        vars: [{ n: "sample_file", of: "r", closed: false },
-               { n: "line", v: "'milk\\n'" },
-               { n: "text", v: "'milk\\neggs\\n'" }],
         panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], at: 1 },
                  { handle: "sample_file", of: "sample.txt", mode: "r", closed: false }],
         bind: [{ n: "line", v: "'milk\\n'" }],
@@ -723,9 +696,6 @@ var DEMOS = {
         note: "Looping over the file hands you one line per pass, " +
               "<strong>newline still attached</strong>. No one took it off." },
       { line: "say",
-        vars: [{ n: "sample_file", of: "r", closed: false },
-               { n: "line", v: "'milk\\n'" },
-               { n: "text", v: "'milk\\neggs\\n'" }],
         vars: [{ n: "sample_file", of: "r", closed: false },
                { n: "line", v: "'milk\\n'" },
                { n: "text", v: "'milk\\neggs\\n'" }],
@@ -740,9 +710,6 @@ var DEMOS = {
         vars: [{ n: "sample_file", of: "r", closed: false },
                { n: "line", v: "'eggs\\n'" },
                { n: "text", v: "'milk\\neggs\\n'" }],
-        vars: [{ n: "sample_file", of: "r", closed: false },
-               { n: "line", v: "'eggs\\n'" },
-               { n: "text", v: "'milk\\neggs\\n'" }],
         panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], at: 2 },
                  { handle: "sample_file", of: "sample.txt", mode: "r", closed: false }],
         bind: [{ n: "line", v: "'eggs\\n'" }],
@@ -750,9 +717,6 @@ var DEMOS = {
         note: "Second pass. The marker has moved down; the file has not " +
               "changed." },
       { line: "say",
-        vars: [{ n: "sample_file", of: "r", closed: false },
-               { n: "line", v: "'eggs\\n'" },
-               { n: "text", v: "'milk\\neggs\\n'" }],
         vars: [{ n: "sample_file", of: "r", closed: false },
                { n: "line", v: "'eggs\\n'" },
                { n: "text", v: "'milk\\neggs\\n'" }],
@@ -767,9 +731,6 @@ var DEMOS = {
         vars: [{ n: "sample_file", of: "r", closed: false },
                { n: "line", v: "'eggs\\n'" },
                { n: "text", v: "'milk\\neggs\\n'" }],
-        vars: [{ n: "sample_file", of: "r", closed: false },
-               { n: "line", v: "'eggs\\n'" },
-               { n: "text", v: "'milk\\neggs\\n'" }],
         panels: [{ file: "sample.txt", lines: ['"milk\\n"', '"eggs\\n"'], at: 2 },
                  { handle: "sample_file", of: "sample.txt", mode: "r", closed: false }],
         bind: [{ n: "line", v: "'eggs\\n'" }],
@@ -779,9 +740,6 @@ var DEMOS = {
               "<code>for</code> over a file ends &mdash; not by counting, and " +
               "with nothing printed." },
       { line: "shut2",
-        vars: [{ n: "sample_file", of: "r", closed: true },
-               { n: "line", v: "'eggs\\n'" },
-               { n: "text", v: "'milk\\neggs\\n'" }],
         vars: [{ n: "sample_file", of: "r", closed: true },
                { n: "line", v: "'eggs\\n'" },
                { n: "text", v: "'milk\\neggs\\n'" }],
@@ -865,7 +823,6 @@ var DEMOS = {
     steps: [
       { line: "open1",
         vars: [{ n: "notes_file", of: "w", closed: false }],
-        vars: [{ n: "notes_file", of: "w", closed: false }],
         panels: [{ file: "notes.txt", lines: [] },
                  { handle: "notes_file", of: "notes.txt", mode: "w", closed: false }],
         calc: 'open("notes.txt", "w")  ->  the long way, by hand',
@@ -873,13 +830,11 @@ var DEMOS = {
               "including the closing." },
       { line: "wr1",
         vars: [{ n: "notes_file", of: "w", closed: false }],
-        vars: [{ n: "notes_file", of: "w", closed: false }],
         panels: [{ file: "notes.txt", lines: ['"milk\\n"'], added: 0 },
                  { handle: "notes_file", of: "notes.txt", mode: "w", closed: false }],
         ret: "5", calc: 'notes_file.write("milk\\n")  ->  one line written',
         note: "So far identical to Part 1." },
       { line: "ask1",
-        vars: [{ n: "notes_file", of: "w", closed: false }],
         vars: [{ n: "notes_file", of: "w", closed: false }],
         panels: [{ file: "notes.txt", lines: ['"milk\\n"'] },
                  { handle: "notes_file", of: "notes.txt", mode: "w", closed: false }],
@@ -889,7 +844,6 @@ var DEMOS = {
               "than a claim." },
       { line: "shut",
         vars: [{ n: "notes_file", of: "w", closed: true }],
-        vars: [{ n: "notes_file", of: "w", closed: true }],
         panels: [{ file: "notes.txt", lines: ['"milk\\n"'] },
                  { handle: "notes_file", of: "notes.txt", mode: "w", closed: true }],
         calc: "notes_file.close()  ->  you remembered",
@@ -898,14 +852,11 @@ var DEMOS = {
               "nobody closes anything." },
       { line: "ask2",
         vars: [{ n: "notes_file", of: "w", closed: true }],
-        vars: [{ n: "notes_file", of: "w", closed: true }],
         panels: [{ file: "notes.txt", lines: ['"milk\\n"'] },
                  { handle: "notes_file", of: "notes.txt", mode: "w", closed: true }],
         ret: "True", calc: "print(notes_file.closed)  ->  True",
         note: "Shut, because a line of your program said so." },
       { line: "wth",
-        vars: [{ n: "notes_file", of: "w", closed: true },
-               { n: "notes_again", of: "a", closed: false }],
         vars: [{ n: "notes_again", of: "a", closed: false },
                { n: "notes_file", of: "w", closed: true }],
         panels: [{ file: "notes.txt", lines: ['"milk\\n"'] },
@@ -915,8 +866,6 @@ var DEMOS = {
               "exactly as <code>=</code> would. The difference is what " +
               "happens at the end of the indented block." },
       { line: "wr2",
-        vars: [{ n: "notes_file", of: "w", closed: true },
-               { n: "notes_again", of: "a", closed: false }],
         vars: [{ n: "notes_again", of: "a", closed: false },
                { n: "notes_file", of: "w", closed: true }],
         panels: [{ file: "notes.txt", lines: ['"milk\\n"', '"eggs\\n"'], added: 1 },
@@ -925,8 +874,6 @@ var DEMOS = {
         note: "Ordinary writing. Nothing about <code>with</code> changes how " +
               "you use the file inside the block." },
       { line: "ask3",
-        vars: [{ n: "notes_file", of: "w", closed: true },
-               { n: "notes_again", of: "a", closed: false }],
         vars: [{ n: "notes_again", of: "a", closed: false },
                { n: "notes_file", of: "w", closed: true }],
         panels: [{ file: "notes.txt", lines: ['"milk\\n"', '"eggs\\n"'] },
@@ -935,8 +882,6 @@ var DEMOS = {
         note: "Still open &mdash; we are inside the block. Watch this exact " +
               "value in two presses." },
       { line: "wth", end: true, endText: "block ends",
-        vars: [{ n: "notes_file", of: "w", closed: true },
-               { n: "notes_again", of: "a", closed: true }],
         vars: [{ n: "notes_again", of: "a", closed: true },
                { n: "notes_file", of: "w", closed: true }],
         panels: [{ file: "notes.txt", lines: ['"milk\\n"', '"eggs\\n"'] },
@@ -948,8 +893,6 @@ var DEMOS = {
               "moment does. Python really executes something here, which " +
               "is why the step exists at all." },
       { line: "ask4",
-        vars: [{ n: "notes_file", of: "w", closed: true },
-               { n: "notes_again", of: "a", closed: true }],
         vars: [{ n: "notes_again", of: "a", closed: true },
                { n: "notes_file", of: "w", closed: true }],
         panels: [{ file: "notes.txt", lines: ['"milk\\n"', '"eggs\\n"'] },
@@ -983,14 +926,12 @@ var DEMOS = {
     steps: [
       { line: "mk",
         vars: [{ n: "scores_file", of: "w", closed: false }],
-        vars: [{ n: "scores_file", of: "w", closed: false }],
         panels: [{ file: "scores.txt", lines: [] },
                  { handle: "scores_file", of: "scores.txt", mode: "w", closed: false }],
         calc: 'open("scores.txt", "w")  ->  an empty file',
         note: "A data file is just a text file with a shape you agreed on. " +
               "Here the shape is &#8220;one number per line&#8221;." },
       { line: "wr",
-        vars: [{ n: "scores_file", of: "w", closed: false }],
         vars: [{ n: "scores_file", of: "w", closed: false }],
         panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'], added: 1 },
                  { handle: "scores_file", of: "scores.txt", mode: "w", closed: false }],
@@ -1000,14 +941,12 @@ var DEMOS = {
               "you would need <code>str(91)</code>." },
       { line: "shut0",
         vars: [{ n: "scores_file", of: "w", closed: true }],
-        vars: [{ n: "scores_file", of: "w", closed: true }],
         panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'] },
                  { handle: "scores_file", of: "scores.txt", mode: "w", closed: true }],
         calc: "scores_file.close()  ->  two numbers, stored as text",
         note: "They look like numbers. On disk they are the characters " +
               "<code>9</code>, <code>1</code> and a newline." },
       { line: "open1",
-        vars: [{ n: "scores_file", of: "r", closed: false }],
         vars: [{ n: "scores_file", of: "r", closed: false }],
         panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'], at: 0 },
                  { handle: "scores_file", of: "scores.txt", mode: "r", closed: false }],
@@ -1016,11 +955,8 @@ var DEMOS = {
       { line: "r1",
         vars: [{ n: "scores_file", of: "r", closed: false },
                { n: "first", v: "'91\\n'" }],
-        vars: [{ n: "scores_file", of: "r", closed: false },
-               { n: "first", v: "'91\\n'" }],
         panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'], at: 1 },
-                 { handle: "scores_file", of: "scores.txt", mode: "r", closed: false },
-                 { name: "first", items: ["'91\\n'"], view: true }],
+                 { handle: "scores_file", of: "scores.txt", mode: "r", closed: false }],
         calc: "first = scores_file.readline()  ->  '91\\n'",
         note: "<code>readline()</code> hands back one line and moves the " +
               "marker past it &mdash; the same marker the <code>for</code> " +
@@ -1029,12 +965,8 @@ var DEMOS = {
         vars: [{ n: "scores_file", of: "r", closed: false },
                { n: "first", v: "'91\\n'" },
                { n: "second", v: "'85\\n'" }],
-        vars: [{ n: "scores_file", of: "r", closed: false },
-               { n: "first", v: "'91\\n'" },
-               { n: "second", v: "'85\\n'" }],
         panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'], at: 2 },
-                 { handle: "scores_file", of: "scores.txt", mode: "r", closed: false },
-                 { name: "second", items: ["'85\\n'"], view: true }],
+                 { handle: "scores_file", of: "scores.txt", mode: "r", closed: false }],
         calc: "second = scores_file.readline()  ->  '85\\n'",
         note: "Both are <strong>strings</strong>. Nothing in this program has " +
               "turned anything into a number yet." },
@@ -1042,25 +974,15 @@ var DEMOS = {
         vars: [{ n: "scores_file", of: "r", closed: true },
                { n: "first", v: "'91\\n'" },
                { n: "second", v: "'85\\n'" }],
-        vars: [{ n: "scores_file", of: "r", closed: true },
-               { n: "first", v: "'91\\n'" },
-               { n: "second", v: "'85\\n'" }],
         panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'] },
-                 { handle: "scores_file", of: "scores.txt", mode: "r", closed: true },
-                 { name: "first", items: ["'91\\n'"], view: true },
-                 { name: "second", items: ["'85\\n'"], view: true }],
+                 { handle: "scores_file", of: "scores.txt", mode: "r", closed: true }],
         calc: "scores_file.close()  ->  two strings in hand",
         note: "Now the two ways of adding them." },
       { line: "glue",
         vars: [{ n: "scores_file", of: "r", closed: true },
                { n: "first", v: "'91\\n'" },
                { n: "second", v: "'85\\n'" }],
-        vars: [{ n: "scores_file", of: "r", closed: true },
-               { n: "first", v: "'91\\n'" },
-               { n: "second", v: "'85\\n'" }],
-        panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'] },
-                 { name: "first", items: ["'91\\n'"], view: true },
-                 { name: "second", items: ["'85\\n'"], view: true }],
+        panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'] }],
         ret: "9185",
         calc: 'print(first.strip() + second.strip())  ->  "91" + "85" = "9185"',
         note: "<strong>Not 176.</strong> <code>+</code> on two strings glues " +
@@ -1070,12 +992,7 @@ var DEMOS = {
         vars: [{ n: "scores_file", of: "r", closed: true },
                { n: "first", v: "'91\\n'" },
                { n: "second", v: "'85\\n'" }],
-        vars: [{ n: "scores_file", of: "r", closed: true },
-               { n: "first", v: "'91\\n'" },
-               { n: "second", v: "'85\\n'" }],
-        panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'] },
-                 { name: "first", items: ["'91\\n'"], view: true },
-                 { name: "second", items: ["'85\\n'"], view: true }],
+        panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'] }],
         ret: "176",
         calc: "print(int(first) + int(second))  ->  91 + 85 = 176",
         note: "<code>int()</code> forgives the trailing newline, so no " +
@@ -1135,7 +1052,6 @@ var DEMOS = {
     steps: [
       { line: "a",
         vars: [],
-        vars: [],
         panels: [{ file: "missing.txt", absent: true }],
         ret: "A", calc: 'print("A")  ->  A',
         note: "An ordinary line, so the console has something in it before " +
@@ -1143,13 +1059,11 @@ var DEMOS = {
               "&mdash; that is the point." },
       { line: "tryline",
         vars: [],
-        vars: [],
         panels: [{ file: "missing.txt", absent: true }],
         calc: "try:  ->  the risky part starts here",
         note: "<code>try</code> does nothing on its own. It marks which lines " +
               "are covered: everything indented under it, and nothing else." },
       { line: "bad",
-        vars: [],
         vars: [],
         panels: [{ file: "missing.txt", absent: true }],
         dead: ["b", "rd"],
@@ -1160,7 +1074,6 @@ var DEMOS = {
               "rows: nothing <em>on</em> them explains why." },
       { line: "handler",
         vars: [],
-        vars: [],
         panels: [{ file: "missing.txt", absent: true }],
         dead: ["b", "rd"],
         calc: "except FileNotFoundError:  ->  this is the one that was raised",
@@ -1170,7 +1083,6 @@ var DEMOS = {
               "not have matched and the program would have crashed." },
       { line: "c",
         vars: [],
-        vars: [],
         panels: [{ file: "missing.txt", absent: true }],
         dead: ["b", "rd"],
         ret: "C", calc: 'print("C")  ->  C',
@@ -1178,7 +1090,6 @@ var DEMOS = {
               "<code>try</code>, not as well as it. There is no way back " +
               "into the abandoned lines." },
       { line: "d",
-        vars: [],
         vars: [],
         panels: [{ file: "missing.txt", absent: true }],
         dead: ["b", "rd"],
@@ -1209,7 +1120,6 @@ var DEMOS = {
     steps: [
       { line: "mk",
         vars: [{ n: "scores_file", of: "w", closed: false }],
-        vars: [{ n: "scores_file", of: "w", closed: false }],
         panels: [{ file: "empty.txt", lines: [] },
                  { handle: "scores_file", of: "empty.txt", mode: "w", closed: false }],
         calc: 'open("empty.txt", "w")  ->  a file with nothing in it',
@@ -1218,13 +1128,11 @@ var DEMOS = {
               "most programs forget." },
       { line: "shut0",
         vars: [{ n: "scores_file", of: "w", closed: true }],
-        vars: [{ n: "scores_file", of: "w", closed: true }],
         panels: [{ file: "empty.txt", lines: [] },
                  { handle: "scores_file", of: "empty.txt", mode: "w", closed: true }],
         calc: "scores_file.close()  ->  zero lines on disk",
         note: "Nothing was written, so nothing is there." },
       { line: "open1",
-        vars: [{ n: "scores_file", of: "r", closed: false }],
         vars: [{ n: "scores_file", of: "r", closed: false }],
         panels: [{ file: "empty.txt", lines: [], at: 0 },
                  { handle: "scores_file", of: "empty.txt", mode: "r", closed: false }],
@@ -1234,11 +1142,8 @@ var DEMOS = {
       { line: "rl",
         vars: [{ n: "scores_file", of: "r", closed: false },
                { n: "lines", v: "[]" }],
-        vars: [{ n: "scores_file", of: "r", closed: false },
-               { n: "lines", v: "[]" }],
         panels: [{ file: "empty.txt", lines: [], at: 0 },
-                 { handle: "scores_file", of: "empty.txt", mode: "r", closed: false },
-                 { name: "lines", items: [], view: true }],
+                 { handle: "scores_file", of: "empty.txt", mode: "r", closed: false }],
         calc: "lines = scores_file.readlines()  ->  []",
         note: "<code>readlines()</code> hands back a list of lines &mdash; an " +
               "empty one here. Still no error, and this is where the trouble " +
@@ -1246,21 +1151,15 @@ var DEMOS = {
       { line: "shut1",
         vars: [{ n: "scores_file", of: "r", closed: true },
                { n: "lines", v: "[]" }],
-        vars: [{ n: "scores_file", of: "r", closed: true },
-               { n: "lines", v: "[]" }],
         panels: [{ file: "empty.txt", lines: [] },
-                 { handle: "scores_file", of: "empty.txt", mode: "r", closed: true },
-                 { name: "lines", items: [], view: true }],
+                 { handle: "scores_file", of: "empty.txt", mode: "r", closed: true }],
         calc: "scores_file.close()  ->  an empty list in hand",
         note: "Nothing so far has gone wrong by Python's standards. Every " +
               "line did exactly what it promised." },
       { line: "howmany",
         vars: [{ n: "scores_file", of: "r", closed: true },
                { n: "lines", v: "[]" }],
-        vars: [{ n: "scores_file", of: "r", closed: true },
-               { n: "lines", v: "[]" }],
-        panels: [{ file: "empty.txt", lines: [] },
-                 { name: "lines", items: [], view: true }],
+        panels: [{ file: "empty.txt", lines: [] }],
         ret: "0", calc: "print(len(lines))  ->  0",
         note: "Zero. If this list were handed back to a caller that averaged " +
               "it, the crash would be a <code>ZeroDivisionError</code> " +
@@ -1268,20 +1167,14 @@ var DEMOS = {
       { line: "tryline",
         vars: [{ n: "scores_file", of: "r", closed: true },
                { n: "lines", v: "[]" }],
-        vars: [{ n: "scores_file", of: "r", closed: true },
-               { n: "lines", v: "[]" }],
-        panels: [{ file: "empty.txt", lines: [] },
-                 { name: "lines", items: [], view: true }],
+        panels: [{ file: "empty.txt", lines: [] }],
         calc: "try:  ->  covering the lines below",
         note: "You can catch an exception you raised yourself. It is the same " +
               "machinery &mdash; there is no separate kind." },
       { line: "test",
         vars: [{ n: "scores_file", of: "r", closed: true },
                { n: "lines", v: "[]" }],
-        vars: [{ n: "scores_file", of: "r", closed: true },
-               { n: "lines", v: "[]" }],
-        panels: [{ file: "empty.txt", lines: [] },
-                 { name: "lines", items: [], view: true }],
+        panels: [{ file: "empty.txt", lines: [] }],
         ret: "True", calc: "not lines  ->  True (the list is empty)",
         note: "An empty list is falsy, so <code>not lines</code> is True. " +
               "This is your code noticing the problem &mdash; Python has no " +
@@ -1289,10 +1182,7 @@ var DEMOS = {
       { line: "raiseline",
         vars: [{ n: "scores_file", of: "r", closed: true },
                { n: "lines", v: "[]" }],
-        vars: [{ n: "scores_file", of: "r", closed: true },
-               { n: "lines", v: "[]" }],
-        panels: [{ file: "empty.txt", lines: [] },
-                 { name: "lines", items: [], view: true }],
+        panels: [{ file: "empty.txt", lines: [] }],
         dead: ["avg"],
         calc: 'raise ValueError("no scores in empty.txt")',
         note: "<strong>You raised it.</strong> Same effect as " +
@@ -1303,11 +1193,7 @@ var DEMOS = {
         vars: [{ n: "scores_file", of: "r", closed: true },
                { n: "lines", v: "[]" },
                { n: "problem", v: "ValueError('no scores in empty.txt')" }],
-        vars: [{ n: "scores_file", of: "r", closed: true },
-               { n: "lines", v: "[]" },
-               { n: "problem", v: "ValueError('no scores in empty.txt')" }],
-        panels: [{ file: "empty.txt", lines: [] },
-                 { name: "lines", items: [], view: true }],
+        panels: [{ file: "empty.txt", lines: [] }],
         dead: ["avg"],
         bind: [{ n: "problem", v: "ValueError('no scores in empty.txt')" }],
         calc: "except ValueError as problem:  ->  matched",
@@ -1317,10 +1203,7 @@ var DEMOS = {
       { line: "say",
         vars: [{ n: "scores_file", of: "r", closed: true },
                { n: "lines", v: "[]" }],
-        vars: [{ n: "scores_file", of: "r", closed: true },
-               { n: "lines", v: "[]" }],
-        panels: [{ file: "empty.txt", lines: [] },
-                 { name: "lines", items: [], view: true }],
+        panels: [{ file: "empty.txt", lines: [] }],
         dead: ["avg"],
         ret: "refused: no scores in empty.txt",
         calc: 'print("refused:", problem)  ->  refused: no scores in empty.txt',
@@ -1331,10 +1214,7 @@ var DEMOS = {
       { line: "after",
         vars: [{ n: "scores_file", of: "r", closed: true },
                { n: "lines", v: "[]" }],
-        vars: [{ n: "scores_file", of: "r", closed: true },
-               { n: "lines", v: "[]" }],
-        panels: [{ file: "empty.txt", lines: [] },
-                 { name: "lines", items: [], view: true }],
+        panels: [{ file: "empty.txt", lines: [] }],
         dead: ["avg"],
         ret: "still running", calc: 'print("still running")',
         note: "Caught means handled. The program refused to average nothing, " +
@@ -1369,14 +1249,12 @@ var DEMOS = {
     steps: [
       { line: "tryline",
         vars: [],
-        vars: [],
         panels: [{ file: "notes.txt", absent: true }],
         calc: "try:  ->  because this might be the first run",
         note: "The first time anybody runs a notes app there are no notes. " +
               "<strong>A program that crashes on its own first run is not " +
               "finished.</strong>" },
       { line: "open1",
-        vars: [],
         vars: [],
         panels: [{ file: "notes.txt", absent: true }],
         dead: ["show", "shut1"],
@@ -1386,7 +1264,6 @@ var DEMOS = {
               "which never needed to run because nothing was ever opened." },
       { line: "handler",
         vars: [],
-        vars: [],
         panels: [{ file: "notes.txt", absent: true }],
         dead: ["show", "shut1"],
         calc: "except FileNotFoundError:  ->  the expected first run",
@@ -1394,14 +1271,12 @@ var DEMOS = {
               "knows about and has an answer for." },
       { line: "sorry",
         vars: [],
-        vars: [],
         panels: [{ file: "notes.txt", absent: true }],
         dead: ["show", "shut1"],
         ret: "No notes yet.", calc: 'print("No notes yet.")',
         note: "A sentence a person can read, instead of a traceback. Same " +
               "information, told to the right audience." },
       { line: "open2",
-        vars: [{ n: "notes_file", of: "a", closed: false }],
         vars: [{ n: "notes_file", of: "a", closed: false }],
         panels: [{ file: "notes.txt", lines: [] },
                  { handle: "notes_file", of: "notes.txt", mode: "a", closed: false }],
@@ -1412,7 +1287,6 @@ var DEMOS = {
               "adding a note works on run one and showing them does not." },
       { line: "wr",
         vars: [{ n: "notes_file", of: "a", closed: false }],
-        vars: [{ n: "notes_file", of: "a", closed: false }],
         panels: [{ file: "notes.txt", lines: ['"buy milk\\n"'], added: 0 },
                  { handle: "notes_file", of: "notes.txt", mode: "a", closed: false }],
         ret: "9", calc: 'notes_file.write("buy milk\\n")  ->  the first note',
@@ -1421,14 +1295,12 @@ var DEMOS = {
               "each new one, and nobody would notice until it mattered." },
       { line: "shut2",
         vars: [{ n: "notes_file", of: "a", closed: true }],
-        vars: [{ n: "notes_file", of: "a", closed: true }],
         panels: [{ file: "notes.txt", lines: ['"buy milk\\n"'] },
                  { handle: "notes_file", of: "notes.txt", mode: "a", closed: true }],
         calc: "notes_file.close()  ->  one note, saved",
         note: "This is what makes it a notes app rather than a prompt: the " +
               "note is still there after the program ends." },
       { line: "open3",
-        vars: [{ n: "notes_file", of: "r", closed: false }],
         vars: [{ n: "notes_file", of: "r", closed: false }],
         panels: [{ file: "notes.txt", lines: ['"buy milk\\n"'], at: 0 },
                  { handle: "notes_file", of: "notes.txt", mode: "r", closed: false }],
@@ -1438,16 +1310,12 @@ var DEMOS = {
       { line: "loop",
         vars: [{ n: "notes_file", of: "r", closed: false },
                { n: "line", v: "'buy milk\\n'" }],
-        vars: [{ n: "notes_file", of: "r", closed: false },
-               { n: "line", v: "'buy milk\\n'" }],
         panels: [{ file: "notes.txt", lines: ['"buy milk\\n"'], at: 1 },
                  { handle: "notes_file", of: "notes.txt", mode: "r", closed: false }],
         bind: [{ n: "line", v: "'buy milk\\n'" }],
         calc: "for line in notes_file:  ->  line = 'buy milk\\n'",
         note: "One note, so one pass." },
       { line: "say",
-        vars: [{ n: "notes_file", of: "r", closed: false },
-               { n: "line", v: "'buy milk\\n'" }],
         vars: [{ n: "notes_file", of: "r", closed: false },
                { n: "line", v: "'buy milk\\n'" }],
         panels: [{ file: "notes.txt", lines: ['"buy milk\\n"'], at: 1 },
@@ -1459,8 +1327,6 @@ var DEMOS = {
       { line: "loop", end: true, endText: "loop ends",
         vars: [{ n: "notes_file", of: "r", closed: false },
                { n: "line", v: "'buy milk\\n'" }],
-        vars: [{ n: "notes_file", of: "r", closed: false },
-               { n: "line", v: "'buy milk\\n'" }],
         panels: [{ file: "notes.txt", lines: ['"buy milk\\n"'], at: 1 },
                  { handle: "notes_file", of: "notes.txt", mode: "r", closed: false }],
         bind: [{ n: "line", v: "'buy milk\\n'" }],
@@ -1469,8 +1335,6 @@ var DEMOS = {
               "does not need to know how many there are &mdash; which is the " +
               "point of looping over the file rather than over a count." },
       { line: "shut3",
-        vars: [{ n: "notes_file", of: "r", closed: true },
-               { n: "line", v: "'buy milk\\n'" }],
         vars: [{ n: "notes_file", of: "r", closed: true },
                { n: "line", v: "'buy milk\\n'" }],
         panels: [{ file: "notes.txt", lines: ['"buy milk\\n"'], at: 1 },
@@ -1667,7 +1531,9 @@ function viewHTML(p) {
 function panelHTML(p) {
   if (p.handle) {
     return '<div class="dwrap hwrap"><div class="dhead"><span class="var">' +
-      esc(p.handle) + '</span> &middot; your way into ' + esc(p.of) + "</div>" +
+      esc(p.handle) + '</span> &middot; how you reach it</div>' +
+      // The file panel sits immediately to the left and names the file,
+      // so repeating it here only made this header wrap.
       handleHTML(p) + "</div>";
   }
   if (p.view) {
@@ -1690,12 +1556,14 @@ function panelHTML(p) {
 function varsHTML(step) {
   var vs = step.vars;
   if (!vs) { return ""; }
+  var head = '<div class="dwrap vwrap"><div class="dhead">' +
+             '<span class="var">Variables</span> &middot; what exists right ' +
+             "now</div>";
   if (!vs.length) {
-    return '<div class="vars"><span class="vhead">Variables</span>' +
-           '<span class="vnone">none yet &mdash; no name has been ' +
-           "assigned</span></div>";
+    return head + '<div class="vars"><span class="vnone">none yet &mdash; ' +
+           "no name has been assigned</span></div></div>";
   }
-  return '<div class="vars"><span class="vhead">Variables</span>' +
+  return head + '<div class="vars">' +
     vs.map(function (v) {
       if (v.of !== undefined) {
         return '<div class="vchip vfile"><span class="vn">' + esc(v.n) +
@@ -1705,7 +1573,7 @@ function varsHTML(step) {
       }
       return '<div class="vchip"><span class="vn">' + esc(v.n) +
         '</span><span class="veq"> = </span>' + esc(v.v) + "</div>";
-    }).join("") + "</div>";
+    }).join("") + "</div></div>";
 }
 
 /* The tallest the panel row ever gets in THIS demo, so the row can be given a
@@ -1749,11 +1617,11 @@ function panelsFloor(demo) {
   ghost.style.width = width + "px";
   var worst = 0;
   demo.steps.forEach(function (st) {
-    /* Panels AND the variables strip: the strip grows a chip at a time and
-       wraps to a second row on a narrow screen, so flooring only the panels
-       left the code still sliding -- 15px in Part 8, 48px in Part 7 at 940. */
-    ghost.innerHTML = '<div class="above"><div class="panels">' +
-                      st.panels.map(panelHTML).join("") + "</div>" +
+    /* The whole row, variables panel included: it gains a chip at a time
+       and wraps on a narrow screen, so leaving it out left the code still
+       sliding -- 15px in Part 8, 48px in Part 7 at 940. */
+    ghost.innerHTML = '<div class="panels">' +
+                      st.panels.map(panelHTML).join("") +
                       varsHTML(st) + "</div>";
     var box = ghost.firstChild;
     var h = box && box.getBoundingClientRect
@@ -1806,14 +1674,12 @@ function render() {
   /* The file leads. The code moves underneath it, so the disk stays in one
      place while the arrow walks down the program. */
   var floor = panelsFloor(demo);
-  html += '<div class="above"' +
+  html += '<div class="panels"' +
           (floor ? ' style="min-height:' + floor + 'px"' : "") + ">" +
-          '<div class="panels">' +
-          step.panels.map(panelHTML).join("") + "</div>";
+          step.panels.map(panelHTML).join("") + varsHTML(step) + "</div>";
 
   /* Between the panels and the code, because it is filled in BY the code and
      read BY the code. */
-  html += varsHTML(step) + "</div>";
 
   /* `bind` is still carried and still checked against CPython, but it is no
      longer DRAWN: the variables strip above shows the same loop variable, and
