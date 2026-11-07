@@ -351,21 +351,24 @@
     display: flex; gap: .4rem; flex-wrap: wrap; align-items: flex-start;
     margin-top: .2rem;
   }
+  /* Sized to the file panel's line boxes beside it: these are read off a
+     projector too, and a variable in a smaller type than the file it points
+     at reads as the less important of the two. */
   .vchip {
     border: 2px solid var(--line); border-left: 5px solid #6a1b9a;
-    border-radius: 7px; padding: .22rem .6rem .3rem; background: #fff;
-    font-family: Consolas, monospace; font-size: 1.05rem;
+    border-radius: 8px; padding: .35rem .7rem; background: #fff;
+    font-family: Consolas, monospace; font-size: 1.15rem;
   }
   .vchip .vn { font-weight: 700; color: #4a148c; }
   .vchip .veq { color: var(--muted); }
   .vchip.vfile { border-left-color: var(--teal); background: #f7fcfb; }
   .vchip.vfile .vn { color: #00564b; }
   .vchip.vfile .vf {
-    font-family: 'Segoe UI', Arial, sans-serif; font-size: .88rem;
+    font-family: 'Segoe UI', Arial, sans-serif; font-size: 1rem;
     color: var(--muted);
   }
   .vars .vnone {
-    font-family: 'Segoe UI', Arial, sans-serif; font-size: 1rem;
+    font-family: 'Segoe UI', Arial, sans-serif; font-size: 1.1rem;
     font-style: italic; color: #8b1111;
   }
   .dwrap.vwrap .dhead .var { color: #4a148c; }
