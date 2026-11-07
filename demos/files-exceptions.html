@@ -1728,18 +1728,45 @@ function render() {
      does not exist is worse than saying nothing. */
   var letter = (demo.todos || {})[step.line];
   var tb = document.getElementById("todobar");
+  tb.className = "todobar";
   if (letter) {
-    tb.className = "todobar";
     tb.innerHTML = "&#9997; <b>This is TODO " + demo.part + letter +
       "</b> &mdash; when it makes sense, go and write it in " +
       "<code>main.py</code>, Part " + demo.part + ".";
   } else {
-    tb.className = "todobar bg";
-    tb.innerHTML = "Background for Part " + demo.part +
-      " &mdash; no TODO of its own. Worth seeing, nothing to write yet.";
+    /* A setup step still says which TODO it is setting up, and how far off
+       it is. Three of the seven demos OPEN on one, so the old grey "nothing
+       to write yet" was the first thing a student saw on Parts 2, 3 and 7 --
+       which read as though those Parts had no TODOs at all. */
+    var away = 0;
+    for (var i = at + 1; i < demo.steps.length; i++) {
+      if ((demo.todos || {})[demo.steps[i].line]) { away = i - at; break; }
+    }
+    /* The Part's whole span, as the tab writes it -- not the letter of the
+       next lettered step. Part 7's demo reaches TODO b before TODO a,
+       because the program does, and announcing "TODO 7b" first read like a
+       mistake. */
+    tb.innerHTML = away
+      ? "&#9997; <b>Part " + demo.part + " &middot; TODO " + todoSpan(demo) +
+        "</b> &mdash; setting up. The first one is " + away +
+        (away === 1 ? " press" : " presses") + " away."
+      : "&#9997; <b>Part " + demo.part + "</b> &mdash; you have seen every " +
+        "TODO in this Part. This step is worth watching anyway.";
   }
   backBtn.disabled = at === 0;
   nextBtn.disabled = at === demo.steps.length - 1;
+}
+
+/* "a", or "a–c" -- the TODO letters this demo covers. Used by the tab
+   and by the bar, so the two can never disagree about a Part's span. */
+function todoSpan(demo) {
+  var ls = [];
+  Object.keys(demo.todos || {}).forEach(function (k) {
+    var v = demo.todos[k];
+    if (v && ls.indexOf(v) === -1) { ls.push(v); }
+  });
+  ls.sort();
+  return ls.length > 1 ? ls[0] + "–" + ls[ls.length - 1] : (ls[0] || "");
 }
 
 function buildTabs() {
@@ -1748,13 +1775,7 @@ function buildTabs() {
     var b = document.createElement("button");
     b.className = "tab";
     b.type = "button";
-    var ls = [];
-    Object.keys(DEMOS[key].todos || {}).forEach(function (k) {
-      var v = DEMOS[key].todos[k];
-      if (v && ls.indexOf(v) === -1) { ls.push(v); }
-    });
-    ls.sort();
-    var span = ls.length > 1 ? ls[0] + "–" + ls[ls.length - 1] : ls[0];
+    var span = todoSpan(DEMOS[key]);
     b.innerHTML = '<span class="tpart">Part ' + DEMOS[key].part +
                   (span ? " · TODO " + span : "") + "</span>" +
                   esc(DEMOS[key].label);
