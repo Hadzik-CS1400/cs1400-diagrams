@@ -925,7 +925,7 @@ var DEMOS = {
              shut1: "a", glue: "a", sum: "a" },
     label: "Everything out of a file is text",
     part: 4,
-    covers: "The one TODO — write the scores, read them back, add them up.",
+    covers: "The one TODO — write the scores, read them back, average them.",
     steps: [
       { line: "mk",
         vars: [{ n: "scores_file", of: "w", closed: false }],
@@ -986,23 +986,29 @@ var DEMOS = {
                { n: "first", v: "'91\\n'" },
                { n: "second", v: "'85\\n'" }],
         panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'] }],
-        ret: "9185",
-        calc: 'print(first.strip() + second.strip())  ->  "91" + "85" = "9185"',
-        note: "<strong>Not 176.</strong> <code>+</code> on two strings glues " +
-              "them, and nothing raised &mdash; which is what makes this bug " +
-              "so quiet. It shows up as a wrong total three screens later." },
+        ret: "91, 85",
+        calc: "'91' + ', ' + '85'  ->  '91, 85'   (still a string)",
+        note: "Joining is the only thing <code>+</code> can do with two " +
+              "strings, and it is genuinely useful &mdash; this is how you " +
+              "build a line of a report. But look at what came out: " +
+              "<strong>the text <code>'91, 85'</code></strong>, not a " +
+              "number. You cannot average it, sort it, or ask whether it is " +
+              "above 90." },
       { line: "sum",
         vars: [{ n: "scores_file", of: "r", closed: true },
                { n: "first", v: "'91\\n'" },
                { n: "second", v: "'85\\n'" }],
         panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'] }],
-        ret: "176",
-        calc: "print(int(first) + int(second))  ->  91 + 85 = 176",
-        note: "<code>int()</code> forgives the trailing newline, so no " +
-              "<code>.strip()</code> was needed here. It does " +
-              "<strong>not</strong> forgive <code>\"ninety\"</code> &mdash; " +
-              "that is a <code>ValueError</code>, and Part 6 reads the " +
-              "traceback it produces." }
+        ret: "88.0",
+        calc: "(int('91\\n') + int('85\\n')) / 2  ->  (91 + 85) / 2  ->  88.0",
+        note: "<code>int()</code> turns each line into a number first, so " +
+              "<code>+</code> now means addition and the division makes " +
+              "sense: <strong>88.0, the average</strong> &mdash; which is " +
+              "what your TODO asks for. Leave the <code>int()</code> off and " +
+              "you get <code>'91\\n85\\n'</code> instead: no error, just a " +
+              "wrong answer three screens later. And note it forgave the " +
+              "trailing newline &mdash; it will not forgive " +
+              "<code>\"ninety\"</code>, which is the ValueError Part 6 reads." }
     ],
     code: [
       { k: "mk",    t: 'scores_file = open("scores.txt", "w")' },
@@ -1012,8 +1018,8 @@ var DEMOS = {
       { k: "r1",    t: "first = scores_file.readline()" },
       { k: "r2",    t: "second = scores_file.readline()" },
       { k: "shut1", t: "scores_file.close()" },
-      { k: "glue",  t: "print(first.strip() + second.strip())" },
-      { k: "sum",   t: "print(int(first) + int(second))" }
+      { k: "glue",  t: 'print(first.strip() + ", " + second.strip())' },
+      { k: "sum",   t: "print((int(first) + int(second)) / 2)" }
     ]
   },
 
