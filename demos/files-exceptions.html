@@ -922,7 +922,8 @@ var DEMOS = {
 
   text: {
     todos: { mk: "a", wr: "a", shut0: "a", open1: "a", r1: "a", r2: "a",
-             shut1: "a", glue: "a", sum: "a" },
+             shut1: "a", glue: "a", sum: "a",
+             open2: "", all: "", shut2: "", show: "" },
     label: "Everything out of a file is text",
     part: 4,
     covers: "The one TODO — write the scores, read them back, average them.",
@@ -1008,7 +1009,50 @@ var DEMOS = {
               "you get <code>'91\\n85\\n'</code> instead: no error, just a " +
               "wrong answer three screens later. And note it forgave the " +
               "trailing newline &mdash; it will not forgive " +
-              "<code>\"ninety\"</code>, which is the ValueError Part 6 reads." }
+              "<code>\"ninety\"</code>, which is the ValueError Part 6 reads." },
+      { line: "open2",
+        vars: [{ n: "scores_file", of: "r", closed: false },
+               { n: "first", v: "'91\\n'" },
+               { n: "second", v: "'85\\n'" }],
+        panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'], at: 0 }],
+        calc: 'open("scores.txt")  ->  a fresh handle, back at the top',
+        note: "One more way to read, while the file is in front of you. " +
+              "<code>readline()</code> gave you <em>one</em> line; its plural " +
+              "gives you all of them at once." },
+      { line: "all",
+        vars: [{ n: "scores_file", of: "r", closed: false },
+               { n: "first", v: "'91\\n'" },
+               { n: "lines", v: "['91\\n', '85\\n']" },
+               { n: "second", v: "'85\\n'" }],
+        panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'], at: 2 }],
+        calc: "lines = scores_file.readlines()  ->  a LIST of both lines",
+        note: "<strong>readlines(), with the s.</strong> One call, and the " +
+              "whole file comes back as a <em>list</em> &mdash; the lists " +
+              "from Module 8, holding one string per line. The marker jumped " +
+              "straight to the end, because it read all of it." },
+      { line: "shut2",
+        vars: [{ n: "scores_file", of: "r", closed: true },
+               { n: "first", v: "'91\\n'" },
+               { n: "lines", v: "['91\\n', '85\\n']" },
+               { n: "second", v: "'85\\n'" }],
+        panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'] }],
+        calc: "scores_file.close()  ->  the list stays, the handle does not",
+        note: "Same as <code>read()</code> in Part 2: what you took out of " +
+              "the file is yours to keep after it closes." },
+      { line: "show",
+        vars: [{ n: "scores_file", of: "r", closed: true },
+               { n: "first", v: "'91\\n'" },
+               { n: "lines", v: "['91\\n', '85\\n']" },
+               { n: "second", v: "'85\\n'" }],
+        panels: [{ file: "scores.txt", lines: ['"91\\n"', '"85\\n"'] }],
+        ret: "['91\\n', '85\\n']",
+        calc: "print(lines)  ->  ['91\\n', '85\\n']",
+        note: "<strong>The newlines are still there</strong>, one on the end " +
+              "of every item &mdash; exactly as the loop handed them over in " +
+              "Part 2. A list of lines is not a list of numbers, and it is " +
+              "not even a list of clean strings. You will meet " +
+              "<code>readlines()</code> again in Part 7, where its emptiness " +
+              "is the thing worth refusing." }
     ],
     code: [
       { k: "mk",    t: 'scores_file = open("scores.txt", "w")' },
@@ -1019,7 +1063,11 @@ var DEMOS = {
       { k: "r2",    t: "second = scores_file.readline()" },
       { k: "shut1", t: "scores_file.close()" },
       { k: "glue",  t: 'print(first.strip() + ", " + second.strip())' },
-      { k: "sum",   t: "print((int(first) + int(second)) / 2)" }
+      { k: "sum",   t: "print((int(first) + int(second)) / 2)" },
+      { k: "open2", t: 'scores_file = open("scores.txt")' },
+      { k: "all",   t: "lines = scores_file.readlines()" },
+      { k: "shut2", t: "scores_file.close()" },
+      { k: "show",  t: "print(lines)" }
     ]
   },
 
@@ -1154,9 +1202,11 @@ var DEMOS = {
         panels: [{ file: "empty.txt", lines: [], at: 0 },
                  { handle: "scores_file", of: "empty.txt", mode: "r", closed: false }],
         calc: "lines = scores_file.readlines()  ->  []",
-        note: "<code>readlines()</code> hands back a list of lines &mdash; an " +
-              "empty one here. Still no error, and this is where the trouble " +
-              "starts travelling." },
+        note: "The same <code>readlines()</code> from Part 4, where it came " +
+              "back as <code>['91\\n', '85\\n']</code>. Here the file has " +
+              "nothing in it, so the list is <strong>empty</strong> &mdash; " +
+              "still no error, and this is where the trouble starts " +
+              "travelling." },
       { line: "shut1",
         vars: [{ n: "scores_file", of: "r", closed: true },
                { n: "lines", v: "[]" }],
