@@ -1,0 +1,1360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dictionary Stepper</title>
+<!--
+  Dictionary Stepper -- CT11, Dictionary Basics
+
+  Open this file in a browser. Double-click it, or right-click in VS Code ->
+  "Reveal in File Explorer" and double-click there. Nothing to install, no
+  internet needed, no extension: it is one self-contained file.
+
+  WHY NOT IN VS CODE: VS Code has no built-in HTML preview that runs
+  JavaScript. The markdown preview strips scripts and Simple Browser needs a
+  URL. Every student already has a browser.
+
+  SHAPE: identical to CT10's list stepper on purpose -- whole program on
+  screen, Next walks an arrow down it, the THIS STEP band shows the executing
+  line with its real values filled in, and a console collects what print()
+  produced. A student who can read one can read the other.
+
+  WHAT IS DIFFERENT: the panel draws PAIRS, not numbered slots, because that
+  is the whole difference being taught. Where the list stepper numbered the
+  cells 0, 1, 2, this one labels them with their keys -- and demo 1 ends on
+  d[0] raising, because there is no slot 0 to reach for.
+
+  ONE STEP IS ONE LINE EXECUTION. Never two frames for one statement. The
+  loops rely on it (a print inside a loop runs once per pass and the console
+  has to show it once per pass), and the test harness enforces it by
+  comparing the step sequence against a real CPython line trace.
+
+  VERIFIED: Scripts/test_stepper_dicts.js rebuilds each program below from
+  this file, runs it under CPython with a line tracer, and compares -- in
+  order -- every line executed, every dictionary drawn, every loop variable
+  bound, and the whole console. The code shown IS the code checked.
+-->
+<style>
+  :root {
+    --ink: #1a1a2e; --muted: #555; --line: #cbd5e1; --panel: #f8fafc;
+    --teal: #00695c; --green: #1b5e20; --red: #c62828; --blue: #1565c0;
+    --code-bg: #1e1e2e; --code-fg: #cdd6f4; --code-hit: #45475a;
+    /* #6c7086 is the Catppuccin comment grey and it is 3.36:1 on this
+       background -- under AA. This is the course-wide replacement. */
+    --code-dim: #83889a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif; color: var(--ink);
+    margin: 0; padding: 1.25rem; background: #fff; line-height: 1.5;
+  }
+  h1 { font-size: 1.35rem; margin: 0 0 .25rem; }
+  .sub { color: var(--muted); font-size: .9rem; margin: 0 0 1rem; }
+  .tabs { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; }
+  .tab {
+    border: 2px solid var(--line); background: #fff; color: var(--ink);
+    border-radius: 999px; padding: .3rem 1.1rem .4rem; font-size: .95rem;
+    cursor: pointer; font-family: inherit; line-height: 1.25; text-align: center;
+  }
+  /* The Part number rides above the demo name so a student holding main.py
+     open can find the right tab without reading all six. */
+  .tab .tpart {
+    display: block; font-size: .68rem; font-weight: 800; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--teal);
+  }
+  .tab[aria-pressed="true"] .tpart { color: #b7e4dd; }
+  .covers { margin: -.5rem 0 1rem; font-size: .92rem; color: var(--muted); }
+  .covers strong { color: var(--ink); }
+  .tab[aria-pressed="true"] {
+    background: var(--teal); border-color: var(--teal); color: #fff;
+    font-weight: 700;
+  }
+  .wrap { border: 2px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .bar {
+    display: flex; align-items: center; gap: .5rem; padding: .6rem .9rem;
+    background: var(--panel); border-bottom: 2px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .bar button {
+    font-family: inherit; font-size: .9rem; padding: .35rem .9rem;
+    border-radius: 6px; border: 2px solid var(--teal); background: #fff;
+    color: var(--teal); cursor: pointer; font-weight: 600;
+  }
+  .bar button[disabled] { opacity: .45; cursor: default; }
+  .count { margin-left: auto; font-size: .85rem; color: var(--muted); }
+  .stage { padding: 1rem .9rem 1.25rem; }
+  code, .mono { font-family: Consolas, 'Courier New', monospace; }
+
+  /* ---- the program, with one line lit ---------------------------------- */
+  .code {
+    background: var(--code-bg); color: var(--code-fg); border-radius: 8px;
+    padding: .6rem 0; overflow-x: auto;
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 1.45rem; line-height: 1.65;
+  }
+  .code div { padding: 0 .8rem; white-space: pre; }
+  /* Every line is a jump target, so a demo can be opened at the line under
+     discussion instead of pressed through to it. Inside a loop the same line
+     is several steps, and clicking lands on the FIRST pass. */
+  .code div[data-k] { cursor: pointer; }
+  .code div[data-k]:hover { background: #313244; }
+  .code div.active[data-k]:hover { background: var(--code-hit); }
+  .code div[data-k]:focus-visible { outline: 2px solid #89dceb;
+                                    outline-offset: -2px; }
+  .code div.active {
+    background: var(--code-hit); display: flex; align-items: center;
+    flex-wrap: wrap;
+  }
+  /* min-width is set per demo, in `ch`, anchored on the SECOND-longest line:
+     every demo opens with a dict literal far longer than the lines that
+     follow, and anchoring on that left a lane of dead space for every other
+     step. Without any anchor the band's left edge tracks whichever line is
+     running and slides about on every press. */
+  .code div.active .src { white-space: pre; padding-right: 1.6rem; }
+  /* A marker in the gutter, not just a colour -- the line a student is on
+     has to survive a projector and a colour-blind reader. */
+  .code div.active::before { content: "\25B8 "; color: #f9e2af; }
+  .code div:not(.active)::before { content: "  "; }
+  .code div.done, .code div.done span { color: #9aa3b8; font-style: normal; }
+  .code .kw { color: #cba6f7; } .code .fn { color: #89dceb; }
+  .code .st { color: #a6e3a1; } .code .nm { color: #fab387; }
+  .code .cm { color: var(--code-dim); font-style: italic; }
+  /* NOT source: the executing line with its real values substituted in, so it
+     gets a highlighter band and dark text. Nothing else in the panel has a
+     light background, which is what makes it unmistakable. */
+  .code .calc {
+    background: #f9e2af; color: #1e1e2e; font-weight: 600;
+    white-space: pre-wrap; border-radius: 5px; padding: .1rem .75rem;
+    font-size: 1.2rem;
+  }
+  .code .calc::before {
+    content: "THIS STEP"; font-size: .72rem; font-weight: 800;
+    letter-spacing: .06em; color: #4a3600; background: rgba(0,0,0,.10);
+    border-radius: 3px; padding: .08em .32em; margin-right: .55rem;
+    vertical-align: .1em;
+  }
+  /* A pass counter for lines inside a loop: "pass 2 of 3". Without it, two
+     consecutive steps on the same line look like the stepper is stuck. */
+  .code .pass.ends { background: #f5c2c2; }
+  .code .pass {
+    margin-left: .6rem; font-size: .72rem; font-weight: 800;
+    letter-spacing: .06em; color: #1e1e2e; background: #b7e4dd;
+    border-radius: 999px; padding: .12em .6em;
+  }
+
+  /* ---- the aside -------------------------------------------------------- */
+  .aside {
+    border: 2px solid var(--line); border-left: 6px solid var(--blue);
+    border-radius: 10px; margin-top: 1rem; background: #f8fafc;
+  }
+  .aside summary {
+    cursor: pointer; list-style: none; padding: .7rem .9rem;
+    font-weight: 700; font-size: 1.02rem; color: var(--blue);
+  }
+  .aside summary::-webkit-details-marker { display: none; }
+  .aside summary::before { content: "\25B8  "; }
+  .aside[open] summary::before { content: "\25BE  "; }
+  .aside .body { padding: 0 .9rem 1rem; font-size: .95rem; }
+  .aside p { margin: .5rem 0; }
+  .aside table {
+    border-collapse: collapse; width: 100%; margin: .7rem 0; font-size: .92rem;
+  }
+  .aside th, .aside td {
+    border: 1px solid var(--line); padding: .35rem .6rem; text-align: left;
+  }
+  .aside thead th { background: #eef2f6; }
+  .aside code { font-family: Consolas, monospace; background: #eef2f6;
+                padding: .05rem .3rem; border-radius: 3px; }
+  .aside .big { font-size: 1rem; }
+
+  /* ---- the console ------------------------------------------------------ */
+  .term {
+    background: #11111b; color: #cdd6f4; border-radius: 8px;
+    margin-top: .7rem; padding: .55rem 0 .7rem;
+    font-family: Consolas, 'Courier New', monospace; font-size: 1.25rem;
+    line-height: 1.55;
+  }
+  .term .thead {
+    font-family: 'Segoe UI', Arial, sans-serif; font-size: .74rem;
+    font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    color: #9aa3b8; padding: 0 .9rem .25rem;
+  }
+  .term .line { padding: 0 .9rem; white-space: pre-wrap; }
+  .term .line.err { color: #f38ba8; font-weight: 700; }
+  .term .none {
+    padding: 0 .9rem; color: #9aa3b8; font-style: italic;
+    font-family: 'Segoe UI', Arial, sans-serif; font-size: .95rem;
+  }
+
+  /* ---- the dictionary itself, first and large --------------------------- */
+  /* This is the lesson, not a footnote to the code, so it leads and it is
+     sized to read from the back of a room. */
+  .panels { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .dwrap {
+    flex: 1 1 320px;
+    border: 2px solid var(--line); border-radius: 10px;
+    padding: .7rem .9rem .9rem; background: #fcfdfd;
+  }
+  .dhead {
+    font-size: .82rem; font-weight: 700; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: .35rem;
+  }
+  .dhead .var { font-family: Consolas, monospace; text-transform: none;
+                font-size: 1.15rem; font-weight: 700; color: var(--teal);
+                letter-spacing: 0; }
+  .pairs { display: flex; flex-direction: column; gap: .4rem; }
+  /* Key and value are separate boxes with an arrow between them, because the
+     thing worth seeing is that one addresses the other. A single box would
+     draw them as one lump of text. */
+  .pair { display: flex; align-items: stretch; gap: .35rem; }
+  .kbox, .vbox2 {
+    border: 3px solid var(--teal); background: #e0f2f1; border-radius: 8px;
+    padding: .4rem .7rem; font-family: Consolas, 'Courier New', monospace;
+    font-size: 1.2rem; display: flex; align-items: center;
+  }
+  .kbox { min-width: 130px; font-weight: 700; color: #00564b; }
+  .vbox2 { min-width: 120px; background: #f1f8f7; }
+  .arrow { display: flex; align-items: center; color: var(--teal);
+           font-size: 1.1rem; font-weight: 700; }
+  .pair.added .kbox, .pair.added .vbox2 {
+    border-color: var(--green); background: #c8e6c9;
+  }
+  .pair.added .kbox { color: #0d3b11; }
+  .pair.changed .vbox2 { border-color: var(--green); background: #c8e6c9; }
+  .pair.pick .kbox { border-color: var(--blue); background: #e3f2fd;
+                     color: #0d3b11; box-shadow: 0 0 0 3px #bbdefb; }
+  .pair.pick .vbox2 { border-color: var(--blue); background: #e3f2fd;
+                      box-shadow: 0 0 0 3px #bbdefb; }
+  .pair.cur .kbox { border-color: #6a1b9a; background: #f3e5f5; color: #3d0b57; }
+  .pair.cur .vbox2 { border-color: #6a1b9a; background: #faf4fc; }
+  .pair.ghost .kbox, .pair.ghost .vbox2 {
+    border-color: var(--red); background: #ffebee; color: #8b1111;
+    text-decoration: line-through;
+  }
+  .pair.ghost .arrow { color: var(--red); }
+  .was {
+    display: flex; align-items: center; margin-left: .35rem;
+    font-family: Consolas, monospace; font-size: 1rem; color: #7a1f1f;
+    text-decoration: line-through;
+  }
+  .tagline {
+    display: flex; align-items: center; margin-left: .45rem;
+    font-size: .82rem; font-weight: 700; color: var(--green);
+  }
+  .tagline.warn { color: #8f3000; }
+  .empty { color: var(--muted); font-style: italic; font-size: 1rem;
+           margin: .4rem 0 .1rem; }
+  /* A view (.keys(), .values(), .items()) or a plain list -- a row of cells,
+     deliberately NOT drawn as pairs, because a view is one thing in a row and
+     a dictionary is two things side by side. */
+  .viewrow { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .2rem; }
+  .vcell {
+    border: 3px solid #6a1b9a; background: #f3e5f5; border-radius: 8px;
+    padding: .4rem .75rem; font-family: Consolas, monospace; font-size: 1.15rem;
+  }
+  .dwrap.view { background: #fdfbfe; }
+  .dwrap.view .dhead .var { color: #4a148c; }
+  /* The loop variables. The whole of Part 3 is which names a loop fills in,
+     so an unbound name is drawn, greyed, rather than left out. */
+  .binds { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: .9rem; }
+  .bind {
+    border: 2px solid var(--line); border-left-width: 7px;
+    border-left-color: #6a1b9a; border-radius: 8px; padding: .4rem .7rem;
+    background: #fff; font-family: Consolas, monospace; font-size: 1.1rem;
+  }
+  .bind .bn { font-weight: 700; color: #4a148c; }
+  .bind.unset { border-left-color: var(--red); background: #fffafa; }
+  .bind.unset .bv { color: #a01b1b; font-family: 'Segoe UI', Arial, sans-serif;
+                    font-size: .88rem; font-style: italic; }
+  .ret {
+    display: inline-block; margin-top: .6rem; padding: .3rem .7rem;
+    border-radius: 6px; font-family: Consolas, monospace; font-size: .9rem;
+  }
+  .ret.val { background: #e8f5e9; border: 2px solid var(--green); }
+  .ret.none { background: #ffebee; border: 2px solid var(--red);
+              font-weight: 700; }
+  .note { margin: .7rem 0 0; font-size: .92rem; color: var(--muted);
+          min-height: 2.6em; }
+  .note strong { color: var(--ink); }
+  /* The hand-off. Everything above is "watch"; this line is "now go and
+     write it", which is the whole reason the page exists. */
+  .todobar {
+    margin: 0; padding: .55rem .9rem; font-size: 1rem;
+    background: #fff8e1; border-bottom: 2px solid var(--line);
+    color: #4a3600;
+  }
+  .todobar b { font-size: 1.05rem; }
+  .todobar.bg { background: var(--panel); color: var(--muted); }
+  .legend { font-size: .82rem; color: var(--muted); margin-top: .9rem; }
+  .kbd {
+    border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px;
+    padding: 0 .35rem; font-family: Consolas, monospace; font-size: .8rem;
+    background: #fff;
+  }
+</style>
+</head>
+<body>
+
+<h1>Dictionary Stepper</h1>
+<p class="sub">The dictionary is at the top and stays put. <strong>Next</strong>
+  walks the arrow down the program beneath it, and you watch pairs appear,
+  change and go. <strong>Click any line</strong> to jump straight to it. Use
+  <span class="kbd">&larr;</span> <span class="kbd">&rarr;</span> at any time
+  &mdash; no need to click first.</p>
+
+<div class="tabs" id="tabs" role="group" aria-label="Choose a demo"></div>
+<p class="covers" id="covers"></p>
+
+<div class="wrap">
+  <div class="bar">
+    <button id="back" type="button">&larr; Back</button>
+    <button id="next" type="button">Next &rarr;</button>
+    <button id="reset" type="button">Reset</button>
+    <span class="count" id="count"></span>
+  </div>
+  <p class="todobar" id="todobar"></p>
+  <div class="stage" id="stage" tabindex="0" aria-live="polite"></div>
+</div>
+
+<p class="legend">
+  &#9656; = the line running now &nbsp;&middot;&nbsp; Blue ring = the pair being
+  read &nbsp;&middot;&nbsp; Green = just added, or a value just replaced
+  &nbsp;&middot;&nbsp; Purple = the pair this pass of the loop is on
+  &nbsp;&middot;&nbsp; Red strike = gone, or never there
+  &nbsp;&middot;&nbsp; A key is a <em>name</em>, not a position: there is no
+  pair 0 unless 0 is a key.
+</p>
+
+<script>
+/* Each demo is a REAL, RUNNABLE program in `code`, plus `steps` that walk it.
+
+   INVARIANT: one step is one line execution. A line inside a loop gets one
+   step per pass, in order, and the console is derived from that -- so a print
+   in a loop prints once per pass with no bookkeeping.
+
+   A step carries:
+     line    the `k` of the code line it is on
+     panels  what to draw above the code, left to right. A panel is either
+             { name, pairs: [[key, value], ...] }  a dictionary, or
+             { name, items: [...], view: true }    a view or a list
+             plus highlights: added / changed / pick / cur (indexes into
+             pairs), was (the replaced value, drawn struck through), ghost
+             (a pair that has just gone, or was never there)
+     bind    loop variables this pass, null value = "this loop never fills
+             that name in"
+     calc    the same line with its real values filled in -- the THIS STEP band
+     ret     what the line handed back (console gets it when the line prints)
+     err     the traceback line, if this line raises
+     note    the sentence under the panel
+
+   Keys and values are written as Python literals ("Ann", 20) because the test
+   harness reassembles them into a dict literal and compares it with what
+   CPython actually built at that line. */
+
+var DEMOS = {
+  lookup: {
+    todos: { make: "a", name: "b", count: "", has: "", hasnt: "", value: "", oops: "" },
+    label: "The key is the address",
+    part: 1,
+    covers: "Both TODOs — build a dictionary, then reach into it by key.",
+    aside: {
+      title: "Wait — is this just a list with words instead of numbers?",
+      html:
+        "<p>It is the natural guess, and the square brackets encourage it: " +
+        "<code>items[2]</code> and <code>ages[\"Ann\"]</code> look like the " +
+        "same move. They are not, and the difference shows up in four " +
+        "places:</p>" +
+        "<table><thead><tr><td></td>" +
+        "<th scope=\"col\">a <code>list</code></th>" +
+        "<th scope=\"col\">a <code>dict</code></th></tr></thead><tbody>" +
+        "<tr><th scope=\"row\">Address</th><td>a position Python assigns" +
+        "</td><td>a key <strong>you</strong> choose</td></tr>" +
+        "<tr><th scope=\"row\">Insert in the middle</th>" +
+        "<td>every later address shifts</td>" +
+        "<td>nothing moves — names do not renumber</td></tr>" +
+        "<tr><th scope=\"row\"><code>in</code> searches</th>" +
+        "<td>the values</td><td>the <strong>keys</strong></td></tr>" +
+        "<tr><th scope=\"row\">Looking one up</th>" +
+        "<td>Python can jump straight to a position</td>" +
+        "<td>Python jumps straight to a key — same speed with " +
+        "10 pairs or 10 million</td></tr></tbody></table>" +
+        "<p class=\"big\">That third row is the one that bites. " +
+        "<code>20 in ages</code> is <code>False</code> even when somebody is " +
+        "twenty, because <code>in</code> never looked at the values.</p>" +
+        "<p><strong>And a dictionary can have a key of 0.</strong> " +
+        "<code>d = {0: \"zero\"}</code> makes <code>d[0]</code> work — " +
+        "not because 0 is the first pair, but because 0 is a key. Which is " +
+        "the whole idea from the other side: the number in the brackets " +
+        "stopped meaning \"where\" and started meaning \"which\".</p>" +
+        "<p>Other languages call this a <strong>map</strong> or a " +
+        "<strong>hash map</strong>: <code>HashMap</code> in Java, " +
+        "<code>std::map</code> and <code>unordered_map</code> in C++, a " +
+        "plain object or a <code>Map</code> in JavaScript. When you meet one, " +
+        "it is this.</p>"
+    },
+    steps: [
+      { line: "make",
+        panels: [{ name: "student", pairs: [['"name"', '"Ada"'], ['"age"', '19'], ['"major"', '"CS"']] }],
+        calc: 'student = 3 pairs — addressed by "name", "age", "major"',
+        note: "Three pairs. There are <strong>no numbers above the boxes</strong> " +
+              "— that is the difference from a list. The key on the left is " +
+              "how you reach the value on the right." },
+      { line: "name",
+        panels: [{ name: "student", pairs: [['"name"', '"Ada"'], ['"age"', '19'], ['"major"', '"CS"']], pick: 0 }],
+        ret: "Ada", calc: 'student["name"]  ->  \'Ada\'',
+        note: "The key goes in the brackets, in quotes, exactly as it was " +
+              "written. <code>student[name]</code> without quotes would look " +
+              "for a <em>variable</em> called name." },
+      { line: "count",
+        panels: [{ name: "student", pairs: [['"name"', '"Ada"'], ['"age"', '19'], ['"major"', '"CS"']] }],
+        ret: "3", calc: "len(student)  ->  3",
+        note: "<strong>Three, not six.</strong> <code>len</code> counts " +
+              "<em>pairs</em> — a key and its value are one entry, not two." },
+      { line: "has",
+        panels: [{ name: "student", pairs: [['"name"', '"Ada"'], ['"age"', '19'], ['"major"', '"CS"']], pick: 2 }],
+        ret: "True", calc: '"major" in student  ->  True',
+        note: "<strong>You already know this one.</strong> It is the same " +
+              "<code>in</code> you used on strings in Module 7 " +
+              "(<code>\"cat\" in sentence</code>) and on lists in Module 8, " +
+              "where it guarded <code>.remove()</code>. What changes on a " +
+              "dictionary is <em>where it looks</em> &mdash; the left-hand " +
+              "column only. Still the safe way to ask before reaching in." },
+      { line: "hasnt",
+        panels: [{ name: "student", pairs: [['"name"', '"Ada"'], ['"age"', '19'], ['"major"', '"CS"']],
+                   ghost: ['"email"', "?"] }],
+        ret: "False", calc: '"email" in student  ->  False',
+        note: "No such key, and asking did <strong>not</strong> raise — " +
+              "<code>in</code> answers True or False. Reaching in is what " +
+              "raises, which is the next line." },
+      { line: "value",
+        panels: [{ name: "student", pairs: [['"name"', '"Ada"'], ['"age"', '19'], ['"major"', '"CS"']] }],
+        ret: "False", calc: '19 in student  ->  False',
+        note: "Ada <em>is</em> 19, and the answer is still False. " +
+              "<strong><code>in</code> searches the keys, never the " +
+              "values.</strong> To search values you ask " +
+              "<code>19 in student.values()</code> — Part 4." },
+      { line: "oops",
+        panels: [{ name: "student", pairs: [['"name"', '"Ada"'], ['"age"', '19'], ['"major"', '"CS"']] }],
+        err: "KeyError: 0", calc: "student[0]  ->  there is no key 0",
+        note: "A list would have handed back its first item. A dictionary has " +
+              "<strong>no first</strong> — 0 is just a key it does not " +
+              "have. Note what the error names: the key, not an index." }
+    ],
+    code: [
+      { k: "make",  t: 'student = {"name": "Ada", "age": 19, "major": "CS"}' },
+      { k: "name",  t: 'print(student["name"])' },
+      { k: "count", t: "print(len(student))" },
+      { k: "has",   t: 'print("major" in student)' },
+      { k: "hasnt", t: 'print("email" in student)' },
+      { k: "value", t: "print(19 in student)" },
+      { k: "oops",  t: "print(student[0])" }
+    ]
+  },
+
+  change: {
+    todos: { make: "", add: "a", over: "b", typo: "", len: "", del: "c", show: "d", oops: "" },
+    label: "Add, replace, delete",
+    part: 2,
+    covers: "All four TODOs — add a key, update a value, delete with del, then print the dictionary.",
+    steps: [
+      { line: "make",
+        panels: [{ name: "book", pairs: [['"Ann"', '"555-0100"']] }],
+        calc: 'book = 1 pair',
+        note: "One pair to start. Watch which of the next three lines " +
+              "<em>adds</em> and which <em>replaces</em> — they are the " +
+              "same line of Python." },
+      { line: "add",
+        panels: [{ name: "book", pairs: [['"Ann"', '"555-0100"'], ['"Bo"', '"555-0142"']], added: 1 }],
+        calc: 'book["Bo"] = "555-0142"   ->  2 pairs',
+        note: '"Bo" was not a key, so this <strong>added</strong> a pair. ' +
+              "The dictionary grew." },
+      { line: "over",
+        panels: [{ name: "book", pairs: [['"Ann"', '"555-0199"'], ['"Bo"', '"555-0142"']],
+                   changed: 0, was: '"555-0100"' }],
+        calc: 'book["Ann"] = "555-0199"  ->  still 2 pairs',
+        note: '"Ann" <em>was</em> a key, so the same line <strong>replaced' +
+              "</strong> her value. The old number is gone — not kept, " +
+              "not stacked, gone. And Python said nothing." },
+      { line: "typo",
+        panels: [{ name: "book", pairs: [['"Ann"', '"555-0199"'], ['"Bo"', '"555-0142"'], ['"Ann "', '"555-0177"']],
+                   added: 2, tag: "a SECOND Ann", warn: true }],
+        calc: 'book["Ann "] = "555-0177"  ->  3 pairs (!)',
+        note: "One trailing space. Python has no way to know you meant the " +
+              "Ann already there, so it did what the line says and " +
+              "<strong>added a third pair</strong>. No error, no warning, and " +
+              '<code>book["Ann"]</code> still finds the old one.' },
+      { line: "len",
+        panels: [{ name: "book", pairs: [['"Ann"', '"555-0199"'], ['"Bo"', '"555-0142"'], ['"Ann "', '"555-0177"']] }],
+        ret: "3", calc: "len(book)  ->  3",
+        note: "Three — which is how you would catch the typo: the count " +
+              "is one higher than the number of people you entered." },
+      { line: "del",
+        panels: [{ name: "book", pairs: [['"Ann"', '"555-0199"'], ['"Ann "', '"555-0177"']],
+                   ghost: ['"Bo"', '"555-0142"'] }],
+        calc: 'del book["Bo"]  ->  2 pairs',
+        note: "<code>del</code> takes the whole pair, key and value together. " +
+              "There is no way to delete just a value." },
+      { line: "show",
+        panels: [{ name: "book", pairs: [['"Ann"', '"555-0199"'], ['"Ann "', '"555-0177"']] }],
+        ret: "{'Ann': '555-0199', 'Ann ': '555-0177'}",
+        calc: "print(book)  ->  both Anns, in the order they were added",
+        note: "Printing the whole dictionary shows the pairs in " +
+              "<strong>insertion order</strong> — the order they were " +
+              "put in, which is not sorted and not something you should rely " +
+              "on for lookup. You look things up by key." },
+      { line: "oops",
+        panels: [{ name: "book", pairs: [['"Ann"', '"555-0199"'], ['"Ann "', '"555-0177"']],
+                   ghost: ['"Cy"', "?"] }],
+        err: "KeyError: 'Cy'", calc: 'del book["Cy"]  ->  no such key',
+        note: "<strong>Deleting is the operation that complains.</strong> " +
+              "Assigning a missing key adds it; deleting a missing key " +
+              "raises. Check with <code>in</code> first." }
+    ],
+    code: [
+      { k: "make", t: 'book = {"Ann": "555-0100"}' },
+      { k: "add",  t: 'book["Bo"] = "555-0142"' },
+      { k: "over", t: 'book["Ann"] = "555-0199"' },
+      { k: "typo", t: 'book["Ann "] = "555-0177"' },
+      { k: "len",  t: "print(len(book))" },
+      { k: "del",  t: 'del book["Bo"]' },
+      { k: "show", t: "print(book)" },
+      { k: "oops", t: 'del book["Cy"]' }
+    ]
+  },
+
+  loops: {
+    todos: { make: "", for1: "a", p1: "a", for2: "b", p2: "b" },
+    label: "Two loops, one value",
+    part: 3,
+    covers: "Both TODOs — loop over the keys, then loop over the pairs with .items().",
+    steps: [
+      { line: "make",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']] }],
+        bind: [{ n: "key", v: null }, { n: "value", v: null }],
+        calc: "ages = 2 pairs",
+        note: "Two pairs, and two names that do not exist yet. Watch which " +
+              "loop fills in which." },
+      { line: "for1",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']], cur: 0 }],
+        bind: [{ n: "key", v: '"Ann"' }, { n: "value", v: null }],
+        calc: 'for key in ages:   ->  key = "Ann"',
+        note: "Looping over the dictionary itself hands you <strong>keys " +
+              "only</strong>. <code>value</code> is still nothing — this " +
+              "loop never fills it in." },
+      { line: "p1",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']], cur: 0, pick: 0 }],
+        bind: [{ n: "key", v: '"Ann"' }, { n: "value", v: null }],
+        ret: "Ann 20", calc: 'print("Ann", ages["Ann"])  ->  Ann 20',
+        note: "To get the value you go <strong>back to the dictionary and ask " +
+              "again</strong> — the blue ring is that second lookup. It " +
+              "works, and it is more typing than you need." },
+      { line: "for1",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']], cur: 1 }],
+        bind: [{ n: "key", v: '"Bo"' }, { n: "value", v: null }],
+        calc: 'for key in ages:   ->  key = "Bo"',
+        note: "Second pass. <code>key</code> is reused, not added to — " +
+              '"Ann" is gone from it.' },
+      { line: "p1",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']], cur: 1, pick: 1 }],
+        bind: [{ n: "key", v: '"Bo"' }, { n: "value", v: null }],
+        ret: "Bo 22", calc: 'print("Bo", ages["Bo"])  ->  Bo 22',
+        note: "Same two lines, different key. Two pairs, two passes." },
+      { line: "for1",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']] }],
+        bind: [{ n: "key", v: '"Bo"' }, { n: "value", v: null }],
+        end: true, calc: "for key in ages:   ->  nothing left, loop ends",
+        note: "The loop asked for another key and there was not one, so it " +
+              "stops. <code>key</code> keeps the last value it was given " +
+              "— the name does not disappear when the loop does." },
+      { line: "for2",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']], cur: 0 }],
+        bind: [{ n: "key", v: '"Ann"' }, { n: "value", v: "20" }],
+        calc: 'for key, value in ages.items():  ->  key = "Ann", value = 20',
+        note: "<strong>Two names on the left, because what comes back is a " +
+              "pair.</strong> Same unpacking as " +
+              "<code>enumerate(items, start=1)</code> last week." },
+      { line: "p2",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']], cur: 0 }],
+        bind: [{ n: "key", v: '"Ann"' }, { n: "value", v: "20" }],
+        ret: "Ann 20", calc: "print(key, value)  ->  Ann 20",
+        note: "<strong>No blue ring.</strong> Identical output to the first " +
+              "loop, and this time nothing went back to the dictionary " +
+              "— both names were already filled in." },
+      { line: "for2",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']], cur: 1 }],
+        bind: [{ n: "key", v: '"Bo"' }, { n: "value", v: "22" }],
+        calc: 'for key, value in ages.items():  ->  key = "Bo", value = 22',
+        note: "Second pass, and both names move together. They always belong " +
+              "to the same pair." },
+      { line: "p2",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']], cur: 1 }],
+        bind: [{ n: "key", v: '"Bo"' }, { n: "value", v: "22" }],
+        ret: "Bo 22", calc: "print(key, value)  ->  Bo 22",
+        note: "The console now holds the same four words twice. " +
+              "<strong>Both loops are correct</strong> — one of them " +
+              "makes Python look up something it was already holding." },
+      { line: "for2",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']] }],
+        bind: [{ n: "key", v: '"Bo"' }, { n: "value", v: "22" }],
+        end: true, calc: "for key, value in ages.items():  ->  nothing left, loop ends",
+        note: "Done. If you leave a name off — <code>for key in " +
+              "ages.items()</code> — Python cannot split the pair in two, " +
+              "and <code>key</code> ends up holding the whole thing." }
+    ],
+    code: [
+      { k: "make", t: 'ages = {"Ann": 20, "Bo": 22}' },
+      { k: "for1", t: "for key in ages:" },
+      { k: "p1",   t: "    print(key, ages[key])" },
+      { k: "for2", t: "for key, value in ages.items():" },
+      { k: "p2",   t: "    print(key, value)" }
+    ]
+  },
+
+  views: {
+    todos: { make: "", k: "a", v: "a", i: "a", asl: "", ink: "b", inv: "c", inv2: "", g1: "d", g2: "d", g3: "d" },
+    label: "keys, values, items",
+    part: 4,
+    covers: "TODOs a to d — the keys, the values, the items, two `in` tests, and .get().",
+    steps: [
+      { line: "make",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']] }],
+        calc: "ages = 2 pairs",
+        note: "The same two pairs, asked for three different ways." },
+      { line: "k",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']] },
+                 { name: "ages.keys()", items: ['"Ann"', '"Bo"'], view: true }],
+        ret: "dict_keys(['Ann', 'Bo'])", calc: "ages.keys()  ->  the left column",
+        note: "The keys on their own, <strong>in a row rather than in " +
+              "pairs</strong>. The <code>dict_keys(...)</code> wrapper is " +
+              "Python telling you this is a live view of the dictionary, not " +
+              "a copy of it." },
+      { line: "v",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']] },
+                 { name: "ages.values()", items: ["20", "22"], view: true }],
+        ret: "dict_values([20, 22])", calc: "ages.values()  ->  the right column",
+        note: "The values on their own. Useful when you do not care whose " +
+              "they are — a total, a maximum, a count." },
+      { line: "i",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']] },
+                 { name: "ages.items()", items: ["('Ann', 20)", "('Bo', 22)"], view: true }],
+        ret: "dict_items([('Ann', 20), ('Bo', 22)])",
+        calc: "ages.items()  ->  both columns, kept together",
+        note: "Each pair arrives as <strong>one thing with two parts</strong>, " +
+              "which is why the loop in Part 3 needed two names to take it " +
+              "apart. The parentheses are how Python writes a pair." },
+      { line: "asl",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']] },
+                 { name: "list(ages.keys())", items: ['"Ann"', '"Bo"'], view: true }],
+        ret: "['Ann', 'Bo']", calc: "list(ages.keys())  ->  ['Ann', 'Bo']",
+        note: "Wrap it in <code>list(...)</code> and you have an ordinary " +
+              "list — which you can sort, slice and index, because now " +
+              "it has positions." },
+      { line: "ink",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']], pick: 0 }],
+        ret: "True", calc: '"Ann" in ages  ->  True',
+        note: "Plain <code>in</code> on the dictionary searches the " +
+              "<strong>keys</strong>. This is the one you will write most." },
+      { line: "inv",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']] }],
+        ret: "False", calc: "20 in ages  ->  False",
+        note: "Ann is 20, and the answer is still False — 20 is not a " +
+              "<em>key</em>. This is the single most common dictionary " +
+              "mistake." },
+      { line: "inv2",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']] },
+                 { name: "ages.values()", items: ["20", "22"], view: true }],
+        ret: "True", calc: "20 in ages.values()  ->  True",
+        note: "Say <code>.values()</code> and now it searches the right-hand " +
+              "column. <strong>Where you point <code>in</code> decides what " +
+              "it looks at.</strong>" },
+      { line: "g1",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']], pick: 0 }],
+        ret: "20", calc: 'ages.get("Ann")  ->  20',
+        note: "On a key that IS there, <code>.get()</code> hands back the " +
+              "value, exactly like the square brackets. The difference only " +
+              "shows up when the key is missing." },
+      { line: "g2",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']],
+                   ghost: ['"Cy"', "?"] }],
+        ret: "None", calc: 'ages.get("Cy")  ->  None',
+        note: "And there it is. <code>ages[\"Cy\"]</code> would have raised " +
+              "and stopped the program; <code>.get()</code> answers " +
+              "<strong>None</strong> and carries on. Nothing was added to " +
+              "the dictionary &mdash; look at the panel, still two pairs." },
+      { line: "g3",
+        panels: [{ name: "ages", pairs: [['"Ann"', '20'], ['"Bo"', '22']],
+                   ghost: ['"Cy"', "?"] }],
+        ret: "0", calc: 'ages.get("Cy", 0)  ->  0',
+        note: "The second argument is <strong>your</strong> stand-in, used " +
+              "only when the key is missing. <code>0</code> here, but it " +
+              "could be anything. This is the form that makes counting work, " +
+              "which is the next tab." }
+    ],
+    code: [
+      { k: "make", t: 'ages = {"Ann": 20, "Bo": 22}' },
+      { k: "k",    t: "print(ages.keys())" },
+      { k: "v",    t: "print(ages.values())" },
+      { k: "i",    t: "print(ages.items())" },
+      { k: "asl",  t: "print(list(ages.keys()))" },
+      { k: "ink",  t: 'print("Ann" in ages)' },
+      { k: "inv",  t: "print(20 in ages)" },
+      { k: "inv2", t: "print(20 in ages.values())" },
+      { k: "g1",   t: 'print(ages.get("Ann"))' },
+      { k: "g2",   t: 'print(ages.get("Cy"))' },
+      { k: "g3",   t: 'print(ages.get("Cy", 0))' }
+    ]
+  },
+
+  counting: {
+    todos: { empty: "e", for: "e", count: "e", show: "e" },
+    label: "Counting with .get()",
+    part: 4,
+    covers: "TODO e — tally the letters of \"banana\" with .get(letter, 0).",
+    steps: [
+      { line: "empty",
+        panels: [{ name: "counts", pairs: [] }],
+        bind: [{ n: "letter", v: null }],
+        calc: "counts = {}  ->  nothing counted yet",
+        note: "The dictionary starts empty, which is exactly the situation that makes <code>counts[letter]</code> raise. That is what the fallback is for." },
+      { line: "for",
+        panels: [{ name: "counts", pairs: [] }],
+        bind: [{ n: "letter", v: "'b'" }],
+        calc: "for letter in \"banana\":  ->  letter = 'b'",
+        note: "Pass 1." },
+      { line: "count",
+        panels: [{ name: "counts", pairs: [["'b'", "1"]], added: 0 }],
+        bind: [{ n: "letter", v: "'b'" }],
+        calc: "counts['b'] = counts.get('b', 0) + 1  ->  1",
+        note: "First letter. <code>counts</code> is empty, so <code>counts.get('b', 0)</code> answers <strong>0</strong> rather than raising, and 0 + 1 starts the count at one." },
+      { line: "for",
+        panels: [{ name: "counts", pairs: [["'b'", "1"]] }],
+        bind: [{ n: "letter", v: "'a'" }],
+        calc: "for letter in \"banana\":  ->  letter = 'a'",
+        note: "Pass 2." },
+      { line: "count",
+        panels: [{ name: "counts", pairs: [["'b'", "1"], ["'a'", "1"]], added: 1 }],
+        bind: [{ n: "letter", v: "'a'" }],
+        calc: "counts['a'] = counts.get('a', 0) + 1  ->  1",
+        note: "A new letter again, so again the fallback does the work." },
+      { line: "for",
+        panels: [{ name: "counts", pairs: [["'b'", "1"], ["'a'", "1"]] }],
+        bind: [{ n: "letter", v: "'n'" }],
+        calc: "for letter in \"banana\":  ->  letter = 'n'",
+        note: "Pass 3." },
+      { line: "count",
+        panels: [{ name: "counts", pairs: [["'b'", "1"], ["'a'", "1"], ["'n'", "1"]], added: 2 }],
+        bind: [{ n: "letter", v: "'n'" }],
+        calc: "counts['n'] = counts.get('n', 0) + 1  ->  1",
+        note: "Three letters in, three keys. Still nothing but first sightings." },
+      { line: "for",
+        panels: [{ name: "counts", pairs: [["'b'", "1"], ["'a'", "1"], ["'n'", "1"]] }],
+        bind: [{ n: "letter", v: "'a'" }],
+        calc: "for letter in \"banana\":  ->  letter = 'a'",
+        note: "Pass 4." },
+      { line: "count",
+        panels: [{ name: "counts", pairs: [["'b'", "1"], ["'a'", "2"], ["'n'", "1"]], changed: 1 }],
+        bind: [{ n: "letter", v: "'a'" }],
+        calc: "counts['a'] = counts.get('a', 0) + 1  ->  2",
+        note: "<strong>Here is the pass that matters.</strong> <code>'a'</code> is already a key, so .get() finds 1 and ignores the fallback. 1 + 1 = 2, and no new pair appears." },
+      { line: "for",
+        panels: [{ name: "counts", pairs: [["'b'", "1"], ["'a'", "2"], ["'n'", "1"]] }],
+        bind: [{ n: "letter", v: "'n'" }],
+        calc: "for letter in \"banana\":  ->  letter = 'n'",
+        note: "Pass 5." },
+      { line: "count",
+        panels: [{ name: "counts", pairs: [["'b'", "1"], ["'a'", "2"], ["'n'", "2"]], changed: 2 }],
+        bind: [{ n: "letter", v: "'n'" }],
+        calc: "counts['n'] = counts.get('n', 0) + 1  ->  2",
+        note: "Same again for n. The dictionary stopped growing three passes ago; only the numbers move now." },
+      { line: "for",
+        panels: [{ name: "counts", pairs: [["'b'", "1"], ["'a'", "2"], ["'n'", "2"]] }],
+        bind: [{ n: "letter", v: "'a'" }],
+        calc: "for letter in \"banana\":  ->  letter = 'a'",
+        note: "Pass 6." },
+      { line: "count",
+        panels: [{ name: "counts", pairs: [["'b'", "1"], ["'a'", "3"], ["'n'", "2"]], changed: 1 }],
+        bind: [{ n: "letter", v: "'a'" }],
+        calc: "counts['a'] = counts.get('a', 0) + 1  ->  3",
+        note: "The third a. Note the key order never changed &mdash; insertion order, set the first time each letter was seen." },
+      { line: "for",
+        panels: [{ name: "counts", pairs: [["'b'", "1"], ["'a'", "3"], ["'n'", "2"]] }],
+        bind: [{ n: "letter", v: "'a'" }],
+        end: true, calc: "for letter in \"banana\":  ->  nothing left, loop ends",
+        note: "Six letters, three keys." },
+      { line: "show",
+        panels: [{ name: "counts", pairs: [["'b'", "1"], ["'a'", "3"], ["'n'", "2"]] }],
+        ret: "{'b': 1, 'a': 3, 'n': 2}",
+        calc: "print(counts)  ->  {'b': 1, 'a': 3, 'n': 2}",
+        note: "Three keys, six counted. <strong>This is the pattern you will reach for every time you tally anything</strong> &mdash; words in a sentence, scores by name, anything. It works only because .get() answers 0 instead of raising on a letter it has never seen." }
+    ],
+    code: [
+      { k: "empty", t: "counts = {}" },
+      { k: "for",   t: 'for letter in "banana":' },
+      { k: "count", t: '    counts[letter] = counts.get(letter, 0) + 1' },
+      { k: "show",  t: "print(counts)" }
+    ]
+  },
+
+  comp: {
+    todos: { empty: "a", for: "a", put: "a", show1: "a", comp: "b", show2: "b", prices: "", cheap: "e", show3: "e", words: "c", lens: "c", show4: "c", raise: "d", show5: "d" },
+    label: "The comprehension",
+    part: 5,
+    covers: "All five TODOs — squares by loop then comprehension, a dict from a list, a 10% raise, and a filter.",
+    steps: [
+      { line: "empty",
+        panels: [{ name: "squares", pairs: [] }],
+        calc: "squares = {}  ->  an empty dictionary",
+        note: "<code>{}</code> is an empty dictionary. Zero pairs — the " +
+              "loop is about to fill it." },
+      { line: "for",
+        panels: [{ name: "squares", pairs: [] }],
+        bind: [{ n: "n", v: "1" }],
+        calc: "for n in range(1, 4):  ->  n = 1",
+        note: "First pass. <code>range(1, 4)</code> is 1, 2, 3 — stop " +
+              "before 4, the same rule as always." },
+      { line: "put",
+        panels: [{ name: "squares", pairs: [["1", "1"]], added: 0 }],
+        bind: [{ n: "n", v: "1" }],
+        calc: "squares[1] = 1 * 1  ->  key 1, value 1",
+        note: "<strong>The keys here are numbers</strong>, and that is fine " +
+              "— a key can be a number or a string. It is still a key, " +
+              "not a position." },
+      { line: "for",
+        panels: [{ name: "squares", pairs: [["1", "1"]] }],
+        bind: [{ n: "n", v: "2" }],
+        calc: "for n in range(1, 4):  ->  n = 2",
+        note: "Second pass." },
+      { line: "put",
+        panels: [{ name: "squares", pairs: [["1", "1"], ["2", "4"]], added: 1 }],
+        bind: [{ n: "n", v: "2" }],
+        calc: "squares[2] = 2 * 2  ->  key 2, value 4",
+        note: "Another pair. Same line of code, a different key each time " +
+              "— which is what makes it build rather than overwrite." },
+      { line: "for",
+        panels: [{ name: "squares", pairs: [["1", "1"], ["2", "4"]] }],
+        bind: [{ n: "n", v: "3" }],
+        calc: "for n in range(1, 4):  ->  n = 3",
+        note: "Third pass." },
+      { line: "put",
+        panels: [{ name: "squares", pairs: [["1", "1"], ["2", "4"], ["3", "9"]], added: 2 }],
+        bind: [{ n: "n", v: "3" }],
+        calc: "squares[3] = 3 * 3  ->  key 3, value 9",
+        note: "Three pairs, built one line at a time. <strong>Count the " +
+              "steps it took: seven.</strong>" },
+      { line: "for",
+        panels: [{ name: "squares", pairs: [["1", "1"], ["2", "4"], ["3", "9"]] }],
+        bind: [{ n: "n", v: "3" }],
+        end: true, calc: "for n in range(1, 4):  ->  nothing left, loop ends",
+        note: "Loop over." },
+      { line: "show1",
+        panels: [{ name: "squares", pairs: [["1", "1"], ["2", "4"], ["3", "9"]] }],
+        ret: "{1: 1, 2: 4, 3: 9}", calc: "print(squares)  ->  {1: 1, 2: 4, 3: 9}",
+        note: "Note the colons in the output. That is how Python writes a " +
+              "dictionary, and it is why the comprehension needs one too." },
+      { line: "comp",
+        panels: [{ name: "squares", pairs: [["1", "1"], ["2", "4"], ["3", "9"]] },
+                 { name: "same", pairs: [["1", "1"], ["2", "4"], ["3", "9"]], allnew: true }],
+        calc: "same = {n: n * n for n in range(1, 4)}  ->  all three, one line",
+        note: "<strong>One step. The same three pairs.</strong> The loop took " +
+              "seven presses to get here; this line did it in one, and " +
+              "<code>n: n * n</code> is the key and the value the loop was " +
+              "assigning." },
+      { line: "show2",
+        panels: [{ name: "squares", pairs: [["1", "1"], ["2", "4"], ["3", "9"]] },
+                 { name: "same", pairs: [["1", "1"], ["2", "4"], ["3", "9"]] }],
+        ret: "{1: 1, 2: 4, 3: 9}", calc: "print(same)  ->  {1: 1, 2: 4, 3: 9}",
+        note: "Identical. Not similar — the same dictionary, built two " +
+              "ways. The comprehension is shorthand, not a different " +
+              "feature." },
+      { line: "prices",
+        panels: [{ name: "prices", pairs: [['"apple"', "1.5"], ['"bread"', "3.0"], ['"milk"', "2.25"]] }],
+        calc: "prices = 3 pairs",
+        note: "Now the case you will actually write: build a new dictionary " +
+              "<strong>from</strong> an existing one. Note Python prints " +
+              "<code>1.50</code> back as <code>1.5</code> — same number, " +
+              "no trailing zero." },
+      { line: "cheap",
+        panels: [{ name: "prices", pairs: [['"apple"', "1.5"], ['"bread"', "3.0"], ['"milk"', "2.25"]] },
+                 { name: "cheap", pairs: [['"apple"', "1.5"], ['"milk"', "2.25"]], allnew: true }],
+        calc: "cheap = {k: v for k, v in prices.items() if v < 3.00}",
+        note: "<code>k, v</code> after <code>for</code> is what " +
+              "<code>.items()</code> hands over; <code>k: v</code> before it " +
+              "is what the new dictionary gets. <strong>bread failed the " +
+              "<code>if</code></strong>, so no pair was made for it — " +
+              "3.00 is not under 3.00." },
+      { line: "show3",
+        panels: [{ name: "prices", pairs: [['"apple"', "1.5"], ['"bread"', "3.0"], ['"milk"', "2.25"]] },
+                 { name: "cheap", pairs: [['"apple"', "1.5"], ['"milk"', "2.25"]] }],
+        ret: "{'apple': 1.5, 'milk': 2.25}",
+        calc: "print(cheap)  ->  two pairs, bread left out",
+        note: "And <code>prices</code> is untouched — look at the left " +
+              "panel. A comprehension <strong>reads</strong> the dictionary " +
+              "it loops over and builds a new one." },
+      { line: "words",
+        panels: [{ name: "prices", pairs: [['"apple"', "1.5"], ['"bread"', "3.0"], ['"milk"', "2.25"]] },
+                 { name: "words", items: ['"apple"', '"fig"', '"banana"'],
+                   view: true }],
+        calc: 'words = ["apple", "fig", "banana"]  ->  a LIST, not a dict',
+        note: "A plain list &mdash; no pairs in it at all. The next line " +
+              "builds a <em>dictionary</em> out of it, which is the move " +
+              "worth noticing: what you loop over and what you build do not " +
+              "have to be the same kind of thing." },
+      { line: "lens",
+        panels: [{ name: "lengths",
+                   pairs: [['"apple"', "5"], ['"fig"', "3"], ['"banana"', "6"]],
+                   allnew: true }],
+        calc: "lengths = {word: len(word) for word in words}",
+        note: "One name after <code>for</code>, not two, because a list hands " +
+              "over one thing at a time &mdash; there is no pair to unpack. " +
+              "The <code>word: len(word)</code> before it is what invents the " +
+              "pairs: the word becomes the key, its length becomes the value." },
+      { line: "show4",
+        panels: [{ name: "lengths",
+                   pairs: [['"apple"', "5"], ['"fig"', "3"], ['"banana"', "6"]] }],
+        ret: "{'apple': 5, 'fig': 3, 'banana': 6}",
+        calc: "print(lengths)  ->  three pairs from three strings",
+        note: "Three strings in, three pairs out. Keys in the list's order." },
+      { line: "raise",
+        panels: [{ name: "prices", pairs: [['"apple"', "1.5"], ['"bread"', "3.0"], ['"milk"', "2.25"]] },
+                 { name: "raised",
+                   pairs: [['"apple"', "1.6500000000000001"],
+                           ['"bread"', "3.3000000000000003"],
+                           ['"milk"', "2.475"]], allnew: true }],
+        calc: "raised = {k: v * 1.1 for k, v in prices.items()}",
+        note: "The other kind of comprehension: every pair comes through, but " +
+              "the <strong>values change on the way</strong>. The filter kept " +
+              "some pairs and dropped others; this one keeps all of them and " +
+              "rewrites each value." },
+      { line: "show5",
+        panels: [{ name: "raised",
+                   pairs: [['"apple"', "1.6500000000000001"],
+                           ['"bread"', "3.3000000000000003"],
+                           ['"milk"', "2.475"]] }],
+        ret: "{'apple': 1.6500000000000001, 'bread': 3.3000000000000003, 'milk': 2.475}",
+        calc: "print(raised)  ->  look at those numbers",
+        note: "<strong>That is not a bug and you did not break it.</strong> " +
+              "A computer stores 1.1 in binary, where it has no exact form, " +
+              "the way 1/3 has none in decimal. The tiny error is real and it " +
+              "is in every language, not just Python. When money has to look " +
+              "like money, <code>round(v * 1.1, 2)</code> is the fix." }
+    ],
+    code: [
+      { k: "empty",  t: "squares = {}" },
+      { k: "for",    t: "for n in range(1, 4):" },
+      { k: "put",    t: "    squares[n] = n * n" },
+      { k: "show1",  t: "print(squares)" },
+      { k: "comp",   t: "same = {n: n * n for n in range(1, 4)}" },
+      { k: "show2",  t: "print(same)" },
+      { k: "prices", t: 'prices = {"apple": 1.50, "bread": 3.00, "milk": 2.25}' },
+      { k: "cheap",  t: "cheap = {k: v for k, v in prices.items() if v < 3.00}" },
+      { k: "show3",  t: "print(cheap)" },
+      { k: "words",  t: 'words = ["apple", "fig", "banana"]' },
+      { k: "lens",   t: "lengths = {word: len(word) for word in words}" },
+      { k: "show4",  t: "print(lengths)" },
+      { k: "raise",  t: "raised = {k: v * 1.1 for k, v in prices.items()}" },
+      { k: "show5",  t: "print(raised)" }
+    ]
+  },
+
+  book: {
+    todos: { make: "b", w1: "c", if1: "c", hit: "d", w2: "c", if2: "c", hit2: "d", else2: "d", miss: "d", codes: "e", show: "e" },
+    label: "The phone book",
+    part: 6,
+    covers: "The lookup half of the TODO — found, not found, and an area-code view. (Your version asks for the name with input().)",
+    steps: [
+      { line: "make",
+        panels: [{ name: "book", pairs: [['"Ann"', '"555-0100"'], ['"Bo"', '"801-0142"']] }],
+        calc: "book = 2 pairs",
+        note: "The phone book itself — names to numbers, which is the " +
+              "shape every dictionary problem turns out to be." },
+      { line: "w1",
+        panels: [{ name: "book", pairs: [['"Ann"', '"555-0100"'], ['"Bo"', '"801-0142"']] }],
+        calc: 'wanted = "Bo"',
+        note: "In your version this line is " +
+              "<code>wanted = input(\"Name: \")</code>. Everything below it " +
+              "is the same either way." },
+      { line: "if1",
+        panels: [{ name: "book", pairs: [['"Ann"', '"555-0100"'], ['"Bo"', '"801-0142"']], pick: 1 }],
+        ret: "True", calc: '"Bo" in book  ->  True, so take the if',
+        note: "<strong>Ask before you reach.</strong> This is the whole " +
+              "reason <code>in</code> exists — one line that cannot " +
+              "crash, deciding whether the next one is safe." },
+      { line: "hit",
+        panels: [{ name: "book", pairs: [['"Ann"', '"555-0100"'], ['"Bo"', '"801-0142"']], pick: 1 }],
+        ret: "801-0142", calc: 'print(book["Bo"])  ->  801-0142',
+        note: "Safe, because the line above already proved the key is there." },
+      { line: "w2",
+        panels: [{ name: "book", pairs: [['"Ann"', '"555-0100"'], ['"Bo"', '"801-0142"']] }],
+        calc: 'wanted = "Cy"',
+        note: "Now a name that is not in the book." },
+      { line: "if2",
+        panels: [{ name: "book", pairs: [['"Ann"', '"555-0100"'], ['"Bo"', '"801-0142"']],
+                   ghost: ['"Cy"', "?"] }],
+        ret: "False", calc: '"Cy" in book  ->  False, so take the else',
+        note: "False, and no crash. Without this line, " +
+              "<code>book[\"Cy\"]</code> would have ended the program with a " +
+              "<code>KeyError</code> — the one from demo 2." },
+      { line: "miss",
+        panels: [{ name: "book", pairs: [['"Ann"', '"555-0100"'], ['"Bo"', '"801-0142"']] }],
+        ret: "Not found", calc: 'print("Not found")  ->  Not found',
+        note: "A message instead of a traceback. <strong>That is the " +
+              "difference between a program and a crash.</strong>" },
+      { line: "codes",
+        panels: [{ name: "book", pairs: [['"Ann"', '"555-0100"'], ['"Bo"', '"801-0142"']] },
+                 { name: "codes", pairs: [['"Ann"', '"555"'], ['"Bo"', '"801"']], allnew: true }],
+        calc: "codes = {name: number[0:3] for name, number in book.items()}",
+        note: "Same keys, <strong>shortened values</strong> — " +
+              "<code>number[0:3]</code> is the string slice from Module 7, " +
+              "used on the value while the key is carried straight across." },
+      { line: "show",
+        panels: [{ name: "book", pairs: [['"Ann"', '"555-0100"'], ['"Bo"', '"801-0142"']] },
+                 { name: "codes", pairs: [['"Ann"', '"555"'], ['"Bo"', '"801"']] }],
+        ret: "{'Ann': '555', 'Bo': '801'}",
+        calc: "print(codes)  ->  {'Ann': '555', 'Bo': '801'}",
+        note: "Two dictionaries now, both still there. <strong>This is the " +
+              "whole module in nine lines:</strong> build it, ask it " +
+              "safely, reach in, and make a new view of it with a " +
+              "comprehension." }
+    ],
+    code: [
+      { k: "make",  t: 'book = {"Ann": "555-0100", "Bo": "801-0142"}' },
+      { k: "w1",    t: 'wanted = "Bo"' },
+      { k: "if1",   t: "if wanted in book:" },
+      { k: "hit",   t: "    print(book[wanted])" },
+      { k: "w2",    t: 'wanted = "Cy"' },
+      { k: "if2",   t: "if wanted in book:" },
+      { k: "hit2",  t: "    print(book[wanted])" },
+      { k: "else2", t: "else:" },
+      { k: "miss",  t: '    print("Not found")' },
+      { k: "codes", t: "codes = {name: number[0:3] for name, number in book.items()}" },
+      { k: "show",  t: "print(codes)" }
+    ]
+  }
+};
+
+var order = ["lookup", "change", "loops", "views", "counting", "comp", "book"];
+var current = "lookup";
+var at = 0;
+
+var tabsEl = document.getElementById("tabs");
+var stage = document.getElementById("stage");
+var countEl = document.getElementById("count");
+var backBtn = document.getElementById("back");
+var nextBtn = document.getElementById("next");
+
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;");
+}
+
+/* One pass, first alternative wins, so a keyword inside a string is never
+   re-coloured. Written against the handful of constructs these short
+   programs use -- it is a colourer, not a parser. */
+var TOKENS = new RegExp([
+  "(#.*$)",                                   // comment
+  "(\"[^\"]*\"|'[^']*')",                     // string
+  "\\b(print|len|list|range|input|keys|values|items)\\b",
+  "\\b(del|not|in|for|if|else|None|True|False)\\b",
+  "\\b(\\d+\\.\\d+|\\d+)\\b"                  // number
+].join("|"), "g");
+
+function hi(src) {
+  return esc(src).replace(TOKENS, function (m, cm, st, fn, kw, nm) {
+    if (cm) { return '<span class="cm">' + cm + "</span>"; }
+    if (st) { return '<span class="st">' + st + "</span>"; }
+    if (fn) { return '<span class="fn">' + fn + "</span>"; }
+    if (kw) { return '<span class="kw">' + kw + "</span>"; }
+    return '<span class="nm">' + nm + "</span>";
+  });
+}
+
+/* Which pass of its own line this step is, and how many there are in total.
+   Only meaningful inside a loop; one-pass lines get nothing. */
+function passInfo(demo, i) {
+  if (demo.steps[i].end) { return { ends: true }; }
+  var key = demo.steps[i].line, n = 0, mine = 0;
+  for (var j = 0; j < demo.steps.length; j++) {
+    if (demo.steps[j].line !== key || demo.steps[j].end) { continue; }
+    n++;
+    if (j === i) { mine = n; }
+  }
+  return n > 1 ? { pass: mine, of: n } : null;
+}
+
+function codeHTML(demo, step, stepIndex) {
+  /* "done" dims lines already executed, so the boundary between what has run
+     and what has not is visible without counting. Inside a loop a line below
+     the cursor may already have run on an earlier pass -- dimming by
+     POSITION would then be a lie, so a line is dimmed only if some earlier
+     step was on it. */
+  var activeAt = -1;
+  demo.code.forEach(function (ln, i) { if (ln.k === step.line) { activeAt = i; } });
+  var ran = {};
+  for (var s = 0; s < stepIndex; s++) { ran[demo.steps[s].line] = true; }
+  var lengths = demo.code.map(function (ln) { return ln.t.length; })
+                         .sort(function (a, b) { return b - a; });
+  var column = (lengths[1] || lengths[0]) + 2;
+  var info = passInfo(demo, stepIndex);
+  return '<div class="code">' + demo.code.map(function (ln, i) {
+    var cls = i === activeAt ? "active" : (ran[ln.k] ? "done" : "");
+    var jump = ' data-k="' + ln.k + '" role="button" tabindex="0"' +
+               ' title="Jump to this line"';
+    if (i !== activeAt) {
+      return '<div' + (cls ? ' class="' + cls + '"' : "") + jump + ">" +
+             hi(ln.t) + "</div>";
+    }
+    /* The source is wrapped so the band can be pushed to the right of the
+       same row rather than onto a row of its own, where it read like the next
+       statement to run. */
+    return '<div class="active"' + jump + '><span class="src" style="min-width:' +
+           column + 'ch">' + hi(ln.t) + "</span>" +
+           (step.calc ? '<span class="calc">' + esc(step.calc) + "</span>" : "") +
+           (info ? '<span class="pass' + (info.ends ? " ends" : "") + '">' +
+                   (info.ends ? "loop ends"
+                              : "pass " + info.pass + " of " + info.of) +
+                   "</span>" : "") +
+           "</div>";
+  }).join("") + "</div>";
+}
+
+function pairsHTML(p) {
+  var rows = [];
+  var pairs = p.pairs || [];
+  if (!pairs.length && !p.ghost) {
+    rows.push('<p class="empty">{} &mdash; no pairs yet</p>');
+  }
+  pairs.forEach(function (kv, i) {
+    var cls = "pair";
+    if (p.allnew || p.added === i) { cls += " added"; }
+    if (p.changed === i) { cls += " changed"; }
+    if (p.pick === i) { cls += " pick"; }
+    if (p.cur === i) { cls += " cur"; }
+    rows.push('<div class="' + cls + '">' +
+      '<div class="kbox">' + esc(kv[0]) + "</div>" +
+      '<div class="arrow">&rarr;</div>' +
+      '<div class="vbox2">' + esc(kv[1]) + "</div>" +
+      (p.changed === i && p.was ? '<div class="was">was ' + esc(p.was) + "</div>" : "") +
+      (p.tag && (p.added === i) ? '<div class="tagline' + (p.warn ? " warn" : "") +
+                                  '">' + esc(p.tag) + "</div>" : "") +
+      "</div>");
+  });
+  /* A pair that has just gone, or was never there. Drawn rather than simply
+     absent, because "it is not in the picture any more" is easy to miss and
+     the whole point of the step. */
+  if (p.ghost) {
+    rows.push('<div class="pair ghost">' +
+      '<div class="kbox">' + esc(p.ghost[0]) + "</div>" +
+      '<div class="arrow">&rarr;</div>' +
+      '<div class="vbox2">' + esc(p.ghost[1]) + "</div>" +
+      "</div>");
+  }
+  return '<div class="pairs">' + rows.join("") + "</div>";
+}
+
+function viewHTML(p) {
+  if (!p.items.length) { return '<p class="empty">nothing in it</p>'; }
+  return '<div class="viewrow">' + p.items.map(function (it) {
+    return '<div class="vcell">' + esc(it) + "</div>";
+  }).join("") + "</div>";
+}
+
+function panelHTML(p) {
+  var size;
+  if (p.view) {
+    size = p.items.length + (p.items.length === 1 ? " thing" : " things");
+  } else {
+    var n = (p.pairs || []).length;
+    size = n + (n === 1 ? " pair" : " pairs");
+  }
+  return '<div class="dwrap' + (p.view ? " view" : "") + '">' +
+    '<div class="dhead"><span class="var">' + esc(p.name) + "</span> &middot; " +
+    size + "</div>" + (p.view ? viewHTML(p) : pairsHTML(p)) + "</div>";
+}
+
+function lineOf(demo, key) {
+  var hit = null;
+  demo.code.forEach(function (ln) { if (ln.k === key) { hit = ln; } });
+  return hit;
+}
+
+function consoleHTML(demo, upto) {
+  /* Derived from the steps, never authored separately. One step is one line
+     execution, so a print line contributes exactly once per step it appears
+     on -- which is what makes a print inside a loop come out once per pass
+     with no special handling. */
+  var rows = [];
+  for (var i = 0; i <= upto; i++) {
+    var st = demo.steps[i];
+    var ln = lineOf(demo, st.line);
+    if (!ln) { continue; }
+    if (st.err) {
+      rows.push('<div class="line err">' + esc(st.err) + "</div>");
+    } else if (ln.t.trim().indexOf("print(") === 0 && st.ret !== undefined) {
+      rows.push('<div class="line">' +
+                esc(st.ret === null ? "None" : st.ret) + "</div>");
+    }
+  }
+  var body = rows.length ? rows.join("")
+           : '<div class="none">Nothing yet. Only print() puts text here &mdash; ' +
+             "adding a pair does not.</div>";
+  return '<div class="term"><div class="thead">Console</div>' + body + "</div>";
+}
+
+function render() {
+  var demo = DEMOS[current];
+  var step = demo.steps[at];
+  var html = "";
+
+  /* The dictionary leads. The code moves underneath it, so the pairs stay in
+     one place while the arrow walks down the program. */
+  html += '<div class="panels">' +
+          step.panels.map(panelHTML).join("") + "</div>";
+
+  /* Loop variables, under the panels and above the code: they are filled in
+     BY the code and read BY the code, so they sit between the two. */
+  if (step.bind) {
+    html += '<div class="binds">' + step.bind.map(function (b) {
+      var unset = b.v === null;
+      return '<div class="bind' + (unset ? " unset" : "") + '">' +
+             '<span class="bn">' + esc(b.n) + "</span> = " +
+             '<span class="bv">' + (unset ? "not set by this loop"
+                                          : esc(b.v)) + "</span></div>";
+    }).join("") + "</div>";
+  }
+
+  html += codeHTML(demo, step, at);
+  html += consoleHTML(demo, at);
+
+  /* The console carries anything print() produced and any error, so the
+     handed-back box appears only where the value never reaches the console --
+     which is exactly where it teaches something, on the `in` tests inside an
+     `if`. */
+  var printsIt = (lineOf(demo, step.line) || { t: "" })
+                   .t.trim().indexOf("print(") === 0;
+  if (step.err) {
+    /* already in the console */
+  } else if (step.ret !== undefined && !printsIt) {
+    var shown = step.ret === null ? "None" : step.ret;
+    var isNone = shown === "None";
+    html += '<div class="ret ' + (isNone ? "none" : "val") + '">' +
+            "handed back: " + esc(shown) + "</div>";
+  }
+
+  html += '<p class="note">' + step.note + "</p>";
+  /* Collapsed: it is an aside, and the demo is the lesson. Rendered last so
+     it never pushes the panels or the code down the page. */
+  if (demo.aside) {
+    html += '<details class="aside"><summary>' + esc(demo.aside.title) +
+            '</summary><div class="body">' + demo.aside.html + "</div></details>";
+  }
+  stage.innerHTML = html;
+  document.getElementById("covers").innerHTML =
+    "<strong>main.py Part " + demo.part + "</strong> &middot; " +
+    esc(demo.covers);
+  countEl.textContent = "Step " + (at + 1) + " of " + demo.steps.length;
+
+  /* Which TODO this step is. Steps that demonstrate background rather than an
+     instruction say so outright -- sending somebody to look for a TODO that
+     does not exist is worse than saying nothing. */
+  var letter = (demo.todos || {})[step.line];
+  var tb = document.getElementById("todobar");
+  if (letter) {
+    tb.className = "todobar";
+    tb.innerHTML = "&#9997; <b>This is TODO " + demo.part + letter +
+      "</b> &mdash; when it makes sense, go and write it in " +
+      "<code>main.py</code>, Part " + demo.part + ".";
+  } else {
+    tb.className = "todobar bg";
+    tb.innerHTML = "Background for Part " + demo.part +
+      " &mdash; no TODO of its own. Worth seeing, nothing to write yet.";
+  }
+  backBtn.disabled = at === 0;
+  nextBtn.disabled = at === demo.steps.length - 1;
+}
+
+function buildTabs() {
+  tabsEl.innerHTML = "";
+  order.forEach(function (key) {
+    var b = document.createElement("button");
+    b.className = "tab";
+    b.type = "button";
+    var ls = [];
+    Object.keys(DEMOS[key].todos || {}).forEach(function (k) {
+      var v = DEMOS[key].todos[k];
+      if (v && ls.indexOf(v) === -1) { ls.push(v); }
+    });
+    ls.sort();
+    var span = ls.length > 1 ? ls[0] + "\u2013" + ls[ls.length - 1] : ls[0];
+    b.innerHTML = '<span class="tpart">Part ' + DEMOS[key].part +
+                  (span ? " \u00b7 TODO " + span : "") + "</span>" +
+                  esc(DEMOS[key].label);
+    b.setAttribute("aria-pressed", String(key === current));
+    b.addEventListener("click", function () {
+      current = key; at = 0; buildTabs(); render(); stage.focus();
+    });
+    tabsEl.appendChild(b);
+  });
+}
+
+function go(n) {
+  var max = DEMOS[current].steps.length - 1;
+  at = Math.max(0, Math.min(max, n));
+  render();
+}
+
+nextBtn.addEventListener("click", function () { go(at + 1); });
+backBtn.addEventListener("click", function () { go(at - 1); });
+document.getElementById("reset").addEventListener("click", function () {
+  go(0);
+});
+/* Arrows work anywhere on the page, not only once the stage has been clicked.
+   Bound to the document rather than to the stage: a presenter who has just
+   pressed a tab, or who has not clicked at all, still expects Right to go
+   forward, and "click the panel first" is not something anyone reads.
+
+   Deliberately NOT also bound to the stage -- the event bubbles, so two
+   listeners would advance two steps on one press. */
+document.addEventListener("keydown", function (e) {
+  if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+  var t = e.target || {};
+  var tag = t.tagName;
+  // Leave the arrow keys alone where they already mean something.
+  if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA"
+      || t.isContentEditable) { return; }
+  if (e.key === "ArrowRight" || e.key === "PageDown") {
+    go(at + 1); e.preventDefault();
+  } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+    go(at - 1); e.preventDefault();
+  } else if (e.key === "Home") {
+    go(0); e.preventDefault();
+  } else if (e.key === "End") {
+    go(DEMOS[current].steps.length - 1); e.preventDefault();
+  }
+});
+
+/* Delegated: render() rewrites the stage on every step, so listeners bound to
+   individual lines would have to be rebound each time. A line inside a loop
+   is several steps; the click lands on the FIRST pass, which is where you
+   want to be when you jump to it. */
+function jumpToLine(key) {
+  var demo = DEMOS[current];
+  for (var i = 0; i < demo.steps.length; i++) {
+    if (demo.steps[i].line === key) { go(i); return; }
+  }
+}
+stage.addEventListener("click", function (e) {
+  var row = e.target.closest ? e.target.closest("[data-k]") : null;
+  if (row) { jumpToLine(row.getAttribute("data-k")); }
+});
+stage.addEventListener("keydown", function (e) {
+  if (e.key !== "Enter" && e.key !== " ") { return; }
+  var row = e.target.closest ? e.target.closest("[data-k]") : null;
+  if (row) { e.preventDefault(); jumpToLine(row.getAttribute("data-k")); }
+});
+
+buildTabs();
+render();
+</script>
+</body>
+</html>
