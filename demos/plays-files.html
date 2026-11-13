@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plays File Stepper</title>
+<!--
+  Plays File Stepper -- CS 1400 Final Project, playtest.py
+
+  Open this file in a browser. Double-click it, or right-click in VS Code ->
+  "Reveal in File Explorer" and double-click there. One self-contained file:
+  nothing to install, no internet, no extension.
+
+  WHAT IT IS FOR, and why it is not about playtest.py
+
+  Students do not write playtest.py. They write plays/*.txt, and the only
+  question they actually have is "what do I put in the file?". So the subject
+  here is the FILE, not the tool: every demo shows one plays file on the left,
+  the program's input() calls on the right, and a cursor walking down both at
+  once. The tool itself appears only as the arrow between them.
+
+  The five demos are the five things that go wrong or surprise, in the order
+  they bite:
+    1  one line, one answer     the basic pairing
+    2  the file repeats          why a one-line file is legal
+    3  junk then a valid answer  what badinput.txt should look like
+    4  junk with no way out      what happens when it does not, and the !
+    5  the coverage table        why the same answer twice is not two tests
+
+  Demos 4 and 5 are the reason this exists. Both look like success from the
+  outside: 4 reports no crash, and 5 reports every run finished.
+
+  Everything is deliberately plain: no libraries, no build step, no fetch().
+  It has to work from a file:// URL on a Chromebook.
+-->
+<style>
+  :root {
+    --ink: #1a1a2e; --muted: #555; --line: #cbd5e1; --panel: #f8fafc;
+    --teal: #00695c; --green: #1b5e20; --red: #c62828; --amber: #ef6c00;
+    --code-bg: #1e1e2e; --code-fg: #cdd6f4; --code-hit: #45475a;
+    /* #6c7086 is the Catppuccin comment grey, 3.36:1 here and under AA.
+       This is the course-wide replacement. */
+    --code-dim: #83889a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif; color: var(--ink);
+    margin: 0; padding: 1.25rem; background: #fff; line-height: 1.5;
+  }
+  h1 { font-size: 1.35rem; margin: 0 0 .25rem; }
+  .sub { color: var(--muted); font-size: .9rem; margin: 0 0 1rem; }
+  .tabs { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; }
+  .tab {
+    border: 2px solid var(--line); background: #fff; color: var(--ink);
+    border-radius: 999px; padding: .3rem 1.1rem .4rem; font-size: .95rem;
+    cursor: pointer; font-family: inherit; line-height: 1.25; text-align: center;
+  }
+  .tab .tnum { display: block; font-size: .68rem; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .tab[aria-pressed="true"] {
+    background: var(--teal); border-color: var(--teal); color: #fff;
+  }
+  .tab[aria-pressed="true"] .tnum { color: #b7e4dd; }
+  .ctrls { display: flex; align-items: center; gap: .6rem; margin-bottom: .9rem;
+    flex-wrap: wrap; }
+  .ctrls button {
+    font-family: inherit; font-size: .95rem; padding: .35rem 1.1rem;
+    border-radius: 8px; border: 2px solid var(--teal); background: var(--teal);
+    color: #fff; cursor: pointer;
+  }
+  .ctrls button:disabled { opacity: .4; cursor: default; }
+  .count { color: var(--muted); font-size: .9rem; }
+  .kbd {
+    border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px;
+    padding: 0 .35rem; font-family: ui-monospace, Consolas, monospace;
+    font-size: .85rem; background: var(--panel);
+  }
+  .why { background: var(--panel); border-left: 5px solid var(--teal);
+    border-radius: 8px; padding: .75rem 1rem; margin: 0 0 1rem;
+    font-size: .95rem; }
+  .cols { display: grid; grid-template-columns: minmax(230px, 1fr) 1.6fr;
+    gap: 1rem; align-items: start; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+  .pane { border: 2px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .phead { background: var(--panel); padding: .4rem .8rem; font-size: .82rem;
+    font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--muted); border-bottom: 2px solid var(--line); }
+  .mono { font-family: ui-monospace, Consolas, 'Courier New', monospace; }
+  .file, .code { background: var(--code-bg); color: var(--code-fg);
+    padding: .7rem 0; font-size: 1rem; }
+  .file div, .code div { padding: .1rem .8rem; white-space: pre-wrap; }
+  .file .no, .code .no { display: inline-block; min-width: 2.2em;
+    color: var(--code-dim); user-select: none; }
+  .file .on, .code .on { background: var(--code-hit); border-radius: 4px; }
+  .file .used { color: var(--code-dim); }
+  .file .wrap { color: #f9e2af; font-style: italic; }
+  .code .kw { color: #cba6f7; } .code .fn { color: #89dceb; }
+  .code .st { color: #a6e3a1; } .code .nm { color: #fab387; }
+  .code .cm { color: var(--code-dim); font-style: italic; }
+  .term { background: #11111b; color: var(--code-fg); padding: .7rem .9rem;
+    font-size: .95rem; min-height: 7.5rem; }
+  .term div { white-space: pre-wrap; }
+  .term .typed { color: #a6e3a1; font-weight: 700; }
+  .term .sys { color: var(--code-dim); font-style: italic; }
+  .note { margin: .9rem 0 0; padding: .75rem 1rem; border-radius: 8px;
+    font-size: .95rem; border-left: 5px solid var(--teal);
+    background: #e0f2f1; }
+  .note.bad { border-left-color: var(--red); background: #ffebee; }
+  .note.warn { border-left-color: var(--amber); background: #fff3e0; }
+  .cov { width: 100%; border-collapse: collapse; font-size: .95rem; }
+  .cov th, .cov td { border: 1px solid var(--line); padding: .35rem .6rem;
+    text-align: left; }
+  .cov th { background: var(--panel); font-size: .82rem;
+    text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .cov .thin { background: #fff3e0; font-weight: 700; }
+  .tag { display: inline-block; font-size: .72rem; font-weight: 800;
+    letter-spacing: .05em; padding: .05rem .5rem; border-radius: 999px;
+    background: var(--amber); color: #fff; margin-left: .5rem; }
+</style>
+</head>
+<body>
+
+<h1>What goes in a <span class="mono">plays/</span> file?</h1>
+<p class="sub">
+  A plays file is a list of answers, one per line. This walks through what
+  happens to each line when <span class="mono">playtest.py</span> runs your
+  program. Use <span class="kbd">&larr;</span> <span class="kbd">&rarr;</span>
+  at any time.
+</p>
+
+<div class="tabs" id="tabs" role="group" aria-label="Choose a demo"></div>
+
+<div class="why" id="why"></div>
+
+<div class="ctrls">
+  <button id="back" type="button">&larr; Back</button>
+  <button id="next" type="button">Next &rarr;</button>
+  <span class="count" id="count"></span>
+</div>
+
+<div class="stage" id="stage" tabindex="0" aria-live="polite"></div>
+
+<script>
+/* ------------------------------------------------------------------ *
+ * The demos.
+ *
+ * Each step says which plays-file line is being consumed, which input()
+ * call is asking, and what lands in the terminal. Everything on screen is
+ * derived from these -- there is no second copy of the state to disagree
+ * with the first.
+ * ------------------------------------------------------------------ */
+
+var PROGRAM = [
+  "while True:",
+  "    print(MENU)",
+  "    choice = input('Choose: ')",
+  "    if choice == '1':",
+  "        show_table(book)",
+  "    elif choice == '3':",
+  "        name = input('Student name: ')",
+  "        score = ask_score()",
+  "    elif choice == '6':",
+  "        break"
+];
+
+var ASK_SCORE = [
+  "def ask_score(low=0, high=100):",
+  "    while True:",
+  "        raw = input('Score (0-100): ')",
+  "        try:",
+  "            value = int(raw)",
+  "        except ValueError:",
+  "            print('  That is not a number. Try again.')",
+  "            continue",
+  "        return value"
+];
+
+var DEMOS = {
+  pair: {
+    num: "Demo 1",
+    fname: "normal.txt",
+    name: "One line, one answer",
+    why: "Every line of the file is typed at the next <code>input()</code> your program reaches, in order. Nothing clever happens: line 1 answers the first question, line 2 the second.",
+    file: ["1", "6"],
+    code: PROGRAM,
+    steps: [
+      {line: 2, out: [["sys", "MENU prints"]], note: "The program runs normally until it reaches an <code>input()</code>."},
+      {line: 3, take: 0, out: [["ask", "Choose: "], ["typed", "1"]],
+       note: "First <code>input()</code>. It takes <strong>line 1</strong> of the file."},
+      {line: 5, out: [["sys", "the table prints"]], note: "<code>'1'</code> matched, so the table is shown."},
+      {line: 3, take: 1, out: [["ask", "Choose: "], ["typed", "6"]],
+       note: "Back at the menu. The next <code>input()</code> takes <strong>line 2</strong>."},
+      {line: 10, out: [["sys", "program ends"]], done: true,
+       note: "Two questions, two lines, and the program reached its quit option. That is a clean run."}
+    ]
+  },
+
+  cycle: {
+    num: "Demo 2",
+    fname: "normal.txt",
+    name: "The file repeats",
+    why: "When the program asks more questions than the file has answers, the file <strong>starts again from the top</strong>. That is why a one-line file is legal, and why a file does not have to predict exactly how many questions you will be asked.",
+    file: ["1"],
+    code: PROGRAM,
+    steps: [
+      {line: 3, take: 0, out: [["ask", "Choose: "], ["typed", "1"]],
+       note: "Line 1 answers the first question."},
+      {line: 5, out: [["sys", "the table prints"]]},
+      {line: 3, take: 0, wrapped: true, out: [["ask", "Choose: "], ["typed", "1"]],
+       note: "The file has no line 2, so it <strong>wraps back to line 1</strong> and answers <code>1</code> again."},
+      {line: 5, out: [["sys", "the table prints"]]},
+      {line: 3, take: 0, wrapped: true, out: [["ask", "Choose: "], ["typed", "1"]],
+       note: "And again. This file shows the table forever."},
+      {line: 3, stuck: true, out: [["sys", "... 4000 answers later, playtest gives up"]], done: true,
+       note: "A file that never reaches your quit option never ends. <strong>playtest marks that run <code>!</code></strong>, not a pass. Put your quit option in the file."}
+    ]
+  },
+
+  badinput: {
+    num: "Demo 3",
+    fname: "badinput.txt",
+    name: "badinput.txt, done right",
+    why: "To test that bad input is handled you have to give it bad input <strong>and then a good one</strong>. The junk proves the program re-asks; the valid answer lets it move on.",
+    file: ["3", "Ada Lovelace", "ninety", "84", "6"],
+    code: ASK_SCORE,
+    steps: [
+      {line: 3, take: 2, out: [["ask", "Score (0-100): "], ["typed", "ninety"]],
+       note: "Line 3 is the junk. It goes in exactly as written."},
+      {line: 5, out: [["sys", "int('ninety') raises ValueError"]],
+       note: "<code>int()</code> cannot read it, so the <code>except</code> runs."},
+      {line: 7, out: [["sys", "  That is not a number. Try again."]],
+       note: "Your validation worked. The program says so and loops."},
+      {line: 3, take: 3, out: [["ask", "Score (0-100): "], ["typed", "84"]],
+       note: "Line 4 is the <strong>valid</strong> answer. This is the line people leave out."},
+      {line: 9, out: [["sys", "returns 84"]], done: true,
+       note: "The bad path <em>and</em> the recovery both ran. That is a real test of requirement 2."}
+    ]
+  },
+
+  jam: {
+    num: "Demo 4",
+    fname: "badinput.txt",
+    name: "badinput.txt, done wrong",
+    why: "A file of nothing but junk cannot get past a prompt that validates. The program is working correctly; the <em>file</em> is the problem. This is the mistake worth seeing once.",
+    file: ["3", "Ada Lovelace", "ninety"],
+    code: ASK_SCORE,
+    steps: [
+      {line: 3, take: 2, out: [["ask", "Score (0-100): "], ["typed", "ninety"]],
+       note: "Line 3 is junk."},
+      {line: 7, out: [["sys", "  That is not a number. Try again."]],
+       note: "Rejected, and the loop goes round."},
+      {line: 3, take: 0, wrapped: true, out: [["ask", "Score (0-100): "], ["typed", "3"]],
+       note: "The file wrapped to line 1. <code>3</code> is not in 0&ndash;100 either."},
+      {line: 3, take: 1, out: [["ask", "Score (0-100): "], ["typed", "Ada Lovelace"]],
+       note: "Nor is a name. Every line of this file is rejected by this prompt."},
+      {line: 3, stuck: true, out: [["sys", "  Score (0-100):  asked 1,999 times"]], done: true, bad: true,
+       note: "<strong>playtest reports this, and says it is not a crash.</strong> Your program did exactly the right thing &mdash; it refused every answer it was given. The file never offered a valid one."}
+    ]
+  },
+
+  coverage: {
+    num: "Demo 5",
+    fname: "normal.txt",
+    name: "Why the table matters",
+    why: "Running the same answer twenty times is one test run twenty times. The coverage table shows every question and every <em>distinct</em> answer it received, so a question that only ever heard one thing stands out.",
+    file: ["3", "Ada Lovelace", "84", "6"],
+    code: PROGRAM,
+    cov: true,
+    steps: [
+      {line: 3, take: 0, cover: ["Choose: ", "3"], out: [["ask", "Choose: "], ["typed", "3"]],
+       note: "Each answer is recorded against the question that asked for it."},
+      {line: 7, take: 1, cover: ["Student name: ", "Ada Lovelace"],
+       out: [["ask", "Student name: "], ["typed", "Ada Lovelace"]],
+       note: "A second question, a second row."},
+      {line: 8, take: 2, cover: ["Score (0-100): ", "84"],
+       out: [["ask", "Score (0-100): "], ["typed", "84"]],
+       note: "<code>ask_score()</code> asks too, and it takes the next line like any other question. Nothing in the file is skipped."},
+      {line: 3, take: 3, cover: ["Choose: ", "6"], out: [["ask", "Choose: "], ["typed", "6"]],
+       note: "<code>Choose:</code> has now heard two different answers."},
+      {line: 3, rerun: true, cover: ["Choose: ", "3"], out: [["sys", "run 2 of 6 ..."]],
+       note: "The next run does the same thing. <code>Choose:</code> already knows <code>3</code>, so nothing is added."},
+      {line: 7, rerun: true, cover: ["Student name: ", "Ada Lovelace"],
+       out: [["sys", "run 2 asks for a name again"]], done: true, thin: true,
+       note: "Six runs later, <strong>Student name:</strong> has still heard exactly one answer. The branch for a name that is <em>not</em> in the book has never run &mdash; and nothing crashed, because nothing ever asked it to."}
+    ]
+  }
+};
+
+var ORDER = ["pair", "cycle", "badinput", "jam", "coverage"];
+
+/* ------------------------------------------------------------------ *
+ * Rendering
+ * ------------------------------------------------------------------ */
+
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;");
+}
+
+/* One pass, first alternative wins, so a keyword inside a string is never
+   re-coloured. A colourer, not a parser -- same approach as the other
+   steppers in this course, and the same palette. */
+var TOKENS = new RegExp([
+  "(#.*$)",
+  "(\"[^\"]*\"|'[^']*')",
+  "\\b(print|input|int|str|len|range|ask_score|show_table)\\b",
+  "\\b(while|for|if|elif|else|try|except|return|break|continue|def|True|False|None)\\b",
+  "\\b(\\d+)\\b"
+].join("|"), "g");
+
+function hi(src) {
+  return esc(src).replace(TOKENS, function (m, cm, st, fn, kw, nm) {
+    if (cm) { return '<span class="cm">' + cm + "</span>"; }
+    if (st) { return '<span class="st">' + st + "</span>"; }
+    if (fn) { return '<span class="fn">' + fn + "</span>"; }
+    if (kw) { return '<span class="kw">' + kw + "</span>"; }
+    return '<span class="nm">' + nm + "</span>";
+  });
+}
+
+var current = ORDER[0];
+var at = 0;
+
+var stage = document.getElementById("stage");
+var tabs = document.getElementById("tabs");
+var why = document.getElementById("why");
+var count = document.getElementById("count");
+var nextBtn = document.getElementById("next");
+var backBtn = document.getElementById("back");
+
+function filePane(demo, step, idx) {
+  var rows = demo.file.map(function (line, i) {
+    var cls = "";
+    if (step.take === i && !step.rerun) { cls = " on"; }
+    else if (usedBefore(demo, idx, i)) { cls = " used"; }
+    return '<div class="' + cls.trim() + '"><span class="no">' + (i + 1) +
+           "</span>" + esc(line) + "</div>";
+  });
+  if (step.wrapped) {
+    rows.push('<div class="wrap"><span class="no"></span>&#8629; back to the top</div>');
+  }
+  return '<div class="pane"><div class="phead">plays/' + demo.fname + "</div>" +
+         '<div class="file mono">' + rows.join("") + "</div></div>";
+}
+
+/* A line counts as spent once some earlier step took it. Without this every
+   line looks untouched, which hides the thing demo 2 is about. */
+function usedBefore(demo, idx, i) {
+  for (var s = 0; s < idx; s++) {
+    if (demo.steps[s].take === i) { return true; }
+  }
+  return false;
+}
+
+function codePane(demo, step) {
+  var rows = demo.code.map(function (line, i) {
+    var on = (i + 1) === step.line ? " on" : "";
+    return '<div class="' + on.trim() + '"><span class="no">' + (i + 1) +
+           "</span>" + hi(line) + "</div>";
+  });
+  return '<div class="pane"><div class="phead">your program</div>' +
+         '<div class="code mono">' + rows.join("") + "</div></div>";
+}
+
+function termPane(demo, idx) {
+  var out = [];
+  for (var s = 0; s <= idx; s++) {
+    (demo.steps[s].out || []).forEach(function (pair) {
+      if (pair[0] === "ask") { out.push("<div>" + esc(pair[1]) + "</div>"); }
+      else if (pair[0] === "typed") {
+        out[out.length - 1] = out[out.length - 1].replace(
+          "</div>", '<span class="typed">' + esc(pair[1]) + "</span></div>");
+      } else { out.push('<div class="sys">' + esc(pair[1]) + "</div>"); }
+    });
+  }
+  return '<div class="pane"><div class="phead">what the run looks like</div>' +
+         '<div class="term mono">' + out.join("") + "</div></div>";
+}
+
+function covPane(demo, idx) {
+  var seen = {}, order = [];
+  for (var s = 0; s <= idx; s++) {
+    var c = demo.steps[s].cover;
+    if (!c) { continue; }
+    if (!seen[c[0]]) { seen[c[0]] = []; order.push(c[0]); }
+    if (seen[c[0]].indexOf(c[1]) === -1) { seen[c[0]].push(c[1]); }
+  }
+  if (!order.length) { return ""; }
+  var rows = order.map(function (q) {
+    var thin = seen[q].length === 1;
+    return "<tr><td class=\"mono\">" + esc(q) + "</td><td class=\"mono" +
+           (thin ? " thin" : "") + "\">" + esc(seen[q].join("  ")) +
+           (thin ? '<span class="tag">only ever this one</span>' : "") +
+           "</td></tr>";
+  });
+  return '<div class="pane" style="margin-top:1rem"><div class="phead">' +
+         "what the suite covers so far</div><table class=\"cov\"><thead><tr>" +
+         "<th>the program asked</th><th>your script answered</th></tr></thead>" +
+         "<tbody>" + rows.join("") + "</tbody></table></div>";
+}
+
+function render() {
+  var demo = DEMOS[current];
+  var step = demo.steps[at];
+  why.innerHTML = "<strong>" + demo.num + " &middot; " + demo.name +
+                  "</strong> &mdash; " + demo.why;
+  var noteCls = step.bad ? " bad" : (step.thin || step.stuck ? " warn" : "");
+  stage.innerHTML =
+    '<div class="cols">' + filePane(demo, step, at) +
+    "<div>" + codePane(demo, step) + termPane(demo, at) +
+    (demo.cov ? covPane(demo, at) : "") + "</div></div>" +
+    (step.note ? '<div class="note' + noteCls + '">' + step.note + "</div>" : "");
+  count.textContent = "step " + (at + 1) + " of " + demo.steps.length;
+  backBtn.disabled = at === 0;
+  nextBtn.disabled = at === demo.steps.length - 1;
+  Array.prototype.forEach.call(tabs.children, function (b) {
+    b.setAttribute("aria-pressed", String(b.dataset.k === current));
+  });
+}
+
+ORDER.forEach(function (key) {
+  var d = DEMOS[key];
+  var b = document.createElement("button");
+  b.type = "button";
+  b.className = "tab";
+  b.dataset.k = key;
+  b.innerHTML = '<span class="tnum">' + d.num + "</span>" + esc(d.name);
+  b.addEventListener("click", function () {
+    current = key; at = 0; render(); stage.focus();
+  });
+  tabs.appendChild(b);
+});
+
+nextBtn.addEventListener("click", function () {
+  if (at < DEMOS[current].steps.length - 1) { at++; render(); }
+});
+backBtn.addEventListener("click", function () {
+  if (at > 0) { at--; render(); }
+});
+document.addEventListener("keydown", function (e) {
+  if (e.key === "ArrowRight" || e.key === "PageDown") {
+    if (at < DEMOS[current].steps.length - 1) { at++; render(); }
+    e.preventDefault();
+  } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+    if (at > 0) { at--; render(); }
+    e.preventDefault();
+  }
+});
+
+render();
+</script>
+</body>
+</html>
