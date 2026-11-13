@@ -3,32 +3,31 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Plays File Stepper</title>
+<title>playtest.py Stepper</title>
 <!--
-  Plays File Stepper -- CS 1400 Final Project, playtest.py
+  playtest.py Stepper -- CS 1400 Final Project
 
   Open this file in a browser. Double-click it, or right-click in VS Code ->
   "Reveal in File Explorer" and double-click there. One self-contained file:
   nothing to install, no internet, no extension.
 
-  WHAT IT IS FOR, and why it is not about playtest.py
+  WHAT IT IS FOR
 
-  Students do not write playtest.py. They write plays/*.txt, and the only
-  question they actually have is "what do I put in the file?". So the subject
-  here is the FILE, not the tool: every demo shows one plays file on the left,
-  the program's input() calls on the right, and a cursor walking down both at
-  once. The tool itself appears only as the arrow between them.
+  It walks playtest.py's OWN code, so a student can see what the tool does
+  with the file they wrote. The question behind every "what do I put in
+  plays/normal.txt?" is really "what happens to it?", and that is only
+  answerable by showing the journey: file -> list -> one long string ->
+  stdin -> input() -> a record on stderr -> a dictionary -> the table.
 
-  The five demos are the five things that go wrong or surprise, in the order
-  they bite:
-    1  one line, one answer     the basic pairing
-    2  the file repeats          why a one-line file is legal
-    3  junk then a valid answer  what badinput.txt should look like
-    4  junk with no way out      what happens when it does not, and the !
-    5  the coverage table        why the same answer twice is not two tests
+  The code shown IS playtest.py's code, lifted from the file and trimmed of
+  its comments. Anything paraphrased would teach a tool that does not exist.
 
-  Demos 4 and 5 are the reason this exists. Both look like success from the
-  outside: 4 reports no crash, and 5 reports every run finished.
+  Five stages, one per step of that journey:
+    1  build_answers    your file becomes 4000 keystrokes
+    2  the RUNNER       input() is replaced, and writes down what it answered
+    3  split_records    the records are separated from a traceback
+    4  run_all          twelve runs accumulate into one dictionary
+    5  coverage         the dictionary becomes the table
 
   Everything is deliberately plain: no libraries, no build step, no fetch().
   It has to work from a file:// URL on a Chromebook.
@@ -36,7 +35,7 @@
 <style>
   :root {
     --ink: #1a1a2e; --muted: #555; --line: #cbd5e1; --panel: #f8fafc;
-    --teal: #00695c; --green: #1b5e20; --red: #c62828; --amber: #ef6c00;
+    --teal: #00695c; --red: #c62828; --amber: #ef6c00;
     --code-bg: #1e1e2e; --code-fg: #cdd6f4; --code-hit: #45475a;
     /* #6c7086 is the Catppuccin comment grey, 3.36:1 here and under AA.
        This is the course-wide replacement. */
@@ -78,57 +77,65 @@
   .why { background: var(--panel); border-left: 5px solid var(--teal);
     border-radius: 8px; padding: .75rem 1rem; margin: 0 0 1rem;
     font-size: .95rem; }
-  .cols { display: grid; grid-template-columns: minmax(230px, 1fr) 1.6fr;
-    gap: 1rem; align-items: start; }
-  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
-  .pane { border: 2px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .cols { display: grid; grid-template-columns: 1.35fr 1fr; gap: 1rem;
+    align-items: start; }
+  @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
+  .pane { border: 2px solid var(--line); border-radius: 10px; overflow: hidden;
+    margin-bottom: 1rem; }
   .phead { background: var(--panel); padding: .4rem .8rem; font-size: .82rem;
     font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
     color: var(--muted); border-bottom: 2px solid var(--line); }
   .mono { font-family: ui-monospace, Consolas, 'Courier New', monospace; }
-  .file, .code { background: var(--code-bg); color: var(--code-fg);
-    padding: .7rem 0; font-size: 1rem; }
-  .file div, .code div { padding: .1rem .8rem; white-space: pre-wrap; }
-  .file .no, .code .no { display: inline-block; min-width: 2.2em;
+  .code { background: var(--code-bg); color: var(--code-fg);
+    padding: .7rem 0; font-size: .97rem; }
+  .code div { padding: .1rem .8rem; white-space: pre-wrap; }
+  .code .no { display: inline-block; min-width: 2.2em;
     color: var(--code-dim); user-select: none; }
-  .file .on, .code .on { background: var(--code-hit); border-radius: 4px; }
-  .file .used { color: var(--code-dim); }
-  .file .wrap { color: #f9e2af; font-style: italic; }
+  .code .on { background: var(--code-hit); border-radius: 4px; }
   .code .kw { color: #cba6f7; } .code .fn { color: #89dceb; }
   .code .st { color: #a6e3a1; } .code .nm { color: #fab387; }
   .code .cm { color: var(--code-dim); font-style: italic; }
+  .vars { padding: 0; }
+  .vrow { display: grid; grid-template-columns: 9em 1fr; gap: .5rem;
+    padding: .4rem .8rem; border-bottom: 1px solid #eef1f5; align-items: start; }
+  .vrow:last-child { border-bottom: 0; }
+  .vname { font-family: ui-monospace, Consolas, monospace; font-size: .9rem;
+    color: var(--teal); font-weight: 700; word-break: break-word; }
+  .vval { font-family: ui-monospace, Consolas, monospace; font-size: .9rem;
+    white-space: pre-wrap; word-break: break-word; }
+  .vrow.fresh { background: #e0f2f1; }
+  .vrow.fresh .vval { font-weight: 700; }
   .term { background: #11111b; color: var(--code-fg); padding: .7rem .9rem;
-    font-size: .95rem; min-height: 7.5rem; }
+    font-size: .93rem; }
   .term div { white-space: pre-wrap; }
   .term .typed { color: #a6e3a1; font-weight: 700; }
   .term .sys { color: var(--code-dim); font-style: italic; }
-  .note { margin: .9rem 0 0; padding: .75rem 1rem; border-radius: 8px;
+  .term .err { color: #f38ba8; }
+  .note { margin: 0; padding: .75rem 1rem; border-radius: 8px;
     font-size: .95rem; border-left: 5px solid var(--teal);
     background: #e0f2f1; }
-  .note.bad { border-left-color: var(--red); background: #ffebee; }
   .note.warn { border-left-color: var(--amber); background: #fff3e0; }
-  .cov { width: 100%; border-collapse: collapse; font-size: .95rem; }
-  .cov th, .cov td { border: 1px solid var(--line); padding: .35rem .6rem;
+  .cov { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  .cov th, .cov td { border: 1px solid var(--line); padding: .3rem .55rem;
     text-align: left; }
-  .cov th { background: var(--panel); font-size: .82rem;
+  .cov th { background: var(--panel); font-size: .78rem;
     text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
   .cov .thin { background: #fff3e0; font-weight: 700; }
-  .tag { display: inline-block; font-size: .72rem; font-weight: 800;
-    letter-spacing: .05em; padding: .05rem .5rem; border-radius: 999px;
-    background: var(--amber); color: #fff; margin-left: .5rem; }
+  .tag { display: inline-block; font-size: .7rem; font-weight: 800;
+    letter-spacing: .05em; padding: .05rem .45rem; border-radius: 999px;
+    background: var(--amber); color: #fff; margin-left: .4rem; }
 </style>
 </head>
 <body>
 
-<h1>What goes in a <span class="mono">plays/</span> file?</h1>
+<h1>What <span class="mono">playtest.py</span> does with your file</h1>
 <p class="sub">
-  A plays file is a list of answers, one per line. This walks through what
-  happens to each line when <span class="mono">playtest.py</span> runs your
-  program. Use <span class="kbd">&larr;</span> <span class="kbd">&rarr;</span>
-  at any time.
+  This is <span class="mono">playtest.py</span>'s own code, stepped one line at
+  a time, so you can follow the journey your answers file takes.
+  Use <span class="kbd">&larr;</span> <span class="kbd">&rarr;</span> at any time.
 </p>
 
-<div class="tabs" id="tabs" role="group" aria-label="Choose a demo"></div>
+<div class="tabs" id="tabs" role="group" aria-label="Choose a stage"></div>
 
 <div class="why" id="why"></div>
 
@@ -142,151 +149,193 @@
 
 <script>
 /* ------------------------------------------------------------------ *
- * The demos.
+ * The stages.
  *
- * Each step says which plays-file line is being consumed, which input()
- * call is asking, and what lands in the terminal. Everything on screen is
- * derived from these -- there is no second copy of the state to disagree
- * with the first.
+ * `code` is playtest.py's real source with its comments trimmed. `vars`
+ * on a step is the state AFTER that line has run, and anything named in
+ * `fresh` changed on this step, so the eye goes to it.
  * ------------------------------------------------------------------ */
 
-var PROGRAM = [
-  "while True:",
-  "    print(MENU)",
-  "    choice = input('Choose: ')",
-  "    if choice == '1':",
-  "        show_table(book)",
-  "    elif choice == '3':",
-  "        name = input('Student name: ')",
-  "        score = ask_score()",
-  "    elif choice == '6':",
-  "        break"
-];
-
-var ASK_SCORE = [
-  "def ask_score(low=0, high=100):",
-  "    while True:",
-  "        raw = input('Score (0-100): ')",
-  "        try:",
-  "            value = int(raw)",
-  "        except ValueError:",
-  "            print('  That is not a number. Try again.')",
-  "            continue",
-  "        return value"
-];
-
 var DEMOS = {
-  pair: {
-    num: "Demo 1",
-    fname: "normal.txt",
-    name: "One line, one answer",
-    why: "Every line of the file is typed at the next <code>input()</code> your program reaches, in order. Nothing clever happens: line 1 answers the first question, line 2 the second.",
-    file: ["1", "6"],
-    code: PROGRAM,
+  build: {
+    num: "Stage 1",
+    name: "build_answers()",
+    why: "Your file is read into a list, <strong>repeated</strong> until it is 4000 answers long, then joined into one long string. That string is what gets typed at your program &mdash; the file is not read a line at a time as your program asks; it becomes keystrokes up front.",
+    code: [
+      "def build_answers(script, player, difficulty):",
+      "    with open(script, encoding='utf-8') as answers_file:",
+      "        choices = [line.strip() for line in answers_file",
+      "                   if line.strip() != '']",
+      "    if not choices:",
+      "        die(f'{script.name} is empty.')",
+      "    answers = [a for a in (player, difficulty) if a]",
+      "    while len(answers) < MAX_ANSWERS:",
+      "        answers.extend(choices)",
+      "    return '\\n'.join(answers[:MAX_ANSWERS]) + '\\n'"
+    ],
     steps: [
-      {line: 2, out: [["sys", "MENU prints"]], note: "The program runs normally until it reaches an <code>input()</code>."},
-      {line: 3, take: 0, out: [["ask", "Choose: "], ["typed", "1"]],
-       note: "First <code>input()</code>. It takes <strong>line 1</strong> of the file."},
-      {line: 5, out: [["sys", "the table prints"]], note: "<code>'1'</code> matched, so the table is shown."},
-      {line: 3, take: 1, out: [["ask", "Choose: "], ["typed", "6"]],
-       note: "Back at the menu. The next <code>input()</code> takes <strong>line 2</strong>."},
-      {line: 10, out: [["sys", "program ends"]], done: true,
-       note: "Two questions, two lines, and the program reached its quit option. That is a clean run."}
+      {line: 2, vars: {"script": "plays/normal.txt"}, fresh: ["script"],
+       note: "The file you wrote is opened. There is nothing special about it &mdash; it is a text file."},
+      {line: 3, vars: {"script": "plays/normal.txt", "choices": "['1', '', '6']"}, fresh: ["choices"],
+       note: "Every line becomes one list item. The blank line is still here, for one more line."},
+      {line: 4, vars: {"script": "plays/normal.txt", "choices": "['1', '6']"}, fresh: ["choices"],
+       note: "<code>if line.strip() != ''</code> drops the blank. <strong>Blank lines are ignored; everything else is kept exactly as you typed it</strong>, which is why there are no comments in a plays file."},
+      {line: 7, vars: {"choices": "['1', '6']", "answers": "[]"}, fresh: ["answers"],
+       note: "<code>player</code> and <code>difficulty</code> are empty for a final project, so nothing is pushed in ahead of your answers. That is what an empty <code>plays/_player.txt</code> buys you."},
+      {line: 9, vars: {"choices": "['1', '6']", "answers": "['1', '6']"}, fresh: ["answers"],
+       note: "One pass of the loop appends your whole file."},
+      {line: 9, vars: {"choices": "['1', '6']", "answers": "['1', '6', '1', '6']"}, fresh: ["answers"],
+       note: "And another. <strong>This is the repeat.</strong> It is not clever: the same list, over and over."},
+      {line: 8, vars: {"answers": "['1', '6', '1', '6', ... 4000 of them]"}, fresh: ["answers"],
+       note: "It stops at <code>MAX_ANSWERS</code>, which is 4000. A program still asking after 4000 answers is stuck, and playtest says so rather than waiting forever."},
+      {line: 10, vars: {"returns": "'1 \\n 6 \\n 1 \\n 6 \\n ...'"}, fresh: ["returns"], done: true,
+       note: "Joined with newlines into one string of keystrokes. <strong>Your two-line file just became 4000 answers.</strong>"}
     ]
   },
 
-  cycle: {
-    num: "Demo 2",
-    fname: "normal.txt",
-    name: "The file repeats",
-    why: "When the program asks more questions than the file has answers, the file <strong>starts again from the top</strong>. That is why a one-line file is legal, and why a file does not have to predict exactly how many questions you will be asked.",
-    file: ["1"],
-    code: PROGRAM,
+  runner: {
+    num: "Stage 2",
+    name: "the RUNNER",
+    why: "playtest starts a second Python, and before your program runs it <strong>replaces <code>input</code></strong> with its own function. Your file is never edited, copied or searched &mdash; it is run, and its <code>input()</code> calls happen to reach this instead of a keyboard.",
+    code: [
+      "import builtins, runpy, sys",
+      "echo = len(sys.argv) > 2",
+      "_read = builtins.input",
+      "def _ask(prompt=''):",
+      "    value = _read(prompt)",
+      "    sys.stderr.write(MARK + str(prompt).strip()",
+      "                     + MARK + value)",
+      "    if echo:",
+      "        print(ECHO + value)",
+      "    return value",
+      "builtins.input = _ask",
+      "runpy.run_path(sys.argv[1], run_name='__main__')"
+    ],
     steps: [
-      {line: 3, take: 0, out: [["ask", "Choose: "], ["typed", "1"]],
-       note: "Line 1 answers the first question."},
-      {line: 5, out: [["sys", "the table prints"]]},
-      {line: 3, take: 0, wrapped: true, out: [["ask", "Choose: "], ["typed", "1"]],
-       note: "The file has no line 2, so it <strong>wraps back to line 1</strong> and answers <code>1</code> again."},
-      {line: 5, out: [["sys", "the table prints"]]},
-      {line: 3, take: 0, wrapped: true, out: [["ask", "Choose: "], ["typed", "1"]],
-       note: "And again. This file shows the table forever."},
-      {line: 3, stuck: true, out: [["sys", "... 4000 answers later, playtest gives up"]], done: true,
-       note: "A file that never reaches your quit option never ends. <strong>playtest marks that run <code>!</code></strong>, not a pass. Put your quit option in the file."}
+      {line: 3, vars: {"_read": "the real input"}, fresh: ["_read"],
+       note: "The real <code>input</code> is saved first. <code>_ask</code> still needs it to do the actual reading."},
+      {line: 11, vars: {"_read": "the real input", "builtins.input": "_ask"}, fresh: ["builtins.input"],
+       note: "<strong>Every <code>input()</code> in your program is now <code>_ask</code>.</strong> You did not change a line of your code for this to happen."},
+      {line: 12, vars: {"builtins.input": "_ask"},
+       out: [["sys", "your main.py starts running"]],
+       note: "<code>run_name='__main__'</code> means your <code>if __name__ == '__main__':</code> block runs exactly as it does normally."},
+      {line: 5, vars: {"prompt": "'Choose: '"}, fresh: ["prompt"],
+       out: [["ask", "Choose: "], ["typed", "1"]],
+       note: "Your program reached an <code>input()</code>. <code>_read</code> takes the next line of that 4000-answer string from stage 1."},
+      {line: 6, vars: {"prompt": "'Choose: '", "value": "'1'", "stderr": "Choose: -> 1"}, fresh: ["stderr"],
+       note: "<strong>The prompt and the answer are written down together.</strong> This one line is what makes the coverage table possible on any program at all, without playtest knowing anything about your menus."},
+      {line: 10, vars: {"value": "'1'"}, done: true,
+       note: "Your program gets <code>'1'</code> back and carries on, none the wiser."}
     ]
   },
 
-  badinput: {
-    num: "Demo 3",
-    fname: "badinput.txt",
-    name: "badinput.txt, done right",
-    why: "To test that bad input is handled you have to give it bad input <strong>and then a good one</strong>. The junk proves the program re-asks; the valid answer lets it move on.",
-    file: ["3", "Ada Lovelace", "ninety", "84", "6"],
-    code: ASK_SCORE,
+  split: {
+    num: "Stage 3",
+    name: "split_records()",
+    why: "The records go to <strong>stderr</strong> so your program's own output on stdout stays untouched. But a crash lands on stderr too, so the two have to be pulled apart &mdash; and the crash has to survive it.",
+    code: [
+      "def split_records(stderr_text):",
+      "    asked, leftover = [], []",
+      "    for line in stderr_text.splitlines():",
+      "        if line.startswith(RECORD):",
+      "            parts = line.split(RECORD)",
+      "            if len(parts) >= 3:",
+      "                asked.append((parts[1], parts[2]))",
+      "                continue",
+      "        leftover.append(line)",
+      "    return asked, leftover"
+    ],
     steps: [
-      {line: 3, take: 2, out: [["ask", "Score (0-100): "], ["typed", "ninety"]],
-       note: "Line 3 is the junk. It goes in exactly as written."},
-      {line: 5, out: [["sys", "int('ninety') raises ValueError"]],
-       note: "<code>int()</code> cannot read it, so the <code>except</code> runs."},
-      {line: 7, out: [["sys", "  That is not a number. Try again."]],
-       note: "Your validation worked. The program says so and loops."},
-      {line: 3, take: 3, out: [["ask", "Score (0-100): "], ["typed", "84"]],
-       note: "Line 4 is the <strong>valid</strong> answer. This is the line people leave out."},
-      {line: 9, out: [["sys", "returns 84"]], done: true,
-       note: "The bad path <em>and</em> the recovery both ran. That is a real test of requirement 2."}
+      {line: 2, vars: {"asked": "[]", "leftover": "[]"}, fresh: ["asked", "leftover"],
+       out: [["sys", "stderr came back with 4 lines"]],
+       note: "Two empty lists: one for our bookkeeping, one for everything else."},
+      {line: 7, vars: {"asked": "[('Choose:', '1')]", "leftover": "[]"}, fresh: ["asked"],
+       note: "A line starting with the marker is one of ours. It becomes a (question, answer) pair."},
+      {line: 7, vars: {"asked": "[('Choose:', '1'), ('Student name:', 'Ada Lovelace')]", "leftover": "[]"}, fresh: ["asked"],
+       note: "And the next one."},
+      {line: 9, vars: {"asked": "2 pairs", "leftover": "['Traceback (most recent call last):']"}, fresh: ["leftover"],
+       out: [["err", "Traceback (most recent call last):"]],
+       note: "<strong>Not ours.</strong> It goes into <code>leftover</code> rather than being thrown away."},
+      {line: 9, vars: {"asked": "2 pairs", "leftover": "[..., \"KeyError: 'Margaret H.'\"]"}, fresh: ["leftover"],
+       out: [["err", "KeyError: 'Margaret H.'"]],
+       note: "This is your crash. If <code>leftover</code> were discarded, playtest would report a clean run on a program that died."},
+      {line: 10, vars: {"asked": "2 pairs", "leftover": "the traceback"}, done: true,
+       note: "Both come back. The pairs feed the coverage table; the leftover is read for the error you get told about."}
     ]
   },
 
-  jam: {
-    num: "Demo 4",
-    fname: "badinput.txt",
-    name: "badinput.txt, done wrong",
-    why: "A file of nothing but junk cannot get past a prompt that validates. The program is working correctly; the <em>file</em> is the problem. This is the mistake worth seeing once.",
-    file: ["3", "Ada Lovelace", "ninety"],
-    code: ASK_SCORE,
+  runall: {
+    num: "Stage 4",
+    name: "run_all()",
+    why: "<code>playtest.py all</code> runs every script several times and keeps <strong>one</strong> dictionary across all of them. Each script is narrow on purpose, so no single one covers your program &mdash; what matters is whether the whole suite leaves a question untried.",
+    code: [
+      "def run_all(runs, player, levels):",
+      "    asked, rows, trouble = {}, [], 0",
+      "    for script in available():",
+      "        tally = {'crashed': 0, 'stuck': 0, 'jammed': 0, 'ok': 0}",
+      "        for i in range(runs):",
+      "            stdin = build_answers(PLAYS / script, player,",
+      "                                  levels[i % len(levels)])",
+      "            state, err = play_once(stdin, asked)",
+      "            tally[state] += 1",
+      "        rows.append((script, tally, detail))",
+      "    coverage(asked, len(rows) * runs)"
+    ],
     steps: [
-      {line: 3, take: 2, out: [["ask", "Score (0-100): "], ["typed", "ninety"]],
-       note: "Line 3 is junk."},
-      {line: 7, out: [["sys", "  That is not a number. Try again."]],
-       note: "Rejected, and the loop goes round."},
-      {line: 3, take: 0, wrapped: true, out: [["ask", "Score (0-100): "], ["typed", "3"]],
-       note: "The file wrapped to line 1. <code>3</code> is not in 0&ndash;100 either."},
-      {line: 3, take: 1, out: [["ask", "Score (0-100): "], ["typed", "Ada Lovelace"]],
-       note: "Nor is a name. Every line of this file is rejected by this prompt."},
-      {line: 3, stuck: true, out: [["sys", "  Score (0-100):  asked 1,999 times"]], done: true, bad: true,
-       note: "<strong>playtest reports this, and says it is not a crash.</strong> Your program did exactly the right thing &mdash; it refused every answer it was given. The file never offered a valid one."}
+      {line: 2, vars: {"asked": "{}"}, fresh: ["asked"],
+       note: "<strong>One</strong> dictionary, created before any script runs. Every run adds into this same one."},
+      {line: 3, vars: {"asked": "{}", "script": "'badinput'"}, fresh: ["script"],
+       out: [["sys", "badinput  "]],
+       note: "<code>available()</code> lists your <code>plays/*.txt</code> alphabetically. Files starting with <code>_</code> are settings, not scripts, so <code>_player.txt</code> is not in here."},
+      {line: 8, vars: {"script": "'badinput'", "asked": "{'Choose:': {'3'},\n 'Score (0-100):': {'ninety', '84'}}"},
+       fresh: ["asked"], out: [["sys", "badinput  ."]],
+       note: "Run 1 done. <code>play_once</code> was handed <code>asked</code>, so it added straight into it."},
+      {line: 8, vars: {"script": "'badinput'", "asked": "{'Choose:': {'3'},\n 'Score (0-100):': {'ninety', '84'}}"},
+       out: [["sys", "badinput  ......"]],
+       note: "Six runs of the same script add <strong>nothing new</strong> &mdash; a set only keeps distinct answers. Repeating a run catches bad luck with <code>random</code>; it does not widen coverage."},
+      {line: 8, vars: {"script": "'normal'", "asked": "{'Choose:': {'3', '1', '6'},\n 'Score (0-100):': {'ninety', '84'},\n 'Student name:': {'Ada Lovelace'}}"},
+       fresh: ["asked", "script"], out: [["sys", "normal    ......"]],
+       note: "A <em>different</em> script is what widens it. <code>Choose:</code> has gained two answers, and a question that <code>badinput</code> never reached has appeared."},
+      {line: 11, vars: {"asked": "3 questions"}, done: true,
+       note: "One table, built from every run of every script. <code>Student name:</code> still holds a single answer."}
     ]
   },
 
   coverage: {
-    num: "Demo 5",
-    fname: "normal.txt",
-    name: "Why the table matters",
-    why: "Running the same answer twenty times is one test run twenty times. The coverage table shows every question and every <em>distinct</em> answer it received, so a question that only ever heard one thing stands out.",
-    file: ["3", "Ada Lovelace", "84", "6"],
-    code: PROGRAM,
+    num: "Stage 5",
+    name: "coverage()",
+    why: "The dictionary becomes the table. It needs no knowledge of your menus, because the keys <em>are</em> your prompts &mdash; captured from your own <code>input()</code> calls back in stage 2.",
+    code: [
+      "def coverage(asked, runs):",
+      "    if not asked:",
+      "        return",
+      "    say('What the program asked, and what your script answered:')",
+      "    for prompt in sorted(asked, key=lambda k: -len(asked[k])):",
+      "        answers = sorted(asked[prompt])",
+      "        shown = ' '.join(answers[:8])",
+      "        thin = len(answers) == 1",
+      "        say(prompt, shown, thin)"
+    ],
     cov: true,
     steps: [
-      {line: 3, take: 0, cover: ["Choose: ", "3"], out: [["ask", "Choose: "], ["typed", "3"]],
-       note: "Each answer is recorded against the question that asked for it."},
-      {line: 7, take: 1, cover: ["Student name: ", "Ada Lovelace"],
-       out: [["ask", "Student name: "], ["typed", "Ada Lovelace"]],
-       note: "A second question, a second row."},
-      {line: 8, take: 2, cover: ["Score (0-100): ", "84"],
-       out: [["ask", "Score (0-100): "], ["typed", "84"]],
-       note: "<code>ask_score()</code> asks too, and it takes the next line like any other question. Nothing in the file is skipped."},
-      {line: 3, take: 3, cover: ["Choose: ", "6"], out: [["ask", "Choose: "], ["typed", "6"]],
-       note: "<code>Choose:</code> has now heard two different answers."},
-      {line: 3, rerun: true, cover: ["Choose: ", "3"], out: [["sys", "run 2 of 6 ..."]],
-       note: "The next run does the same thing. <code>Choose:</code> already knows <code>3</code>, so nothing is added."},
-      {line: 7, rerun: true, cover: ["Student name: ", "Ada Lovelace"],
-       out: [["sys", "run 2 asks for a name again"]], done: true, thin: true,
-       note: "Six runs later, <strong>Student name:</strong> has still heard exactly one answer. The branch for a name that is <em>not</em> in the book has never run &mdash; and nothing crashed, because nothing ever asked it to."}
+      {line: 5, vars: {"asked": "3 questions", "runs": "12"},
+       note: "Sorted by how many distinct answers each question heard &mdash; <strong>most-tested first</strong>, so the thin ones fall to the bottom, where you will actually look."},
+      {line: 6, vars: {"prompt": "'Choose:'", "answers": "['1', '3', '6']", "thin": "False"},
+       fresh: ["prompt", "answers"], cover: ["Choose:", "1 3 6", false],
+       note: "Three distinct answers. This menu has been exercised."},
+      {line: 6, vars: {"prompt": "'Score (0-100):'", "answers": "['84', 'ninety']", "thin": "False"},
+       fresh: ["prompt", "answers"], cover: ["Score (0-100):", "84 ninety", false],
+       note: "Two: a good one and a bad one. That is what <code>badinput.txt</code> was for."},
+      {line: 8, vars: {"prompt": "'Student name:'", "answers": "['Ada Lovelace']", "thin": "True"},
+       fresh: ["prompt", "answers", "thin"], cover: ["Student name:", "Ada Lovelace", true], thin: true,
+       note: "<code>len(answers) == 1</code>. <strong>Twelve runs, and this question only ever heard one thing</strong> &mdash; so the branch for a name that is not in the book has never run."},
+      {line: 9, vars: {"asked": "3 questions"}, done: true, thin: true,
+       note: "Nothing crashed and every run finished, and a branch of your program has still never executed. <strong>Add a name that does not exist to one of your scripts.</strong>"}
     ]
   }
 };
 
-var ORDER = ["pair", "cycle", "badinput", "jam", "coverage"];
+var ORDER = ["build", "runner", "split", "runall", "coverage"];
 
 /* ------------------------------------------------------------------ *
  * Rendering
@@ -298,13 +347,16 @@ function esc(s) {
 }
 
 /* One pass, first alternative wins, so a keyword inside a string is never
-   re-coloured. A colourer, not a parser -- same approach as the other
-   steppers in this course, and the same palette. */
+   re-coloured. A colourer, not a parser -- the same approach and the same
+   palette as the other steppers in this course. */
 var TOKENS = new RegExp([
   "(#.*$)",
   "(\"[^\"]*\"|'[^']*')",
-  "\\b(print|input|int|str|len|range|ask_score|show_table)\\b",
-  "\\b(while|for|if|elif|else|try|except|return|break|continue|def|True|False|None)\\b",
+  "\\b(open|print|len|str|sorted|range|append|extend|join|split|strip|" +
+    "splitlines|startswith|write|run_path|build_answers|play_once|coverage|" +
+    "available|die|say)\\b",
+  "\\b(def|for|in|if|not|else|elif|while|return|with|as|import|continue|" +
+    "lambda|True|False|None)\\b",
   "\\b(\\d+)\\b"
 ].join("|"), "g");
 
@@ -328,38 +380,27 @@ var count = document.getElementById("count");
 var nextBtn = document.getElementById("next");
 var backBtn = document.getElementById("back");
 
-function filePane(demo, step, idx) {
-  var rows = demo.file.map(function (line, i) {
-    var cls = "";
-    if (step.take === i && !step.rerun) { cls = " on"; }
-    else if (usedBefore(demo, idx, i)) { cls = " used"; }
-    return '<div class="' + cls.trim() + '"><span class="no">' + (i + 1) +
-           "</span>" + esc(line) + "</div>";
-  });
-  if (step.wrapped) {
-    rows.push('<div class="wrap"><span class="no"></span>&#8629; back to the top</div>');
-  }
-  return '<div class="pane"><div class="phead">plays/' + demo.fname + "</div>" +
-         '<div class="file mono">' + rows.join("") + "</div></div>";
-}
-
-/* A line counts as spent once some earlier step took it. Without this every
-   line looks untouched, which hides the thing demo 2 is about. */
-function usedBefore(demo, idx, i) {
-  for (var s = 0; s < idx; s++) {
-    if (demo.steps[s].take === i) { return true; }
-  }
-  return false;
-}
-
 function codePane(demo, step) {
   var rows = demo.code.map(function (line, i) {
     var on = (i + 1) === step.line ? " on" : "";
     return '<div class="' + on.trim() + '"><span class="no">' + (i + 1) +
            "</span>" + hi(line) + "</div>";
   });
-  return '<div class="pane"><div class="phead">your program</div>' +
+  return '<div class="pane"><div class="phead">playtest.py</div>' +
          '<div class="code mono">' + rows.join("") + "</div></div>";
+}
+
+function varsPane(step) {
+  var names = Object.keys(step.vars || {});
+  if (!names.length) { return ""; }
+  var fresh = step.fresh || [];
+  var rows = names.map(function (n) {
+    return '<div class="vrow' + (fresh.indexOf(n) >= 0 ? " fresh" : "") +
+           '"><span class="vname">' + esc(n) + '</span><span class="vval">' +
+           esc(step.vars[n]) + "</span></div>";
+  });
+  return '<div class="pane"><div class="phead">what is in memory</div>' +
+         '<div class="vars">' + rows.join("") + "</div></div>";
 }
 
 function termPane(demo, idx) {
@@ -370,46 +411,52 @@ function termPane(demo, idx) {
       else if (pair[0] === "typed") {
         out[out.length - 1] = out[out.length - 1].replace(
           "</div>", '<span class="typed">' + esc(pair[1]) + "</span></div>");
+      } else if (pair[0] === "err") {
+        out.push('<div class="err">' + esc(pair[1]) + "</div>");
       } else { out.push('<div class="sys">' + esc(pair[1]) + "</div>"); }
     });
   }
-  return '<div class="pane"><div class="phead">what the run looks like</div>' +
+  if (!out.length) { return ""; }
+  return '<div class="pane"><div class="phead">on screen</div>' +
          '<div class="term mono">' + out.join("") + "</div></div>";
 }
 
+/* The thin flag is carried in the step rather than guessed from the text.
+   An earlier version decided "thin" by looking for a space in the answer
+   list, which made "Ada Lovelace" -- one answer, two words -- look like
+   two answers, exactly inverting the point of the panel. */
 function covPane(demo, idx) {
-  var seen = {}, order = [];
+  var order = [], seen = {};
   for (var s = 0; s <= idx; s++) {
     var c = demo.steps[s].cover;
     if (!c) { continue; }
-    if (!seen[c[0]]) { seen[c[0]] = []; order.push(c[0]); }
-    if (seen[c[0]].indexOf(c[1]) === -1) { seen[c[0]].push(c[1]); }
+    if (!(c[0] in seen)) { order.push(c[0]); }
+    seen[c[0]] = {answers: c[1], thin: c[2]};
   }
   if (!order.length) { return ""; }
   var rows = order.map(function (q) {
-    var thin = seen[q].length === 1;
-    return "<tr><td class=\"mono\">" + esc(q) + "</td><td class=\"mono" +
-           (thin ? " thin" : "") + "\">" + esc(seen[q].join("  ")) +
-           (thin ? '<span class="tag">only ever this one</span>' : "") +
+    var r = seen[q];
+    return '<tr><td class="mono">' + esc(q) + '</td><td class="mono' +
+           (r.thin ? " thin" : "") + '">' + esc(r.answers) +
+           (r.thin ? '<span class="tag">only ever this one</span>' : "") +
            "</td></tr>";
   });
-  return '<div class="pane" style="margin-top:1rem"><div class="phead">' +
-         "what the suite covers so far</div><table class=\"cov\"><thead><tr>" +
-         "<th>the program asked</th><th>your script answered</th></tr></thead>" +
-         "<tbody>" + rows.join("") + "</tbody></table></div>";
+  return '<div class="pane"><div class="phead">the table it prints</div>' +
+         '<table class="cov"><thead><tr><th>asked</th><th>answered</th>' +
+         "</tr></thead><tbody>" + rows.join("") + "</tbody></table></div>";
 }
 
 function render() {
   var demo = DEMOS[current];
   var step = demo.steps[at];
-  why.innerHTML = "<strong>" + demo.num + " &middot; " + demo.name +
-                  "</strong> &mdash; " + demo.why;
-  var noteCls = step.bad ? " bad" : (step.thin || step.stuck ? " warn" : "");
+  why.innerHTML = "<strong>" + demo.num + " &middot; <code>" + demo.name +
+                  "</code></strong> &mdash; " + demo.why;
   stage.innerHTML =
-    '<div class="cols">' + filePane(demo, step, at) +
-    "<div>" + codePane(demo, step) + termPane(demo, at) +
+    '<div class="cols"><div>' + codePane(demo, step) + "</div><div>" +
+    varsPane(step) + termPane(demo, at) +
     (demo.cov ? covPane(demo, at) : "") + "</div></div>" +
-    (step.note ? '<div class="note' + noteCls + '">' + step.note + "</div>" : "");
+    (step.note ? '<div class="note' + (step.thin ? " warn" : "") + '">' +
+     step.note + "</div>" : "");
   count.textContent = "step " + (at + 1) + " of " + demo.steps.length;
   backBtn.disabled = at === 0;
   nextBtn.disabled = at === demo.steps.length - 1;
