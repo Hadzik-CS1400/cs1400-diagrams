@@ -95,6 +95,28 @@
   .code .kw { color: #cba6f7; } .code .fn { color: #89dceb; }
   .code .st { color: #a6e3a1; } .code .nm { color: #fab387; }
   .code .cm { color: var(--code-dim); font-style: italic; }
+  /* A line that has already been the active line. Dimming what has run is
+     what makes "where am I" answerable at a glance -- the other steppers in
+     this course do the same. */
+  .code div.done { opacity: .55; }
+  /* The explanation rides directly under the line it is about, inside the
+     dark pane, rather than at the bottom of the panel. Attached to the line,
+     it is read as being about that line; eighty pixels lower it is read as
+     being about the program. */
+  .says {
+    background: #f9e2af; color: #1e1e2e; border-radius: 6px;
+    margin: .3rem .8rem .45rem 3rem; padding: .5rem .85rem .55rem;
+    font-family: 'Segoe UI', Arial, sans-serif; font-size: .93rem;
+    line-height: 1.45; white-space: normal;
+  }
+  .says::before {
+    content: "THIS LINE"; display: block; font-size: .66rem; font-weight: 800;
+    letter-spacing: .09em; color: #6d5200; margin-bottom: .15rem;
+  }
+  .says code { background: rgba(0,0,0,.09); border-radius: 4px;
+    padding: 0 .25rem; font-family: ui-monospace, Consolas, monospace; }
+  .says.warn { background: #f8b4b4; }
+  .says.warn::before { content: "THIS LINE"; color: #6b1111; }
   .vars { padding: 0; }
   .vrow { display: grid; grid-template-columns: 9em 1fr; gap: .5rem;
     padding: .4rem .8rem; border-bottom: 1px solid #eef1f5; align-items: start; }
@@ -380,11 +402,23 @@ var count = document.getElementById("count");
 var nextBtn = document.getElementById("next");
 var backBtn = document.getElementById("back");
 
-function codePane(demo, step) {
+function codePane(demo, step, idx) {
+  /* Which lines have already been the active line. Looked up rather than
+     stored, because a stage can revisit a line -- stage 1 runs line 9 twice
+     -- and a simple "everything above the cursor" rule would be wrong there. */
+  var ran = {};
+  for (var s = 0; s < idx; s++) { ran[demo.steps[s].line] = true; }
+
   var rows = demo.code.map(function (line, i) {
-    var on = (i + 1) === step.line ? " on" : "";
-    return '<div class="' + on.trim() + '"><span class="no">' + (i + 1) +
-           "</span>" + hi(line) + "</div>";
+    var n = i + 1;
+    var cls = n === step.line ? "on" : (ran[n] ? "done" : "");
+    var row = '<div class="' + cls + '"><span class="no">' + n +
+              "</span>" + hi(line) + "</div>";
+    if (n === step.line && step.note) {
+      row += '<div class="says' + (step.thin ? " warn" : "") + '">' +
+             step.note + "</div>";
+    }
+    return row;
   });
   return '<div class="pane"><div class="phead">playtest.py</div>' +
          '<div class="code mono">' + rows.join("") + "</div></div>";
@@ -451,12 +485,12 @@ function render() {
   var step = demo.steps[at];
   why.innerHTML = "<strong>" + demo.num + " &middot; <code>" + demo.name +
                   "</code></strong> &mdash; " + demo.why;
+  /* The note is rendered inside the code pane now, under the line it is
+     about. Repeating it at the bottom would be the same sentence twice. */
   stage.innerHTML =
-    '<div class="cols"><div>' + codePane(demo, step) + "</div><div>" +
+    '<div class="cols"><div>' + codePane(demo, step, at) + "</div><div>" +
     varsPane(step) + termPane(demo, at) +
-    (demo.cov ? covPane(demo, at) : "") + "</div></div>" +
-    (step.note ? '<div class="note' + (step.thin ? " warn" : "") + '">' +
-     step.note + "</div>" : "");
+    (demo.cov ? covPane(demo, at) : "") + "</div></div>";
   count.textContent = "step " + (at + 1) + " of " + demo.steps.length;
   backBtn.disabled = at === 0;
   nextBtn.disabled = at === demo.steps.length - 1;
