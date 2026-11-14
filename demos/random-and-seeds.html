@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Random &amp; Seeds Stepper</title>
+<!--
+  Random & Seeds Stepper -- CS 1400
+
+  Open this file in a browser. Double-click it, or right-click in VS Code ->
+  "Reveal in File Explorer" and double-click there. One self-contained file:
+  nothing to install, no internet, no extension.
+
+  WHAT IT IS FOR
+
+  It walks playtest.py's OWN code, so a student can see what the tool does
+  with the file they wrote. The question behind every "what do I put in
+  plays/normal.txt?" is really "what happens to it?", and that is only
+  answerable by showing the journey: file -> list -> one long string ->
+  stdin -> input() -> a record on stderr -> a dictionary -> the table.
+
+  The code shown IS playtest.py's code, lifted from the file and trimmed of
+  its comments. Anything paraphrased would teach a tool that does not exist.
+
+  Five stages, one per step of that journey:
+    1  build_answers    your file becomes 4000 keystrokes
+    2  the RUNNER       input() is replaced, and writes down what it answered
+    3  split_records    the records are separated from a traceback
+    4  run_all          twelve runs accumulate into one dictionary
+    5  coverage         the dictionary becomes the table
+
+  Everything is deliberately plain: no libraries, no build step, no fetch().
+  It has to work from a file:// URL on a Chromebook.
+-->
+<style>
+  :root {
+    --ink: #1a1a2e; --muted: #555; --line: #cbd5e1; --panel: #f8fafc;
+    --teal: #00695c; --red: #c62828; --amber: #ef6c00;
+    --code-bg: #1e1e2e; --code-fg: #cdd6f4; --code-hit: #45475a;
+    /* #6c7086 is the Catppuccin comment grey, 3.36:1 here and under AA.
+       This is the course-wide replacement. */
+    --code-dim: #83889a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif; color: var(--ink);
+    margin: 0; padding: 1.25rem; background: #fff; line-height: 1.5;
+  }
+  h1 { font-size: 1.35rem; margin: 0 0 .25rem; }
+  .sub { color: var(--muted); font-size: .9rem; margin: 0 0 1rem; }
+  .tabs { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; }
+  .tab {
+    border: 2px solid var(--line); background: #fff; color: var(--ink);
+    border-radius: 999px; padding: .3rem 1.1rem .4rem; font-size: .95rem;
+    cursor: pointer; font-family: inherit; line-height: 1.25; text-align: center;
+  }
+  .tab .tnum { display: block; font-size: .68rem; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .tab[aria-pressed="true"] {
+    background: var(--teal); border-color: var(--teal); color: #fff;
+  }
+  .tab[aria-pressed="true"] .tnum { color: #b7e4dd; }
+  .ctrls { display: flex; align-items: center; gap: .6rem; margin-bottom: .9rem;
+    flex-wrap: wrap; }
+  .ctrls button {
+    font-family: inherit; font-size: .95rem; padding: .35rem 1.1rem;
+    border-radius: 8px; border: 2px solid var(--teal); background: var(--teal);
+    color: #fff; cursor: pointer;
+  }
+  .ctrls button:disabled { opacity: .4; cursor: default; }
+  .count { color: var(--muted); font-size: .9rem; }
+  .kbd {
+    border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px;
+    padding: 0 .35rem; font-family: ui-monospace, Consolas, monospace;
+    font-size: .85rem; background: var(--panel);
+  }
+  .why { background: var(--panel); border-left: 5px solid var(--teal);
+    border-radius: 8px; padding: .75rem 1rem; margin: 0 0 1rem;
+    font-size: .95rem; }
+  .cols { display: grid; grid-template-columns: 1.35fr 1fr; gap: 1rem;
+    align-items: start; }
+  @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
+  .pane { border: 2px solid var(--line); border-radius: 10px; overflow: hidden;
+    margin-bottom: 1rem; }
+  .phead { background: var(--panel); padding: .4rem .8rem; font-size: .82rem;
+    font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--muted); border-bottom: 2px solid var(--line); }
+  .mono { font-family: ui-monospace, Consolas, 'Courier New', monospace; }
+  .code { background: var(--code-bg); color: var(--code-fg);
+    padding: .7rem 0; font-size: .97rem; }
+  .code div { padding: .1rem .8rem; white-space: pre-wrap; }
+  .code .no { display: inline-block; min-width: 2.2em;
+    color: var(--code-dim); user-select: none; }
+  .code .on { background: var(--code-hit); border-radius: 4px; }
+  .code .kw { color: #cba6f7; } .code .fn { color: #89dceb; }
+  .code .st { color: #a6e3a1; } .code .nm { color: #fab387; }
+  .code .cm { color: var(--code-dim); font-style: italic; }
+  /* A line that has already been the active line. Dimming what has run is
+     what makes "where am I" answerable at a glance -- the other steppers in
+     this course do the same. */
+  .code div.done { opacity: .55; }
+  /* The explanation rides directly under the line it is about, inside the
+     dark pane, rather than at the bottom of the panel. Attached to the line,
+     it is read as being about that line; eighty pixels lower it is read as
+     being about the program. */
+  .says {
+    background: #f9e2af; color: #1e1e2e; border-radius: 6px;
+    margin: .3rem .8rem .45rem 3rem; padding: .5rem .85rem .55rem;
+    font-family: 'Segoe UI', Arial, sans-serif; font-size: .93rem;
+    line-height: 1.45; white-space: normal;
+  }
+  .says::before {
+    content: "THIS LINE"; display: block; font-size: .66rem; font-weight: 800;
+    letter-spacing: .09em; color: #6d5200; margin-bottom: .15rem;
+  }
+  .says code { background: rgba(0,0,0,.09); border-radius: 4px;
+    padding: 0 .25rem; font-family: ui-monospace, Consolas, monospace; }
+  .says.warn { background: #f8b4b4; }
+  .says.warn::before { content: "THIS LINE"; color: #6b1111; }
+  .vars { padding: 0; }
+  .vrow { display: grid; grid-template-columns: 9em 1fr; gap: .5rem;
+    padding: .4rem .8rem; border-bottom: 1px solid #eef1f5; align-items: start; }
+  .vrow:last-child { border-bottom: 0; }
+  .vname { font-family: ui-monospace, Consolas, monospace; font-size: .9rem;
+    color: var(--teal); font-weight: 700; word-break: break-word; }
+  .vval { font-family: ui-monospace, Consolas, monospace; font-size: .9rem;
+    white-space: pre-wrap; word-break: break-word; }
+  .vrow.fresh { background: #e0f2f1; }
+  .vrow.fresh .vval { font-weight: 700; }
+  .term { background: #11111b; color: var(--code-fg); padding: .7rem .9rem;
+    font-size: .93rem; }
+  .term div { white-space: pre-wrap; }
+  .term .typed { color: #a6e3a1; font-weight: 700; }
+  .term .sys { color: var(--code-dim); font-style: italic; }
+  .term .err { color: #f38ba8; }
+  .note { margin: 0; padding: .75rem 1rem; border-radius: 8px;
+    font-size: .95rem; border-left: 5px solid var(--teal);
+    background: #e0f2f1; }
+  .note.warn { border-left-color: var(--amber); background: #fff3e0; }
+  .cov { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  .cov th, .cov td { border: 1px solid var(--line); padding: .3rem .55rem;
+    text-align: left; }
+  .cov th { background: var(--panel); font-size: .78rem;
+    text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .cov .thin { background: #fff3e0; font-weight: 700; }
+  .tag { display: inline-block; font-size: .7rem; font-weight: 800;
+    letter-spacing: .05em; padding: .05rem .45rem; border-radius: 999px;
+    background: var(--amber); color: #fff; margin-left: .4rem; }
+</style>
+</head>
+<body>
+
+<h1>What <span class="mono">playtest.py</span> does with your file</h1>
+<p class="sub">
+  This is <span class="mono">playtest.py</span>'s own code, stepped one line at
+  a time, so you can follow the journey your answers file takes.
+  Use <span class="kbd">&larr;</span> <span class="kbd">&rarr;</span> at any time.
+</p>
+
+<div class="tabs" id="tabs" role="group" aria-label="Choose a stage"></div>
+
+<div class="why" id="why"></div>
+
+<div class="ctrls">
+  <button id="back" type="button">&larr; Back</button>
+  <button id="next" type="button">Next &rarr;</button>
+  <span class="count" id="count"></span>
+</div>
+
+<div class="stage" id="stage" tabindex="0" aria-live="polite"></div>
+
+<script>
+/* ------------------------------------------------------------------ *
+ * The stages.
+ *
+ * `code` is playtest.py's real source with its comments trimmed. `vars`
+ * on a step is the state AFTER that line has run, and anything named in
+ * `fresh` changed on this step, so the eye goes to it.
+ * ------------------------------------------------------------------ */
+
+var DEMOS = {
+  bug: {
+    num: "Stage 1",
+    name: "the bug that hides",
+    why: "<code>dig()</code> has an <code>if</code> and an <code>elif</code> and <strong>no <code>else</code></strong>. For 49 of the 50 possible rolls that is fine. For one of them it is not, and the program has no way to tell you which days you got lucky.",
+    code: [
+      "def dig():",
+      "    depth = random.randint(1, 3)",
+      "    luck  = random.randint(1, 50)",
+      "    if luck <= 30:",
+      "        print('Nothing but dirt.')",
+      "        return None",
+      "    elif luck <= 49:",
+      "        prize = PRIZES[random.randint(0, 1)]",
+      "        print(f'You found a {prize}!')",
+      "        return prize",
+      "    print(f'JACKPOT! A {prize}!')",
+      "    return prize"
+    ],
+    steps: [
+      {line: 2, vars: {"depth": "2"}, fresh: ["depth"],
+       note: "First random call. Nothing depends on it &mdash; it only decides what gets printed."},
+      {line: 3, vars: {"depth": "2", "luck": "41"}, fresh: ["luck"],
+       note: "Second random call, and <strong>everything</strong> depends on it. 41 this time."},
+      {line: 7, vars: {"depth": "2", "luck": "41"},
+       note: "41 is more than 30, so the first branch is skipped. 41 is 49 or less, so this one runs."},
+      {line: 8, vars: {"depth": "2", "luck": "41", "prize": "'silver ring'"}, fresh: ["prize"],
+       note: "<code>prize</code> is given a value here. <strong>Only here.</strong> Remember that."},
+      {line: 10, vars: {"luck": "41", "prize": "'silver ring'"}, done: true,
+       note: "Returned safely. This is what happens 19 times in 20 &mdash; and every one of them looks like proof the function works."},
+      {line: 3, vars: {"depth": "1", "luck": "50"}, fresh: ["luck"],
+       note: "Now run it again, and this time the roll comes out <strong>50</strong>. One value in fifty."},
+      {line: 7, vars: {"depth": "1", "luck": "50"},
+       note: "50 is not 30 or less. And 50 is not 49 or less either. <strong>Both branches are skipped.</strong>"},
+      {line: 11, vars: {"depth": "1", "luck": "50", "prize": "&mdash; never set &mdash;"}, fresh: ["prize"],
+       note: "Execution falls past the <code>elif</code> to here. There was no <code>else</code>, so line 8 never ran, so <code>prize</code> was never given a value &mdash; and this line asks for it."},
+      {line: 11, vars: {"luck": "50"}, done: true, ret: "UnboundLocalError",
+       note: "<strong>UnboundLocalError: cannot access local variable 'prize'.</strong> The bug was always here. It just needed a 50 to show itself."}
+    ]
+  },
+
+  seed: {
+    num: "Stage 2",
+    name: "random.seed()",
+    why: "<code>random</code> is not random. It is one long fixed list of numbers, and the <strong>seed</strong> says where in that list to start reading. Same seed, same numbers, same order &mdash; on any machine, on any day.",
+    code: [
+      "import random",
+      "",
+      "random.seed(25)",
+      "print(random.randint(1, 50))",
+      "print(random.randint(1, 50))",
+      "",
+      "random.seed(25)        # start over",
+      "print(random.randint(1, 50))"
+    ],
+    steps: [
+      {line: 3, vars: {"seed": "25"}, fresh: ["seed"],
+       note: "Start reading the list at position 25."},
+      {line: 4, vars: {"seed": "25"}, ret: "2",
+       note: "The first number from that position is 2."},
+      {line: 5, vars: {"seed": "25"}, ret: "50",
+       note: "The next is <strong>50</strong> &mdash; the one value that breaks <code>dig()</code>."},
+      {line: 7, vars: {"seed": "25"},
+       note: "Seed it again with the same number. Go back to the same place in the list."},
+      {line: 8, vars: {"seed": "25"}, ret: "2", done: true,
+       note: "2 again. Not similar &mdash; <strong>identical</strong>. That is what turns &ldquo;it crashed once and I cannot make it happen again&rdquo; into something you can look at for an hour."}
+    ]
+  },
+
+  watch: {
+    num: "Stage 3",
+    name: "watching every draw",
+    why: "<code>playtest.py</code> never edits your program. It starts Python, swaps <code>random.randint</code> for its own function, and <em>then</em> runs your file. Your code calls <code>random.randint</code> exactly as written &mdash; it just reaches this instead.",
+    code: [
+      "import random, runpy, sys, inspect",
+      "random.seed(int(sys.argv[2]))",
+      "_real = random.randint",
+      "def watched(low, high):",
+      "    value = _real(low, high)",
+      "    caller = inspect.currentframe().f_back",
+      "    sys.stderr.write(... caller.f_lineno, low, high, value ...)",
+      "    return value",
+      "random.randint = watched",
+      "runpy.run_path(sys.argv[1], run_name='__main__')"
+    ],
+    steps: [
+      {line: 3, vars: {"_real": "the real randint"}, fresh: ["_real"],
+       note: "Keep a handle on the real one first. Lose this and there is nothing left to call."},
+      {line: 9, vars: {"_real": "the real randint", "random.randint": "watched"}, fresh: ["random.randint"],
+       note: "<strong>The swap.</strong> Anything that calls <code>random.randint</code> from now on reaches <code>watched</code>."},
+      {line: 10, vars: {"random.randint": "watched"},
+       note: "Now the program runs. It was not changed, copied or searched. It does not know."},
+      {line: 5, vars: {"low": "1", "high": "50", "value": "50"}, fresh: ["value"],
+       note: "<code>game.py</code> line 21 asks for a number. The real randint is called, so the program behaves exactly as it always would."},
+      {line: 6, vars: {"caller.f_lineno": "21"}, fresh: ["caller.f_lineno"],
+       note: "<code>f_back</code> is the frame that called us &mdash; so we learn <em>which line of the program</em> asked, without the program telling us."},
+      {line: 7, vars: {"recorded": "line 21, 1-50, got 50"}, fresh: ["recorded"],
+       note: "Written to stderr, so the program's own output stays clean."},
+      {line: 8, vars: {"value": "50"}, done: true, ret: "50",
+       note: "And the real number is handed back. <strong>Nothing about the program changed</strong> &mdash; we only know more than we did."}
+    ]
+  },
+
+  find: {
+    num: "Stage 4",
+    name: "--find",
+    why: "Once a seed fixes the numbers, finding the rare case stops being luck and becomes a <strong>search</strong>. Try seed 0, seed 1, seed 2 &hellip; until one of them breaks.",
+    code: [
+      "for seed in range(500):",
+      "    crash, draws, output = play(seed)",
+      "    if crash:",
+      "        print(f'Seed {seed} crashes.')",
+      "        print(f'  python playtest.py --seed {seed}')",
+      "        return",
+      "print('No crash in 500 seeds.')"
+    ],
+    steps: [
+      {line: 2, vars: {"seed": "0", "crash": "''"}, fresh: ["seed"],
+       note: "Seed 0. Three holes dug, no 50 rolled, no crash."},
+      {line: 2, vars: {"seed": "7", "crash": "''"}, fresh: ["seed"],
+       note: "Still nothing. This is the same answer the 25-run report gave: it all looks fine."},
+      {line: 2, vars: {"seed": "24", "crash": "''"}, fresh: ["seed"],
+       note: "Seed 24, and still clean. <strong>Every one of the 25 runs you just watched pass was one of these.</strong>"},
+      {line: 2, vars: {"seed": "25", "crash": "UnboundLocalError"}, fresh: ["crash"],
+       note: "Seed 25. A 50 comes up, and the missing <code>else</code> finally has to answer for itself."},
+      {line: 4, vars: {"seed": "25"},
+       note: "Report it &mdash; not as &ldquo;it crashed somewhere&rdquo;, but as a number you can type."},
+      {line: 5, vars: {"seed": "25"}, done: true, ret: "--seed 25",
+       note: "<strong>That is the whole point.</strong> A one-in-fifty bug is now a command that reproduces it every single time, for as long as you need."}
+    ]
+  }
+};
+
+var ORDER = ["bug", "seed", "watch", "find"];
+
+/* ------------------------------------------------------------------ *
+ * Rendering
+ * ------------------------------------------------------------------ */
+
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;");
+}
+
+/* One pass, first alternative wins, so a keyword inside a string is never
+   re-coloured. A colourer, not a parser -- the same approach and the same
+   palette as the other steppers in this course. */
+var TOKENS = new RegExp([
+  "(#.*$)",
+  "(\"[^\"]*\"|'[^']*')",
+  "\\b(open|print|len|str|sorted|range|append|extend|join|split|strip|" +
+    "splitlines|startswith|write|run_path|build_answers|play_once|coverage|" +
+    "available|die|say)\\b",
+  "\\b(def|for|in|if|not|else|elif|while|return|with|as|import|continue|" +
+    "lambda|True|False|None)\\b",
+  "\\b(\\d+)\\b"
+].join("|"), "g");
+
+function hi(src) {
+  return esc(src).replace(TOKENS, function (m, cm, st, fn, kw, nm) {
+    if (cm) { return '<span class="cm">' + cm + "</span>"; }
+    if (st) { return '<span class="st">' + st + "</span>"; }
+    if (fn) { return '<span class="fn">' + fn + "</span>"; }
+    if (kw) { return '<span class="kw">' + kw + "</span>"; }
+    return '<span class="nm">' + nm + "</span>";
+  });
+}
+
+var current = ORDER[0];
+var at = 0;
+
+var stage = document.getElementById("stage");
+var tabs = document.getElementById("tabs");
+var why = document.getElementById("why");
+var count = document.getElementById("count");
+var nextBtn = document.getElementById("next");
+var backBtn = document.getElementById("back");
+
+function codePane(demo, step, idx) {
+  /* Which lines have already been the active line. Looked up rather than
+     stored, because a stage can revisit a line -- stage 1 runs line 9 twice
+     -- and a simple "everything above the cursor" rule would be wrong there. */
+  var ran = {};
+  for (var s = 0; s < idx; s++) { ran[demo.steps[s].line] = true; }
+
+  var rows = demo.code.map(function (line, i) {
+    var n = i + 1;
+    var cls = n === step.line ? "on" : (ran[n] ? "done" : "");
+    var row = '<div class="' + cls + '"><span class="no">' + n +
+              "</span>" + hi(line) + "</div>";
+    if (n === step.line && step.note) {
+      row += '<div class="says' + (step.thin ? " warn" : "") + '">' +
+             step.note + "</div>";
+    }
+    return row;
+  });
+  return '<div class="pane"><div class="phead">playtest.py</div>' +
+         '<div class="code mono">' + rows.join("") + "</div></div>";
+}
+
+function varsPane(step) {
+  var names = Object.keys(step.vars || {});
+  if (!names.length) { return ""; }
+  var fresh = step.fresh || [];
+  var rows = names.map(function (n) {
+    return '<div class="vrow' + (fresh.indexOf(n) >= 0 ? " fresh" : "") +
+           '"><span class="vname">' + esc(n) + '</span><span class="vval">' +
+           esc(step.vars[n]) + "</span></div>";
+  });
+  return '<div class="pane"><div class="phead">what is in memory</div>' +
+         '<div class="vars">' + rows.join("") + "</div></div>";
+}
+
+function termPane(demo, idx) {
+  var out = [];
+  for (var s = 0; s <= idx; s++) {
+    (demo.steps[s].out || []).forEach(function (pair) {
+      if (pair[0] === "ask") { out.push("<div>" + esc(pair[1]) + "</div>"); }
+      else if (pair[0] === "typed") {
+        out[out.length - 1] = out[out.length - 1].replace(
+          "</div>", '<span class="typed">' + esc(pair[1]) + "</span></div>");
+      } else if (pair[0] === "err") {
+        out.push('<div class="err">' + esc(pair[1]) + "</div>");
+      } else { out.push('<div class="sys">' + esc(pair[1]) + "</div>"); }
+    });
+  }
+  if (!out.length) { return ""; }
+  return '<div class="pane"><div class="phead">on screen</div>' +
+         '<div class="term mono">' + out.join("") + "</div></div>";
+}
+
+/* The thin flag is carried in the step rather than guessed from the text.
+   An earlier version decided "thin" by looking for a space in the answer
+   list, which made "Ada Lovelace" -- one answer, two words -- look like
+   two answers, exactly inverting the point of the panel. */
+function covPane(demo, idx) {
+  var order = [], seen = {};
+  for (var s = 0; s <= idx; s++) {
+    var c = demo.steps[s].cover;
+    if (!c) { continue; }
+    if (!(c[0] in seen)) { order.push(c[0]); }
+    seen[c[0]] = {answers: c[1], thin: c[2]};
+  }
+  if (!order.length) { return ""; }
+  var rows = order.map(function (q) {
+    var r = seen[q];
+    return '<tr><td class="mono">' + esc(q) + '</td><td class="mono' +
+           (r.thin ? " thin" : "") + '">' + esc(r.answers) +
+           (r.thin ? '<span class="tag">only ever this one</span>' : "") +
+           "</td></tr>";
+  });
+  return '<div class="pane"><div class="phead">the table it prints</div>' +
+         '<table class="cov"><thead><tr><th>asked</th><th>answered</th>' +
+         "</tr></thead><tbody>" + rows.join("") + "</tbody></table></div>";
+}
+
+function render() {
+  var demo = DEMOS[current];
+  var step = demo.steps[at];
+  why.innerHTML = "<strong>" + demo.num + " &middot; <code>" + demo.name +
+                  "</code></strong> &mdash; " + demo.why;
+  /* The note is rendered inside the code pane now, under the line it is
+     about. Repeating it at the bottom would be the same sentence twice. */
+  stage.innerHTML =
+    '<div class="cols"><div>' + codePane(demo, step, at) + "</div><div>" +
+    varsPane(step) + termPane(demo, at) +
+    (demo.cov ? covPane(demo, at) : "") + "</div></div>";
+  count.textContent = "step " + (at + 1) + " of " + demo.steps.length;
+  backBtn.disabled = at === 0;
+  nextBtn.disabled = at === demo.steps.length - 1;
+  Array.prototype.forEach.call(tabs.children, function (b) {
+    b.setAttribute("aria-pressed", String(b.dataset.k === current));
+  });
+}
+
+ORDER.forEach(function (key) {
+  var d = DEMOS[key];
+  var b = document.createElement("button");
+  b.type = "button";
+  b.className = "tab";
+  b.dataset.k = key;
+  b.innerHTML = '<span class="tnum">' + d.num + "</span>" + esc(d.name);
+  b.addEventListener("click", function () {
+    current = key; at = 0; render(); stage.focus();
+  });
+  tabs.appendChild(b);
+});
+
+nextBtn.addEventListener("click", function () {
+  if (at < DEMOS[current].steps.length - 1) { at++; render(); }
+});
+backBtn.addEventListener("click", function () {
+  if (at > 0) { at--; render(); }
+});
+document.addEventListener("keydown", function (e) {
+  if (e.key === "ArrowRight" || e.key === "PageDown") {
+    if (at < DEMOS[current].steps.length - 1) { at++; render(); }
+    e.preventDefault();
+  } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+    if (at > 0) { at--; render(); }
+    e.preventDefault();
+  }
+});
+
+render();
+</script>
+</body>
+</html>
