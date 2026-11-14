@@ -308,10 +308,45 @@ var DEMOS = {
       {line: 5, vars: {"seed": "25"}, done: true, ret: "--seed 25",
        note: "<strong>That is the whole point.</strong> A one-in-fifty bug is now a command that reproduces it every single time, for as long as you need."}
     ]
+  },
+
+  sweep: {
+    num: "Stage 5",
+    name: "--sweep",
+    why: "<code>random.seed()</code> is real Python &mdash; part of the <code>random</code> module. <strong>This is not.</strong> There is no sweep in <code>random</code>; it is about forty lines in <code>playtest.py</code>, and it works because Python lets you reassign anything on a module. A seed replays a sample. This one decides what comes out.",
+    code: [
+      "random.seed(0)                    # pin every OTHER call",
+      "_real = random.randint",
+      "def forced_randint(low, high):",
+      "    caller = inspect.currentframe().f_back",
+      "    if caller.f_lineno == target:",
+      "        return forced",
+      "    return _real(low, high)",
+      "random.randint = forced_randint",
+      "",
+      "for value in range(low, high + 1):",
+      "    crash = force(line, value)"
+    ],
+    steps: [
+      {line: 1, vars: {"seed": "0"}, fresh: ["seed"],
+       note: "Every call we are <em>not</em> forcing is pinned to a run already known to be clean. Skip this and an unlucky draw somewhere else gets blamed on the value you forced &mdash; which is exactly what happened the first time this ran, and it reported a harmless roll as a bug."},
+      {line: 5, vars: {"target": "21", "forced": "50", "caller.f_lineno": "18"}, fresh: ["caller.f_lineno"],
+       note: "A call arrives from <strong>line 18</strong> &mdash; the depth roll. That is not the line we are targeting."},
+      {line: 7, vars: {"target": "21", "caller.f_lineno": "18"}, ret: "2",
+       note: "So the real <code>randint</code> answers it. Everything the program does apart from the one line under test is untouched."},
+      {line: 5, vars: {"target": "21", "forced": "50", "caller.f_lineno": "21"}, fresh: ["caller.f_lineno"],
+       note: "Now a call arrives from <strong>line 21</strong>. That <em>is</em> the target."},
+      {line: 6, vars: {"target": "21", "forced": "50"}, ret: "50",
+       note: "So 50 is handed back. Not drawn &mdash; <strong>chosen</strong>. The program cannot tell the difference, and <code>game.py</code> was never edited."},
+      {line: 10, vars: {"value": "1 ... 50"}, fresh: ["value"],
+       note: "And that runs once for every value the call can produce. Fifty runs instead of seventy-nine seeds, and it is a guarantee rather than a likelihood."},
+      {line: 11, vars: {"crash": "only when value == 50"}, fresh: ["crash"], done: true, ret: "line 21, value 50",
+       note: "<strong>One value breaks this program, and there are no others.</strong> A seed could only ever have told you that it broke sometimes."}
+    ]
   }
 };
 
-var ORDER = ["bug", "seed", "watch", "find"];
+var ORDER = ["bug", "seed", "watch", "find", "sweep"];
 
 /* ------------------------------------------------------------------ *
  * Rendering
