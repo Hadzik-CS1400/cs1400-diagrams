@@ -55,7 +55,33 @@
   .col { flex:1 1 32rem; min-width:0; }
   .colhead { font-size:.86rem; font-weight:800; letter-spacing:.04em;
              padding:.25rem .1rem; text-transform:uppercase; }
-  .before .colhead { color:var(--before); }
+  .before .colhead { color:var(--before); display:flex;
+                     align-items:center; gap:.6rem; }
+  /* FOLDING the old code. Once the left pane has been talked through, the
+     presenter can fold it to a strip and give the new code the full width --
+     a long line in the After pane then fits on the projector without a
+     scrollbar. The strip stays, labelled and clickable, so the old code is
+     one click (or F) away rather than gone. */
+  .foldbtn { font:inherit; font-size:.78rem; font-weight:700;
+             letter-spacing:.03em; text-transform:none; cursor:pointer;
+             padding:.1rem .55rem; border:1px solid var(--line);
+             border-radius:5px; background:var(--card); color:var(--before); }
+  .cols.folded { flex-wrap:nowrap; }
+  /* The strip is as tall as the After pane beside it and no taller: the
+     column is a flex box and the button stretches inside it. The text is
+     turned on an inner span, because a vertical writing-mode on the button
+     itself makes its height resolve against nothing and run off the page. */
+  .cols.folded .col.before { flex:0 0 2.4rem; display:flex; }
+  .cols.folded .col.after  { flex:1 1 auto; }
+  .unfold { font:inherit; flex:1; display:flex; justify-content:center;
+            align-items:flex-start; cursor:pointer;
+            border:1px solid var(--line); border-left:4px solid var(--before);
+            border-radius:9px; background:var(--card); color:var(--before);
+            padding:.7rem 0; }
+  .unfold span { writing-mode:vertical-rl; font-size:.86rem;
+                 font-weight:800; letter-spacing:.06em;
+                 text-transform:uppercase; }
+  .unfold:hover, .foldbtn:hover { border-color:var(--before); }
   .after .colhead { color:var(--after); }
   /* ---- the editor ------------------------------------------------------
      Dressed as a code editor on purpose: a filename tab, a gutter with real
@@ -165,7 +191,8 @@
   shape it becomes, and <strong>the one thing the old shape could not
   do</strong> &mdash; which is the only reason the change is worth making.
   <span class="kbd">&larr;</span> <span class="kbd">&rarr;</span> step through
-  it.</p>
+  it; <span class="kbd">F</span> folds the left pane away once it has been
+  covered, so the new code gets the full width.</p>
 
 <div class="rail" id="rail"></div>
 
@@ -2090,6 +2117,18 @@ function buildRail() {
 
 var fi = 0;   /* which changed line of this step the arrow is on */
 
+/* Whether the Before pane is folded. It belongs to ONE TODO: stepping lines
+   inside the TODO keeps it, moving to another TODO unfolds it, because a new
+   TODO is new old code that has not been talked through yet. */
+var folded = false;
+var foldedAt = -1;
+
+function setFold(on) {
+  folded = on;
+  foldedAt = at;
+  render();
+}
+
 function render() {
   var d = DEMOS[at];
   var frames = framesOf(d);
@@ -2097,12 +2136,21 @@ function render() {
   if (fi < 0) { fi = 0; }
   var active = frames[fi] || null;
   var band = (active && active.why) ? active.why : d.band;
+  if (foldedAt !== at) { folded = false; }
+  var beforeCol = folded
+    ? '<div class="col before"><button type="button" class="unfold" ' +
+        'id="unfold" aria-label="Show last week&rsquo;s code again (F)" ' +
+        'title="Show the old code again (F)"><span>&#9656; Before</span>' +
+        '</button></div>'
+    : '<div class="col before"><div class="colhead">' +
+        '<span>Before &mdash; last week&rsquo;s answer</span>' +
+        '<button type="button" class="foldbtn" id="foldbtn" ' +
+          'title="Fold the old code away (F)">&#9666; Fold</button>' +
+        "</div>" + codeHTML(d.before, "before") + "</div>";
   stage.innerHTML =
     '<div class="head"><div class="tn">' + PARTS[d.part] +
       " &middot; TODO " + esc(d.todo) + '</div><h2>' + esc(d.title) + "</h2></div>" +
-    '<div class="cols">' +
-      '<div class="col before"><div class="colhead">Before &mdash; last week&rsquo;s answer</div>' +
-        codeHTML(d.before, "before") + "</div>" +
+    '<div class="cols' + (folded ? " folded" : "") + '">' + beforeCol +
       '<div class="col after"><div class="colhead">After &mdash; this TODO</div>' +
         codeHTML(d.after, "after", band, active) + "</div>" +
     "</div>" +
@@ -2121,6 +2169,10 @@ function render() {
   backBtn.disabled = at === 0 && fi === 0;
   nextBtn.disabled = at === DEMOS.length - 1 && fi === frames.length - 1;
   buildRail();
+  var fb = document.getElementById("foldbtn");
+  if (fb) { fb.addEventListener("click", function () { setFold(true); }); }
+  var ub = document.getElementById("unfold");
+  if (ub) { ub.addEventListener("click", function () { setFold(false); }); }
 }
 
 function go(n) {
@@ -2158,6 +2210,10 @@ document.addEventListener("keydown", function (e) {
      and do not want to press through eight lines to get there. */
   if (e.key === "ArrowDown") { go(at + 1); }
   if (e.key === "ArrowUp") { go(at - 1); }
+  if ((e.key === "f" || e.key === "F") && !e.ctrlKey && !e.metaKey &&
+      !e.altKey) {
+    setFold(!folded);
+  }
 });
 
 render();
