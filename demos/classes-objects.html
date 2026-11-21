@@ -1,0 +1,1302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Classes &amp; Objects Stepper</title>
+<!--
+  Classes & Objects Stepper -- CT13, Building a Class
+
+  Open this file in a browser. Double-click it, or right-click in VS Code ->
+  "Reveal in File Explorer" and double-click there. Nothing to install, no
+  internet needed, no extension: it is one self-contained file.
+
+  WHY NOT IN VS CODE: VS Code has no built-in HTML preview that runs
+  JavaScript. The markdown preview strips scripts and Simple Browser needs a
+  URL. Every student already has a browser.
+
+  SHAPE: identical to CT11's dictionary stepper on purpose -- whole program on
+  screen, Next walks an arrow down it, the THIS STEP band shows the executing
+  line with its real values filled in, and a console collects what print()
+  produced. A student who can read one can read the other.
+
+  WHAT IS DIFFERENT: it steps INSIDE methods, and it draws one box per object.
+  Every other stepper in this course traces a single run of top-level code;
+  this is the first module where the interesting lines are in a function that
+  something else called, so the arrow has to follow __init__ down and come
+  back out. Two things fall out of that and both are the lesson:
+
+    - the same two lines of __init__ run twice, once per object, and `self`
+      means something different each time. The green ring says which object
+      it is.
+
+    - an object has no name until __init__ finishes. The box is labelled
+      "the new object" until the assignment completes, because a student
+      watching `rex = Dog(...)` reasonably assumes rex exists on the way in.
+
+  ONE STEP IS ONE LINE EXECUTION. Never two frames for one statement.
+
+  VERIFIED: Scripts/test_stepper_classes.js rebuilds each program below from
+  this file, runs it under CPython with a line tracer that follows calls, and
+  compares -- in order -- every line executed, every attribute of every
+  object drawn, which object `self` was bound to, and the whole console. The
+  code shown IS the code checked.
+-->
+<style>
+
+  :root {
+    --ink: #1a1a2e; --muted: #555; --line: #cbd5e1; --panel: #f8fafc;
+    --teal: #00695c; --green: #1b5e20; --red: #c62828; --blue: #1565c0;
+    --code-bg: #1e1e2e; --code-fg: #cdd6f4; --code-hit: #45475a;
+    /* #6c7086 is the Catppuccin comment gray and it is 3.36:1 on this
+       background -- under AA. This is the course-wide replacement. */
+    --code-dim: #83889a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif; color: var(--ink);
+    margin: 0; padding: 1.25rem; background: #fff; line-height: 1.5;
+  }
+  h1 { font-size: 1.35rem; margin: 0 0 .25rem; }
+  .sub { color: var(--muted); font-size: .9rem; margin: 0 0 1rem; }
+  .tabs { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; }
+  .tab {
+    border: 2px solid var(--line); background: #fff; color: var(--ink);
+    border-radius: 999px; padding: .3rem 1.1rem .4rem; font-size: .95rem;
+    cursor: pointer; font-family: inherit; line-height: 1.25; text-align: center;
+  }
+  /* The Part number rides above the demo name so a student holding main.py
+     open can find the right tab without reading all six. */
+  .tab .tpart {
+    display: block; font-size: .68rem; font-weight: 800; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--teal);
+  }
+  .tab[aria-pressed="true"] .tpart { color: #b7e4dd; }
+  .covers { margin: -.5rem 0 1rem; font-size: .92rem; color: var(--muted); }
+  .covers strong { color: var(--ink); }
+  .tab[aria-pressed="true"] {
+    background: var(--teal); border-color: var(--teal); color: #fff;
+    font-weight: 700;
+  }
+  .wrap { border: 2px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .bar {
+    display: flex; align-items: center; gap: .5rem; padding: .6rem .9rem;
+    background: var(--panel); border-bottom: 2px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .bar button {
+    font-family: inherit; font-size: .9rem; padding: .35rem .9rem;
+    border-radius: 6px; border: 2px solid var(--teal); background: #fff;
+    color: var(--teal); cursor: pointer; font-weight: 600;
+  }
+  .bar button[disabled] { opacity: .45; cursor: default; }
+  .count { margin-left: auto; font-size: .85rem; color: var(--muted); }
+  .stage { padding: 1rem .9rem 1.25rem; }
+  code, .mono { font-family: Consolas, 'Courier New', monospace; }
+
+  /* ---- the program, with one line lit ---------------------------------- */
+  .code {
+    background: var(--code-bg); color: var(--code-fg); border-radius: 8px;
+    padding: .6rem 0; overflow-x: auto;
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 1.45rem; line-height: 1.65;
+  }
+  .code div { padding: 0 .8rem; white-space: pre; }
+  /* Every line is a jump target, so a demo can be opened at the line under
+     discussion instead of pressed through to it. Inside a loop the same line
+     is several steps, and clicking lands on the FIRST pass. */
+  .code div[data-k] { cursor: pointer; }
+  .code div[data-k]:hover { background: #313244; }
+  .code div.active[data-k]:hover { background: var(--code-hit); }
+  .code div[data-k]:focus-visible { outline: 2px solid #89dceb;
+                                    outline-offset: -2px; }
+  .code div.active {
+    background: var(--code-hit); display: flex; align-items: center;
+    flex-wrap: wrap;
+  }
+  /* min-width is set per demo, in `ch`, anchored on the SECOND-longest line:
+     every demo opens with a dict literal far longer than the lines that
+     follow, and anchoring on that left a lane of dead space for every other
+     step. Without any anchor the band's left edge tracks whichever line is
+     running and slides about on every press. */
+  .code div.active .src { white-space: pre; padding-right: 1.6rem; }
+  /* A marker in the gutter, not just a color -- the line a student is on
+     has to survive a projector and a color-blind reader. */
+  .code div.active::before { content: "\25B8 "; color: #f9e2af; }
+  .code div:not(.active)::before { content: "  "; }
+  .code div.done, .code div.done span { color: #9aa3b8; font-style: normal; }
+  .code .kw { color: #cba6f7; } .code .fn { color: #89dceb; }
+  .code .st { color: #a6e3a1; } .code .nm { color: #fab387; }
+  .code .cm { color: var(--code-dim); font-style: italic; }
+  /* NOT source: the executing line with its real values substituted in, so it
+     gets a highlighter band and dark text. Nothing else in the panel has a
+     light background, which is what makes it unmistakable. */
+  .code .calc {
+    background: #f9e2af; color: #1e1e2e; font-weight: 600;
+    white-space: pre-wrap; border-radius: 5px; padding: .1rem .75rem;
+    font-size: 1.2rem;
+  }
+  .code .calc::before {
+    content: "THIS STEP"; font-size: .72rem; font-weight: 800;
+    letter-spacing: .06em; color: #4a3600; background: rgba(0,0,0,.10);
+    border-radius: 3px; padding: .08em .32em; margin-right: .55rem;
+    vertical-align: .1em;
+  }
+  /* A pass counter for lines inside a loop: "pass 2 of 3". Without it, two
+     consecutive steps on the same line look like the stepper is stuck. */
+  .code .pass.ends { background: #f5c2c2; }
+  .code .pass {
+    margin-left: .6rem; font-size: .72rem; font-weight: 800;
+    letter-spacing: .06em; color: #1e1e2e; background: #b7e4dd;
+    border-radius: 999px; padding: .12em .6em;
+  }
+
+  /* ---- the aside -------------------------------------------------------- */
+  .aside {
+    border: 2px solid var(--line); border-left: 6px solid var(--blue);
+    border-radius: 10px; margin-top: 1rem; background: #f8fafc;
+  }
+  .aside summary {
+    cursor: pointer; list-style: none; padding: .7rem .9rem;
+    font-weight: 700; font-size: 1.02rem; color: var(--blue);
+  }
+  .aside summary::-webkit-details-marker { display: none; }
+  .aside summary::before { content: "\25B8  "; }
+  .aside[open] summary::before { content: "\25BE  "; }
+  .aside .body { padding: 0 .9rem 1rem; font-size: .95rem; }
+  .aside p { margin: .5rem 0; }
+  .aside table {
+    border-collapse: collapse; width: 100%; margin: .7rem 0; font-size: .92rem;
+  }
+  .aside th, .aside td {
+    border: 1px solid var(--line); padding: .35rem .6rem; text-align: left;
+  }
+  .aside thead th { background: #eef2f6; }
+  .aside code { font-family: Consolas, monospace; background: #eef2f6;
+                padding: .05rem .3rem; border-radius: 3px; }
+  .aside .big { font-size: 1rem; }
+
+  /* ---- the console ------------------------------------------------------ */
+  .term {
+    background: #11111b; color: #cdd6f4; border-radius: 8px;
+    margin-top: .7rem; padding: .55rem 0 .7rem;
+    font-family: Consolas, 'Courier New', monospace; font-size: 1.25rem;
+    line-height: 1.55;
+  }
+  .term .thead {
+    font-family: 'Segoe UI', Arial, sans-serif; font-size: .74rem;
+    font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    color: #9aa3b8; padding: 0 .9rem .25rem;
+  }
+  .term .line { padding: 0 .9rem; white-space: pre-wrap; }
+  .term .line.err { color: #f38ba8; font-weight: 700; }
+  .term .none {
+    padding: 0 .9rem; color: #9aa3b8; font-style: italic;
+    font-family: 'Segoe UI', Arial, sans-serif; font-size: .95rem;
+  }
+
+  /* ---- the dictionary itself, first and large --------------------------- */
+  /* This is the lesson, not a footnote to the code, so it leads and it is
+     sized to read from the back of a room. */
+  .panels { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .dwrap {
+    flex: 1 1 320px;
+    border: 2px solid var(--line); border-radius: 10px;
+    padding: .7rem .9rem .9rem; background: #fcfdfd;
+  }
+  .dhead {
+    font-size: .82rem; font-weight: 700; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: .35rem;
+  }
+  .dhead .var { font-family: Consolas, monospace; text-transform: none;
+                font-size: 1.15rem; font-weight: 700; color: var(--teal);
+                letter-spacing: 0; }
+  .pairs { display: flex; flex-direction: column; gap: .4rem; }
+  /* Key and value are separate boxes with an arrow between them, because the
+     thing worth seeing is that one addresses the other. A single box would
+     draw them as one lump of text. */
+  .pair { display: flex; align-items: stretch; gap: .35rem; }
+  .kbox, .vbox2 {
+    border: 3px solid var(--teal); background: #e0f2f1; border-radius: 8px;
+    padding: .4rem .7rem; font-family: Consolas, 'Courier New', monospace;
+    font-size: 1.2rem; display: flex; align-items: center;
+  }
+  .kbox { min-width: 130px; font-weight: 700; color: #00564b; }
+  .vbox2 { min-width: 120px; background: #f1f8f7; }
+  .arrow { display: flex; align-items: center; color: var(--teal);
+           font-size: 1.1rem; font-weight: 700; }
+  .pair.added .kbox, .pair.added .vbox2 {
+    border-color: var(--green); background: #c8e6c9;
+  }
+  .pair.added .kbox { color: #0d3b11; }
+  .pair.changed .vbox2 { border-color: var(--green); background: #c8e6c9; }
+  .pair.pick .kbox { border-color: var(--blue); background: #e3f2fd;
+                     color: #0d3b11; box-shadow: 0 0 0 3px #bbdefb; }
+  .pair.pick .vbox2 { border-color: var(--blue); background: #e3f2fd;
+                      box-shadow: 0 0 0 3px #bbdefb; }
+  .pair.cur .kbox { border-color: #6a1b9a; background: #f3e5f5; color: #3d0b57; }
+  .pair.cur .vbox2 { border-color: #6a1b9a; background: #faf4fc; }
+  .pair.ghost .kbox, .pair.ghost .vbox2 {
+    border-color: var(--red); background: #ffebee; color: #8b1111;
+    text-decoration: line-through;
+  }
+  .pair.ghost .arrow { color: var(--red); }
+  .was {
+    display: flex; align-items: center; margin-left: .35rem;
+    font-family: Consolas, monospace; font-size: 1rem; color: #7a1f1f;
+    text-decoration: line-through;
+  }
+  .tagline {
+    display: flex; align-items: center; margin-left: .45rem;
+    font-size: .82rem; font-weight: 700; color: var(--green);
+  }
+  .tagline.warn { color: #8f3000; }
+  .empty { color: var(--muted); font-style: italic; font-size: 1rem;
+           margin: .4rem 0 .1rem; }
+  /* A view (.keys(), .values(), .items()) or a plain list -- a row of cells,
+     deliberately NOT drawn as pairs, because a view is one thing in a row and
+     a dictionary is two things side by side. */
+  .viewrow { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .2rem; }
+  .vcell {
+    border: 3px solid #6a1b9a; background: #f3e5f5; border-radius: 8px;
+    padding: .4rem .75rem; font-family: Consolas, monospace; font-size: 1.15rem;
+  }
+  .dwrap.view { background: #fdfbfe; }
+  .dwrap.view .dhead .var { color: #4a148c; }
+  /* The loop variables. The whole of Part 3 is which names a loop fills in,
+     so an unbound name is drawn, grayed, rather than left out. */
+  .binds { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: .9rem; }
+  .bind {
+    border: 2px solid var(--line); border-left-width: 7px;
+    border-left-color: #6a1b9a; border-radius: 8px; padding: .4rem .7rem;
+    background: #fff; font-family: Consolas, monospace; font-size: 1.1rem;
+  }
+  .bind .bn { font-weight: 700; color: #4a148c; }
+  .bind.unset { border-left-color: var(--red); background: #fffafa; }
+  .bind.unset .bv { color: #a01b1b; font-family: 'Segoe UI', Arial, sans-serif;
+                    font-size: .88rem; font-style: italic; }
+  .ret {
+    display: inline-block; margin-top: .6rem; padding: .3rem .7rem;
+    border-radius: 6px; font-family: Consolas, monospace; font-size: .9rem;
+  }
+  .ret.val { background: #e8f5e9; border: 2px solid var(--green); }
+  .ret.none { background: #ffebee; border: 2px solid var(--red);
+              font-weight: 700; }
+  .note { margin: .7rem 0 0; font-size: .92rem; color: var(--muted);
+          min-height: 2.6em; }
+  .note strong { color: var(--ink); }
+  /* The hand-off. Everything above is "watch"; this line is "now go and
+     write it", which is the whole reason the page exists. */
+  .todobar {
+    margin: 0; padding: .55rem .9rem; font-size: 1rem;
+    background: #fff8e1; border-bottom: 2px solid var(--line);
+    color: #4a3600;
+  }
+  .todobar b { font-size: 1.05rem; }
+  .todobar.bg { background: var(--panel); color: var(--muted); }
+  .legend { font-size: .82rem; color: var(--muted); margin-top: .9rem; }
+  .kbd {
+    border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px;
+    padding: 0 .35rem; font-family: Consolas, monospace; font-size: .8rem;
+    background: #fff;
+  }
+
+  /* ---- objects, which the dictionary stepper had no panel for ---------- */
+  /* A class and an object must not look alike. The class box is flat and
+     says outright that it holds no values; an object box is bordered like
+     the dictionary panels this student has already used, because an object
+     IS a bag of named values. */
+  .dwrap.bp { background: #f4f1fa; border-color: #c9bde6; }
+  .dwrap.bp .dhead { color: #5b4a8a; }
+  .bpbody {
+    margin: .35rem 0 .1rem; font-size: .82rem; color: #6b5f85;
+    font-style: italic;
+  }
+  .dwrap.obj { background: #fcfcfd; }
+  /* The object self currently points at. A ring rather than a different
+     fill: the fill already means "just changed", and two meanings on one
+     channel is how a reader stops trusting either. */
+  .dwrap.obj.isself {
+    border-color: #0a7040; box-shadow: 0 0 0 3px rgba(10, 112, 64, .16);
+  }
+  .selfbadge {
+    display: inline-block; margin-left: .5rem; padding: .05rem .4rem;
+    border-radius: 999px; background: #0a7040; color: #fff;
+    font-size: .7rem; font-weight: 800; letter-spacing: .04em;
+    font-family: 'Segoe UI', Arial, sans-serif; vertical-align: middle;
+  }
+  /* An object that exists but has no name yet, which is every object in the
+     middle of its own __init__. Drawn differently because "it is not called
+     rex yet" is a step's entire point and easy to read straight past. */
+  .var.anon { font-style: italic; opacity: .8; font-weight: 600; }
+
+  /* ---- a line an early return abandoned (from CT12) -------------------- */
+  .code div.dead, .code div.dead span {
+    color: #f38ba8; text-decoration: line-through; font-style: normal;
+  }
+  /* inline-block, and not merely `text-decoration: none`: a line-through set
+     on an ancestor is drawn ACROSS its descendants and a child cannot turn
+     it off. Only a new formatting context escapes it -- without this the
+     label reading "never runs" is itself struck through. */
+  .code div.dead::after {
+    content: "\2717  never runs"; display: inline-block; margin-left: 1.4rem;
+    font-size: .78rem; font-weight: 800; letter-spacing: .04em;
+    color: #f38ba8; text-decoration: none;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+  .code div.dead::before { display: inline-block; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<h1>Classes &amp; Objects Stepper</h1>
+<p class="sub">The objects are at the top and stay put. <strong>Next</strong>
+  walks the arrow down the program beneath it &mdash; <strong>including down
+  into the methods</strong> &mdash; and you watch attribute boxes appear and
+  change. <strong>Click any line</strong> to jump straight to it. Use
+  <span class="kbd">&larr;</span> <span class="kbd">&rarr;</span> at any time
+  &mdash; no need to click first.</p>
+
+<div class="tabs" id="tabs" role="group" aria-label="Choose a demo"></div>
+<p class="covers" id="covers"></p>
+
+<div class="wrap">
+  <div class="bar">
+    <button id="back" type="button">&larr; Back</button>
+    <button id="next" type="button">Next &rarr;</button>
+    <button id="reset" type="button">Reset</button>
+    <span class="count" id="count"></span>
+  </div>
+  <p class="todobar" id="todobar"></p>
+  <div class="stage" id="stage" tabindex="0" aria-live="polite"></div>
+</div>
+
+<p class="legend">
+  &#9656; = the line running now &nbsp;&middot;&nbsp;
+  <span style="color:#0a7040; font-weight:700">Green ring + self</span> = the
+  object <code>self</code> is bound to right now &nbsp;&middot;&nbsp;
+  Green = an attribute just set, or a value just replaced
+  &nbsp;&middot;&nbsp; Blue ring = the attribute being read
+  &nbsp;&middot;&nbsp; <span style="color:#f38ba8">&#10007; never runs</span>
+  = a line an early <code>return</code> walked straight past
+  &nbsp;&middot;&nbsp; The purple box is the <em>class</em>: it holds the
+  methods and none of the values.
+</p>
+
+<script>
+/* Each demo is a REAL, RUNNABLE program in `code`, plus `steps` that walk it.
+
+   INVARIANT: one step is one line execution, and that includes lines inside
+   methods. `rex = Dog("Rex", "Border Collie")` is four steps, not one: the
+   call, then the two lines of __init__, then on. The test harness enforces it
+   by comparing the step sequence against a real CPython line trace that
+   follows calls.
+
+   A step carries:
+     line    the `k` of the code line it is on
+     panels  what to draw above the code, left to right. A panel is one of
+             { blueprint: "Dog" }                       the class itself,
+                      drawn flat and with no values in it
+             { name: "rex", cls: "Dog", attrs: [[attr, value], ...] }
+                      an object Python has finished naming
+             { newobj: true, cls: "Dog", attrs: [...] }
+                      an object that exists but has no name yet, which is
+                      every object part-way through its own __init__
+             plus highlights: self (this is what self points at right now),
+             added / changed / pick (indexes into attrs), was (the replaced
+             value, drawn struck through)
+     dead    `k`s of lines an early return abandoned -- drawn struck through
+             and labelled, because nothing ON those lines explains it
+     calc    the same line with its real values filled in -- the THIS STEP band
+     ret     what the line handed back, where that never reaches the console
+     out     what this line put on the console. DECLARED, not inferred from
+             the source: print(b) on an object with __str__ emits nothing on
+             its own line, and that ordering is the lesson of demo 4
+     err     the traceback line, if this line raises
+     note    the sentence under the panel
+
+   Attribute values are written as Python literals ("Rex", 100) because the
+   test harness compares them with repr() of the real attribute on the real
+   object at that line. */
+
+var DEMOS = {
+  init: {
+    todos: { cls: "", init: "a", sname: "a", sbreed: "a", b1: "",
+             mk1: "b", mk2: "b", b2: "", p1: "b", p2: "b" },
+    label: "Two dogs, two sets of boxes",
+    part: 1,
+    covers: "Both TODOs — define the class, then build two objects from it.",
+    aside: {
+      title: "Where does self come from, if I never pass it?",
+      html:
+        "<p><code>Dog(\"Rex\", \"Border Collie\")</code> looks like two " +
+        "arguments going into three parameters. It is not a mistake, and " +
+        "nothing is missing. Python does this:</p>" +
+        "<table><thead><tr>" +
+        "<th scope=\"col\">What you write</th>" +
+        "<th scope=\"col\">What Python does</th></tr></thead><tbody>" +
+        "<tr><th scope=\"row\"><code>Dog(\"Rex\", \"Border Collie\")</code></th>" +
+        "<td>makes a blank object, then calls " +
+        "<code>__init__(blank, \"Rex\", \"Border Collie\")</code></td></tr>" +
+        "<tr><th scope=\"row\"><code>rex.bark()</code></th>" +
+        "<td>calls <code>Dog.bark(rex)</code></td></tr>" +
+        "<tr><th scope=\"row\"><code>rex.name</code></th>" +
+        "<td>reads the <code>name</code> box on that one object</td></tr>" +
+        "</tbody></table>" +
+        "<p class=\"big\">So <code>self</code> is never passed and never " +
+        "chosen. It is whatever object is on the left of the dot — or, " +
+        "inside <code>__init__</code>, the blank object being filled in.</p>" +
+        "<p><code>self</code> is not a keyword. You could name that " +
+        "parameter <code>banana</code> and Python would not complain. Every " +
+        "Python programmer alive writes <code>self</code>, so write " +
+        "<code>self</code> — but knowing it is a convention rather " +
+        "than a rule is what makes the rest of this make sense.</p>"
+    },
+    code: [
+      { k: "cls",    t: "class Dog:" },
+      { k: "init",   t: "    def __init__(self, name, breed):" },
+      { k: "sname",  t: "        self.name = name" },
+      { k: "sbreed", t: "        self.breed = breed" },
+      { k: "b1",     t: "" },
+      { k: "mk1",    t: 'rex = Dog("Rex", "Border Collie")' },
+      { k: "mk2",    t: 'bella = Dog("Bella", "Beagle")' },
+      { k: "b2",     t: "" },
+      { k: "p1",     t: 'print(rex.name, "-", rex.breed)' },
+      { k: "p2",     t: 'print(bella.name, "-", bella.breed)' }
+    ],
+    steps: [
+      { line: "cls",
+        panels: [{ blueprint: "Dog" }],
+        calc: "class Dog:  ->  a blueprint called Dog",
+        note: "A <code>class</code> statement builds <strong>no objects</strong>. " +
+              "It describes what a Dog will look like. Nothing is a Dog yet." },
+      { line: "init",
+        panels: [{ blueprint: "Dog" }],
+        calc: "def __init__(self, name, breed):  ->  stored on the blueprint",
+        note: "The <code>def</code> line <em>runs</em> here — it creates the " +
+              "method and hands it to the blueprint. It does not call it. Still " +
+              "zero objects." },
+      { line: "mk1",
+        panels: [{ blueprint: "Dog" },
+                 { newobj: true, cls: "Dog", attrs: [], self: true }],
+        calc: 'Dog("Rex", "Border Collie")  ->  a blank object, then __init__ on it',
+        note: "Python made the empty box on the right and passed it in as " +
+              "<code>self</code>. It has <strong>no attributes and no name</strong> " +
+              "— <code>rex</code> is not assigned until <code>__init__</code> " +
+              "finishes." },
+      { line: "sname",
+        panels: [{ blueprint: "Dog" },
+                 { newobj: true, cls: "Dog", attrs: [["name", '"Rex"']],
+                   self: true, added: 0 }],
+        calc: 'self.name = "Rex"',
+        note: "<code>self</code> is that blank object, so <code>self.name</code> " +
+              "puts a box on <strong>it</strong>. This is the line that turns an " +
+              "empty object into one with something in it." },
+      { line: "sbreed",
+        panels: [{ blueprint: "Dog" },
+                 { name: "rex", cls: "Dog",
+                   attrs: [["name", '"Rex"'], ["breed", '"Border Collie"']],
+                   added: 1, self: true }],
+        calc: 'self.breed = "Border Collie"',
+        note: "Both boxes filled, <code>__init__</code> returns, and " +
+              "<strong>only now</strong> does the object get the name " +
+              "<code>rex</code>. That is the order: build, fill, name." },
+      { line: "mk2",
+        panels: [{ blueprint: "Dog" },
+                 { name: "rex", cls: "Dog",
+                   attrs: [["name", '"Rex"'], ["breed", '"Border Collie"']] },
+                 { newobj: true, cls: "Dog", attrs: [], self: true }],
+        calc: 'Dog("Bella", "Beagle")  ->  a SECOND blank object',
+        note: "One blueprint, a second object. The same two lines of " +
+              "<code>__init__</code> are about to run again — on this one." },
+      { line: "sname",
+        panels: [{ blueprint: "Dog" },
+                 { name: "rex", cls: "Dog",
+                   attrs: [["name", '"Rex"'], ["breed", '"Border Collie"']] },
+                 { newobj: true, cls: "Dog", attrs: [["name", '"Bella"']],
+                   self: true, added: 0 }],
+        calc: 'self.name = "Bella"',
+        note: "<strong>Same line, different self.</strong> Nobody typed " +
+              "<code>self</code> and nobody passed it. Which object it means was " +
+              "decided by which <code>Dog(...)</code> call is running." },
+      { line: "sbreed",
+        panels: [{ blueprint: "Dog" },
+                 { name: "rex", cls: "Dog",
+                   attrs: [["name", '"Rex"'], ["breed", '"Border Collie"']] },
+                 { name: "bella", cls: "Dog",
+                   attrs: [["name", '"Bella"'], ["breed", '"Beagle"']],
+                   added: 1, self: true }],
+        calc: 'self.breed = "Beagle"',
+        note: "Two objects, <strong>two sets of boxes</strong>. They share the " +
+              "blueprint and share nothing else." },
+      { line: "p1",
+        panels: [{ blueprint: "Dog" },
+                 { name: "rex", cls: "Dog",
+                   attrs: [["name", '"Rex"'], ["breed", '"Border Collie"']],
+                   pick: 0 },
+                 { name: "bella", cls: "Dog",
+                   attrs: [["name", '"Bella"'], ["breed", '"Beagle"']] }],
+        out: "Rex - Border Collie",
+        calc: 'print(rex.name, "-", rex.breed)',
+        note: "The dot operator reads a box back. <code>rex.name</code> asks " +
+              "<em>that</em> object, which is why it cannot possibly say Bella." },
+      { line: "p2",
+        panels: [{ blueprint: "Dog" },
+                 { name: "rex", cls: "Dog",
+                   attrs: [["name", '"Rex"'], ["breed", '"Border Collie"']] },
+                 { name: "bella", cls: "Dog",
+                   attrs: [["name", '"Bella"'], ["breed", '"Beagle"']], pick: 0 }],
+        out: "Bella - Beagle",
+        calc: 'print(bella.name, "-", bella.breed)',
+        note: "Same two attribute names, different object, different answer. " +
+              "That is what <em>each object has its own copy</em> means." }
+    ]
+  },
+
+  dot: {
+    todos: { cls: "", init: "", sname: "", senergy: "a", b1: "",
+             dplay: "b", drop: "b", b2: "", mk1: "", mk2: "", b3: "",
+             call: "d", prex: "d", pbella: "d" },
+    label: "The dot decides what self is",
+    part: 3,
+    covers: "TODOs a, b and d — an attribute that changes, and a method that changes it.",
+    aside: {
+      title: "Why self.energy and not just energy?",
+      html:
+        "<p>Both are legal Python. They do completely different things, and " +
+        "this is the bug that costs people an afternoon.</p>" +
+        "<table><thead><tr>" +
+        "<th scope=\"col\">Inside a method</th>" +
+        "<th scope=\"col\">What it is</th>" +
+        "<th scope=\"col\">After the method ends</th></tr></thead><tbody>" +
+        "<tr><th scope=\"row\"><code>self.energy = 80</code></th>" +
+        "<td>a box <strong>on the object</strong></td>" +
+        "<td>still 80</td></tr>" +
+        "<tr><th scope=\"row\"><code>energy = 80</code></th>" +
+        "<td>a plain local variable</td>" +
+        "<td><strong>gone</strong></td></tr>" +
+        "</tbody></table>" +
+        "<p class=\"big\">A method that forgets <code>self.</code> runs " +
+        "without error, prints the right number, and changes nothing. " +
+        "Nothing warns you — you just find the energy back at 100 on " +
+        "the next line.</p>" +
+        "<p>This is the same scope rule from Module 6, not a new one. A name " +
+        "assigned inside a function is local to it. <code>self</code> is the " +
+        "way out: it is a parameter pointing at something that outlives the " +
+        "call.</p>"
+    },
+    code: [
+      { k: "cls",     t: "class Dog:" },
+      { k: "init",    t: "    def __init__(self, name):" },
+      { k: "sname",   t: "        self.name = name" },
+      { k: "senergy", t: "        self.energy = 100" },
+      { k: "b1",      t: "" },
+      { k: "dplay",   t: "    def play(self):" },
+      { k: "drop",    t: "        self.energy = self.energy - 20" },
+      { k: "b2",      t: "" },
+      { k: "mk1",     t: 'rex = Dog("Rex")' },
+      { k: "mk2",     t: 'bella = Dog("Bella")' },
+      { k: "b3",      t: "" },
+      { k: "call",    t: "rex.play()" },
+      { k: "prex",    t: "print(rex.energy)" },
+      { k: "pbella",  t: "print(bella.energy)" }
+    ],
+    steps: [
+      { line: "cls",
+        panels: [{ blueprint: "Dog" }],
+        calc: "class Dog:  ->  a blueprint called Dog",
+        note: "No objects yet. Watch how many lines run before one exists." },
+      { line: "init",
+        panels: [{ blueprint: "Dog" }],
+        calc: "def __init__(self, name):  ->  stored on the blueprint",
+        note: "Defining a method, not running one." },
+      { line: "dplay",
+        panels: [{ blueprint: "Dog" }],
+        calc: "def play(self):  ->  a second method on the blueprint",
+        note: "Both <code>def</code> lines run top to bottom before anything " +
+              "else. The blueprint now knows two methods and owns no data." },
+      { line: "mk1",
+        panels: [{ blueprint: "Dog" },
+                 { newobj: true, cls: "Dog", attrs: [], self: true }],
+        calc: 'Dog("Rex")  ->  a blank object, then __init__ on it',
+        note: "An empty object. <code>__init__</code> is about to put two boxes " +
+              "on it." },
+      { line: "sname",
+        panels: [{ blueprint: "Dog" },
+                 { newobj: true, cls: "Dog", attrs: [["name", '"Rex"']],
+                   self: true, added: 0 }],
+        calc: 'self.name = "Rex"',
+        note: "First box." },
+      { line: "senergy",
+        panels: [{ blueprint: "Dog" },
+                 { name: "rex", cls: "Dog",
+                   attrs: [["name", '"Rex"'], ["energy", "100"]],
+                   added: 1, self: true }],
+        calc: "self.energy = 100",
+        note: "<strong>Every</strong> new Dog gets its own energy of 100, " +
+              "because this line runs once per object. It is not one shared 100." },
+      { line: "mk2",
+        panels: [{ blueprint: "Dog" },
+                 { name: "rex", cls: "Dog",
+                   attrs: [["name", '"Rex"'], ["energy", "100"]] },
+                 { newobj: true, cls: "Dog", attrs: [], self: true }],
+        calc: 'Dog("Bella")  ->  a second blank object',
+        note: "Second object on the way." },
+      { line: "sname",
+        panels: [{ blueprint: "Dog" },
+                 { name: "rex", cls: "Dog",
+                   attrs: [["name", '"Rex"'], ["energy", "100"]] },
+                 { newobj: true, cls: "Dog", attrs: [["name", '"Bella"']],
+                   self: true, added: 0 }],
+        calc: 'self.name = "Bella"',
+        note: "Same line as before, filling in a different object." },
+      { line: "senergy",
+        panels: [{ blueprint: "Dog" },
+                 { name: "rex", cls: "Dog",
+                   attrs: [["name", '"Rex"'], ["energy", "100"]] },
+                 { name: "bella", cls: "Dog",
+                   attrs: [["name", '"Bella"'], ["energy", "100"]],
+                   added: 1, self: true }],
+        calc: "self.energy = 100",
+        note: "Two dogs, both on 100. <strong>Two separate boxes</strong> that " +
+              "happen to hold the same number — that is the thing to watch " +
+              "next." },
+      { line: "call",
+        panels: [{ blueprint: "Dog" },
+                 { name: "rex", cls: "Dog",
+                   attrs: [["name", '"Rex"'], ["energy", "100"]], self: true },
+                 { name: "bella", cls: "Dog",
+                   attrs: [["name", '"Bella"'], ["energy", "100"]] }],
+        calc: "rex.play()  ->  Dog.play(rex)",
+        note: "Here is the whole idea. <code>rex.play()</code> is Python calling " +
+              "<code>Dog.play(rex)</code>, so <code>self</code> <strong>is " +
+              "rex</strong> — decided by what sits left of the dot." },
+      { line: "drop",
+        panels: [{ blueprint: "Dog" },
+                 { name: "rex", cls: "Dog",
+                   attrs: [["name", '"Rex"'], ["energy", "80"]],
+                   self: true, changed: 1, was: "100" },
+                 { name: "bella", cls: "Dog",
+                   attrs: [["name", '"Bella"'], ["energy", "100"]] }],
+        calc: "self.energy = 100 - 20  ->  80",
+        note: "One box changed. <code>bella.energy</code> is sitting right there " +
+              "and <strong>did not move</strong>, because <code>self</code> was " +
+              "never her." },
+      { line: "prex",
+        panels: [{ blueprint: "Dog" },
+                 { name: "rex", cls: "Dog",
+                   attrs: [["name", '"Rex"'], ["energy", "80"]], pick: 1 },
+                 { name: "bella", cls: "Dog",
+                   attrs: [["name", '"Bella"'], ["energy", "100"]] }],
+        out: "80",
+        calc: "print(rex.energy)  ->  80",
+        note: "The change outlived the method. That is what <code>self.</code> " +
+              "bought — a plain <code>energy = energy - 20</code> would read " +
+              "100 here." },
+      { line: "pbella",
+        panels: [{ blueprint: "Dog" },
+                 { name: "rex", cls: "Dog",
+                   attrs: [["name", '"Rex"'], ["energy", "80"]] },
+                 { name: "bella", cls: "Dog",
+                   attrs: [["name", '"Bella"'], ["energy", "100"]], pick: 1 }],
+        out: "100",
+        calc: "print(bella.energy)  ->  100",
+        note: "Untouched. One <code>play</code> method, written once, and it " +
+              "tires out exactly the dog you called it on." }
+    ]
+  },
+
+  sign: {
+    todos: { cls: "", init: "", sowner: "", sbal: "a", b1: "", dwd: "c",
+             chk: "c", refuse: "c", ret: "c", take: "c", b2: "", mk: "",
+             call: "c", p1: "b", poke: "c", p2: "b" },
+    label: "A sign, not a lock",
+    part: 6,
+    covers: "TODOs b and c — the guard inside withdraw, and what happens when you go around it.",
+    aside: {
+      title: "Then what is the underscore FOR?",
+      html:
+        "<p>If Python will not stop you, the underscore looks useless. It is " +
+        "not, and the reason is about people rather than enforcement.</p>" +
+        "<p><code>_balance</code> tells the next programmer — often you, " +
+        "later — <em>“this is how the class works inside; do not " +
+        "reach for it”</em>. The public way in is " +
+        "<code>deposit()</code>, <code>withdraw()</code> and " +
+        "<code>get_balance()</code>, and those are where the rules live.</p>" +
+        "<table><thead><tr>" +
+        "<th scope=\"col\">Route</th><th scope=\"col\">Rule checked?</th>" +
+        "</tr></thead><tbody>" +
+        "<tr><th scope=\"row\"><code>acct.withdraw(500)</code></th>" +
+        "<td>yes — refused</td></tr>" +
+        "<tr><th scope=\"row\"><code>acct._balance = -999</code></th>" +
+        "<td><strong>no</strong> — nothing ran</td></tr>" +
+        "</tbody></table>" +
+        "<p class=\"big\">A guard inside a method only guards the code that " +
+        "goes through the method.</p>" +
+        "<p>Some languages do enforce it — <code>private</code> in Java " +
+        "and C++ is checked by the compiler. Python's answer is that a " +
+        "warning everyone honors is cheaper than a lock, and that anyone " +
+        "determined enough to get around a lock will. Two underscores " +
+        "(<code>__balance</code>) make the name harder to reach by mangling " +
+        "it, but that is still not a lock, and it is not in this course.</p>"
+    },
+    code: [
+      { k: "cls",    t: "class BankAccount:" },
+      { k: "init",   t: "    def __init__(self, owner, balance=0.0):" },
+      { k: "sowner", t: "        self.owner = owner" },
+      { k: "sbal",   t: "        self._balance = balance" },
+      { k: "b1",     t: "" },
+      { k: "dwd",    t: "    def withdraw(self, amount):" },
+      { k: "chk",    t: "        if amount > self._balance:" },
+      { k: "refuse", t: '            print("Insufficient funds")' },
+      { k: "ret",    t: "            return" },
+      { k: "take",   t: "        self._balance = self._balance - amount" },
+      { k: "b2",     t: "" },
+      { k: "mk",     t: 'acct = BankAccount("Ada", 100.0)' },
+      { k: "call",   t: "acct.withdraw(500.0)" },
+      { k: "p1",     t: "print(acct._balance)" },
+      { k: "poke",   t: "acct._balance = -999.0" },
+      { k: "p2",     t: "print(acct._balance)" }
+    ],
+    steps: [
+      { line: "cls",
+        panels: [{ blueprint: "BankAccount" }],
+        calc: "class BankAccount:  ->  a blueprint called BankAccount",
+        note: "A balance is not just data — there are numbers it must never " +
+              "reach. That is what makes this class worth guarding." },
+      { line: "init",
+        panels: [{ blueprint: "BankAccount" }],
+        calc: "def __init__(self, owner, balance=0.0):  ->  stored on the blueprint",
+        note: "<code>balance=0.0</code> is a default parameter, the same thing " +
+              "you wrote in Module 6. It lets an account open with nothing in it." },
+      { line: "dwd",
+        panels: [{ blueprint: "BankAccount" }],
+        calc: "def withdraw(self, amount):  ->  stored on the blueprint",
+        note: "The method that will hold the rule." },
+      { line: "mk",
+        panels: [{ blueprint: "BankAccount" },
+                 { newobj: true, cls: "BankAccount", attrs: [], self: true }],
+        calc: 'BankAccount("Ada", 100.0)  ->  a blank object, then __init__ on it',
+        note: "Blank object, about to be filled in." },
+      { line: "sowner",
+        panels: [{ blueprint: "BankAccount" },
+                 { newobj: true, cls: "BankAccount", attrs: [["owner", '"Ada"']],
+                   self: true, added: 0 }],
+        calc: 'self.owner = "Ada"',
+        note: "<code>owner</code> has no underscore: reading it from outside is " +
+              "fine and nothing can go wrong." },
+      { line: "sbal",
+        panels: [{ blueprint: "BankAccount" },
+                 { name: "acct", cls: "BankAccount",
+                   attrs: [["owner", '"Ada"'], ["_balance", "100.0"]],
+                   added: 1, self: true }],
+        calc: "self._balance = 100.0",
+        note: "One underscore. It is a <strong>note to the next programmer</strong>, " +
+              "not a lock — and the rest of this demo is about what that " +
+              "actually means." },
+      { line: "call",
+        panels: [{ blueprint: "BankAccount" },
+                 { name: "acct", cls: "BankAccount",
+                   attrs: [["owner", '"Ada"'], ["_balance", "100.0"]],
+                   self: true }],
+        calc: "acct.withdraw(500.0)  ->  BankAccount.withdraw(acct, 500.0)",
+        note: "Asking for 500 out of an account holding 100. This is the route " +
+              "that checks." },
+      { line: "chk",
+        panels: [{ blueprint: "BankAccount" },
+                 { name: "acct", cls: "BankAccount",
+                   attrs: [["owner", '"Ada"'], ["_balance", "100.0"]],
+                   self: true, pick: 1 }],
+        ret: "True",
+        calc: "500.0 > 100.0  ->  True",
+        note: "The guard. <code>self._balance</code> reads the box on this object, " +
+              "and the answer sends us into the refusal." },
+      { line: "refuse",
+        panels: [{ blueprint: "BankAccount" },
+                 { name: "acct", cls: "BankAccount",
+                   attrs: [["owner", '"Ada"'], ["_balance", "100.0"]],
+                   self: true }],
+        out: "Insufficient funds",
+        dead: ["take"],
+        calc: 'print("Insufficient funds")',
+        note: "It says no. Look at the struck-through line — the subtraction " +
+              "is still sitting there, and it is about to be skipped entirely." },
+      { line: "ret",
+        panels: [{ blueprint: "BankAccount" },
+                 { name: "acct", cls: "BankAccount",
+                   attrs: [["owner", '"Ada"'], ["_balance", "100.0"]],
+                   self: true }],
+        dead: ["take"],
+        calc: "return  ->  leaves withdraw immediately",
+        note: "<code>return</code> with no value abandons the rest of the method. " +
+              "<strong>Nothing on that line explains why it never ran</strong> " +
+              "— the reason is three lines above it." },
+      { line: "p1",
+        panels: [{ blueprint: "BankAccount" },
+                 { name: "acct", cls: "BankAccount",
+                   attrs: [["owner", '"Ada"'], ["_balance", "100.0"]], pick: 1 }],
+        out: "100.0",
+        calc: "print(acct._balance)  ->  100.0",
+        note: "Still 100. The rule held — and notice we just read " +
+              "<code>_balance</code> from outside the class without any trouble " +
+              "at all." },
+      { line: "poke",
+        panels: [{ blueprint: "BankAccount" },
+                 { name: "acct", cls: "BankAccount",
+                   attrs: [["owner", '"Ada"'], ["_balance", "-999.0"]],
+                   changed: 1, was: "100.0" }],
+        calc: "acct._balance = -999.0",
+        note: "<strong>Python allowed it.</strong> No error, no warning, no " +
+              "method consulted. A balance of minus 999 that no bank on earth " +
+              "would permit, in one line, from outside." },
+      { line: "p2",
+        panels: [{ blueprint: "BankAccount" },
+                 { name: "acct", cls: "BankAccount",
+                   attrs: [["owner", '"Ada"'], ["_balance", "-999.0"]], pick: 1 }],
+        out: "-999.0",
+        calc: "print(acct._balance)  ->  -999.0",
+        note: "The guard was inside <code>withdraw()</code> and we went around " +
+              "<code>withdraw()</code>. <strong>A sign, not a lock</strong> " +
+              "— which is exactly what the underscore was warning about." }
+    ]
+  },
+
+  show: {
+    todos: { c1: "", i1: "", s1: "", b1: "", c2: "", i2: "", s2: "",
+             i3: "b", s3: "b", b2: "", mk1: "a", p1: "a", mk2: "b", p2: "b" },
+    label: "What print shows before __str__",
+    part: 7,
+    covers: "TODOs a and b — the same object printed, with and without __str__.",
+    aside: {
+      title: "What IS that 0x000001A2 number?",
+      html:
+        "<p>It is where the object currently sits in memory, written in hex. " +
+        "It is real, it is correct, and it tells a student nothing — " +
+        "which is the point of the step.</p>" +
+        "<p><strong>It changes every run.</strong> Run the program twice and " +
+        "you get two different addresses for the same object, so it is never " +
+        "something to copy down or compare against.</p>" +
+        "<p>Python falls back to it because the default answer to " +
+        "<em>“what does this object look like as text?”</em> has to " +
+        "work for every object ever written, including ones with nothing " +
+        "worth saying. The class name plus an address is the only honest " +
+        "answer available without your help.</p>" +
+        "<p><code>__str__</code> is you giving it that help. There is a " +
+        "second one, <code>__repr__</code>, which is what you see at the " +
+        "interactive prompt and inside a list — which is why a list of " +
+        "your objects still prints addresses even after you add " +
+        "<code>__str__</code>. Worth knowing; not needed today.</p>"
+    },
+    code: [
+      { k: "c1",  t: "class Plain:" },
+      { k: "i1",  t: "    def __init__(self, name):" },
+      { k: "s1",  t: "        self.name = name" },
+      { k: "b1",  t: "" },
+      { k: "c2",  t: "class Labeled:" },
+      { k: "i2",  t: "    def __init__(self, name):" },
+      { k: "s2",  t: "        self.name = name" },
+      { k: "i3",  t: "    def __str__(self):" },
+      { k: "s3",  t: '        return self.name + " the Border Collie"' },
+      { k: "b2",  t: "" },
+      { k: "mk1", t: 'a = Plain("Rex")' },
+      { k: "p1",  t: "print(a)" },
+      { k: "mk2", t: 'b = Labeled("Rex")' },
+      { k: "p2",  t: "print(b)" }
+    ],
+    steps: [
+      { line: "c1",
+        panels: [{ blueprint: "Plain" }],
+        calc: "class Plain:  ->  a blueprint with no __str__",
+        note: "Two classes in this demo. They are identical except for one " +
+              "method, and that is the only thing being tested." },
+      { line: "i1",
+        panels: [{ blueprint: "Plain" }],
+        calc: "def __init__(self, name):  ->  stored on Plain",
+        note: "Plain can hold a name. It cannot say anything about itself." },
+      { line: "c2",
+        panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" }],
+        calc: "class Labeled:  ->  a second blueprint",
+        note: "Same shape, about to get one extra method." },
+      { line: "i2",
+        panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" }],
+        calc: "def __init__(self, name):  ->  stored on Labeled",
+        note: "Identical to Plain's so far." },
+      { line: "i3",
+        panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" }],
+        calc: "def __str__(self):  ->  stored on Labeled",
+        note: "<strong>This is the entire difference.</strong> Labeled has a " +
+              "<code>__str__</code>; Plain does not." },
+      { line: "mk1",
+        panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" },
+                 { newobj: true, cls: "Plain", attrs: [], self: true }],
+        calc: 'Plain("Rex")  ->  a blank object, then __init__ on it',
+        note: "A Plain object on the way." },
+      { line: "s1",
+        panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" },
+                 { name: "a", cls: "Plain", attrs: [["name", '"Rex"']],
+                   added: 0, self: true }],
+        calc: 'self.name = "Rex"',
+        note: "It holds the name perfectly well. Everything is in there." },
+      { line: "p1",
+        panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" },
+                 { name: "a", cls: "Plain", attrs: [["name", '"Rex"']] }],
+        out: "<__main__.Plain object at 0x000001A2>",
+        calc: "print(a)  ->  str(a)  ->  no __str__, so: class name + address",
+        note: "<strong>The name is right there in the box</strong> and print did " +
+              "not use it. <code>print</code> asked the object what it looks like " +
+              "as text, and Plain had no answer to give." },
+      { line: "mk2",
+        panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" },
+                 { name: "a", cls: "Plain", attrs: [["name", '"Rex"']] },
+                 { newobj: true, cls: "Labeled", attrs: [], self: true }],
+        calc: 'Labeled("Rex")  ->  a blank object, then __init__ on it',
+        note: "Now the one with <code>__str__</code>." },
+      { line: "s2",
+        panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" },
+                 { name: "a", cls: "Plain", attrs: [["name", '"Rex"']] },
+                 { name: "b", cls: "Labeled", attrs: [["name", '"Rex"']],
+                   added: 0, self: true }],
+        calc: 'self.name = "Rex"',
+        note: "Same attribute, same value as <code>a</code>. The objects hold " +
+              "identical data." },
+      { line: "p2",
+        panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" },
+                 { name: "a", cls: "Plain", attrs: [["name", '"Rex"']] },
+                 { name: "b", cls: "Labeled", attrs: [["name", '"Rex"']],
+                   self: true }],
+        calc: "print(b)  ->  str(b)  ->  calls b.__str__()",
+        note: "<strong>Nothing printed yet.</strong> <code>print</code> is asking " +
+              "the object, and this time there is a method to ask — the next " +
+              "line is inside it. You never call <code>__str__</code> yourself." },
+      { line: "s3",
+        panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" },
+                 { name: "a", cls: "Plain", attrs: [["name", '"Rex"']] },
+                 { name: "b", cls: "Labeled", attrs: [["name", '"Rex"']],
+                   self: true, pick: 0 }],
+        out: "Rex the Border Collie",
+        calc: 'return "Rex" + " the Border Collie"  ->  "Rex the Border Collie"',
+        note: "The string the object handed back is what print showed. " +
+              "<strong>The object never changed</strong> — <code>a</code> and " +
+              "<code>b</code> still hold the same one attribute. Only what it can " +
+              "say about itself did." }
+    ]
+  }
+};
+
+var order = ["init", "dot", "sign", "show"];
+
+var current = order[0];
+var at = 0;
+
+var tabsEl = document.getElementById("tabs");
+var stage = document.getElementById("stage");
+var countEl = document.getElementById("count");
+var backBtn = document.getElementById("back");
+var nextBtn = document.getElementById("next");
+
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;");
+}
+
+/* One pass, first alternative wins, so a keyword inside a string is never
+   re-colored. Written against the handful of constructs these short
+   programs use -- it is a colorer, not a parser. */
+var TOKENS = new RegExp([
+  "(#.*$)",                                   // comment
+  "(\"[^\"]*\"|'[^']*')",                     // string
+  "\\b(print|len|list|range|input|keys|values|items)\\b",
+  "\\b(del|not|in|for|if|else|None|True|False)\\b",
+  "\\b(\\d+\\.\\d+|\\d+)\\b"                  // number
+].join("|"), "g");
+
+function hi(src) {
+  return esc(src).replace(TOKENS, function (m, cm, st, fn, kw, nm) {
+    if (cm) { return '<span class="cm">' + cm + "</span>"; }
+    if (st) { return '<span class="st">' + st + "</span>"; }
+    if (fn) { return '<span class="fn">' + fn + "</span>"; }
+    if (kw) { return '<span class="kw">' + kw + "</span>"; }
+    return '<span class="nm">' + nm + "</span>";
+  });
+}
+
+/* Which pass of its own line this step is, and how many there are in total.
+   Only meaningful inside a loop; one-pass lines get nothing. */
+function passInfo(demo, i) {
+  if (demo.steps[i].end) { return { ends: true }; }
+  var key = demo.steps[i].line, n = 0, mine = 0;
+  for (var j = 0; j < demo.steps.length; j++) {
+    if (demo.steps[j].line !== key || demo.steps[j].end) { continue; }
+    n++;
+    if (j === i) { mine = n; }
+  }
+  return n > 1 ? { pass: mine, of: n } : null;
+}
+
+function codeHTML(demo, step, stepIndex) {
+  /* "done" dims lines already executed, so the boundary between what has run
+     and what has not is visible without counting. Inside a loop a line below
+     the cursor may already have run on an earlier pass -- dimming by
+     POSITION would then be a lie, so a line is dimmed only if some earlier
+     step was on it. */
+  var activeAt = -1;
+  demo.code.forEach(function (ln, i) { if (ln.k === step.line) { activeAt = i; } });
+  var ran = {};
+  for (var s = 0; s < stepIndex; s++) { ran[demo.steps[s].line] = true; }
+  var dead = {};
+  (step.dead || []).forEach(function (k) { dead[k] = true; });
+  var lengths = demo.code.map(function (ln) { return ln.t.length; })
+                         .sort(function (a, b) { return b - a; });
+  var column = (lengths[1] || lengths[0]) + 2;
+  var info = passInfo(demo, stepIndex);
+  return '<div class="code">' + demo.code.map(function (ln, i) {
+    var cls = i === activeAt ? "active"
+            : (dead[ln.k] ? "dead" : (ran[ln.k] ? "done" : ""));
+    var jump = ' data-k="' + ln.k + '" role="button" tabindex="0"' +
+               ' title="Jump to this line"';
+    if (i !== activeAt) {
+      return '<div' + (cls ? ' class="' + cls + '"' : "") + jump + ">" +
+             hi(ln.t) + "</div>";
+    }
+    /* The source is wrapped so the band can be pushed to the right of the
+       same row rather than onto a row of its own, where it read like the next
+       statement to run. */
+    return '<div class="active"' + jump + '><span class="src" style="min-width:' +
+           column + 'ch">' + hi(ln.t) + "</span>" +
+           (step.calc ? '<span class="calc">' + esc(step.calc) + "</span>" : "") +
+           (info ? '<span class="pass' + (info.ends ? " ends" : "") + '">' +
+                   (info.ends ? "loop ends"
+                              : "pass " + info.pass + " of " + info.of) +
+                   "</span>" : "") +
+           "</div>";
+  }).join("") + "</div>";
+}
+
+function attrsHTML(p) {
+  var rows = [];
+  var attrs = p.attrs || [];
+  if (!attrs.length) {
+    rows.push('<p class="empty">no attributes yet &mdash; ' +
+              "nothing has been put on it</p>");
+  }
+  attrs.forEach(function (kv, i) {
+    var cls = "pair";
+    if (p.added === i) { cls += " added"; }
+    if (p.changed === i) { cls += " changed"; }
+    if (p.pick === i) { cls += " pick"; }
+    rows.push('<div class="' + cls + '">' +
+      '<div class="kbox">' + esc(kv[0]) + "</div>" +
+      '<div class="arrow">&rarr;</div>' +
+      '<div class="vbox2">' + esc(kv[1]) + "</div>" +
+      (p.changed === i && p.was
+         ? '<div class="was">was ' + esc(p.was) + "</div>" : "") +
+      "</div>");
+  });
+  return '<div class="pairs">' + rows.join("") + "</div>";
+}
+
+/* A class draws as a flat box with no data in it, on purpose: the whole
+   confusion this stepper exists to clear up is that the class holds the
+   methods and the OBJECTS hold the values. A blueprint panel with attribute
+   rows would put that back. */
+function panelHTML(p) {
+  if (p.blueprint) {
+    return '<div class="dwrap bp"><div class="dhead"><span class="var">' +
+      esc(p.blueprint) + "</span> &middot; the class</div>" +
+      '<p class="bpbody">a blueprint &mdash; holds the methods, ' +
+      "holds no values</p></div>";
+  }
+  var n = (p.attrs || []).length;
+  var title = p.newobj
+    ? '<span class="var anon">the new object</span>'
+    : '<span class="var">' + esc(p.name) + "</span>";
+  return '<div class="dwrap obj' + (p.self ? " isself" : "") + '">' +
+    '<div class="dhead">' + title + " &middot; a " + esc(p.cls) +
+    " object &middot; " + n + (n === 1 ? " attribute" : " attributes") +
+    (p.self ? '<span class="selfbadge">self</span>' : "") +
+    "</div>" + attrsHTML(p) + "</div>";
+}
+
+function lineOf(demo, key) {
+  var hit = null;
+  demo.code.forEach(function (ln) { if (ln.k === key) { hit = ln; } });
+  return hit;
+}
+
+function consoleHTML(demo, upto) {
+  /* Derived from the steps, never authored separately -- but declared per
+     step rather than guessed from the source line. `print(b)` on an object
+     with a __str__ emits NOTHING on its own line: it calls the method, and
+     the text appears when that method returns, two steps later. Inferring
+     the console from "the line looks like a print" got that backwards, which
+     is the one thing demo 4 exists to show. */
+  var rows = [];
+  for (var i = 0; i <= upto; i++) {
+    var st = demo.steps[i];
+    if (st.err) {
+      rows.push('<div class="line err">' + esc(st.err) + "</div>");
+    } else if (st.out !== undefined) {
+      rows.push('<div class="line">' + esc(st.out) + "</div>");
+    }
+  }
+  var body = rows.length ? rows.join("")
+           : '<div class="none">Nothing yet. Only print() puts text here ' +
+             "&mdash; building an object does not.</div>";
+  return '<div class="term"><div class="thead">Console</div>' + body + "</div>";
+}
+
+function render() {
+  var demo = DEMOS[current];
+  var step = demo.steps[at];
+  var html = "";
+
+  /* The dictionary leads. The code moves underneath it, so the pairs stay in
+     one place while the arrow walks down the program. */
+  html += '<div class="panels">' +
+          step.panels.map(panelHTML).join("") + "</div>";
+
+  /* Loop variables, under the panels and above the code: they are filled in
+     BY the code and read BY the code, so they sit between the two. */
+  if (step.bind) {
+    html += '<div class="binds">' + step.bind.map(function (b) {
+      var unset = b.v === null;
+      return '<div class="bind' + (unset ? " unset" : "") + '">' +
+             '<span class="bn">' + esc(b.n) + "</span> = " +
+             '<span class="bv">' + (unset ? "not set by this loop"
+                                          : esc(b.v)) + "</span></div>";
+    }).join("") + "</div>";
+  }
+
+  html += codeHTML(demo, step, at);
+  html += consoleHTML(demo, at);
+
+  /* The console carries anything a step declared and any error, so the
+     handed-back box appears only where the value never reaches the console --
+     which is exactly where it teaches something, on the comparison inside
+     withdraw()'s `if`. */
+  if (step.err) {
+    /* already in the console */
+  } else if (step.ret !== undefined && step.out === undefined) {
+    var shown = step.ret === null ? "None" : step.ret;
+    var isNone = shown === "None";
+    html += '<div class="ret ' + (isNone ? "none" : "val") + '">' +
+            "handed back: " + esc(shown) + "</div>";
+  }
+
+  html += '<p class="note">' + step.note + "</p>";
+  /* Collapsed: it is an aside, and the demo is the lesson. Rendered last so
+     it never pushes the panels or the code down the page. */
+  if (demo.aside) {
+    html += '<details class="aside"><summary>' + esc(demo.aside.title) +
+            '</summary><div class="body">' + demo.aside.html + "</div></details>";
+  }
+  stage.innerHTML = html;
+  document.getElementById("covers").innerHTML =
+    "<strong>main.py Part " + demo.part + "</strong> &middot; " +
+    esc(demo.covers);
+  countEl.textContent = "Step " + (at + 1) + " of " + demo.steps.length;
+
+  /* Which TODO this step is. Steps that demonstrate background rather than an
+     instruction say so outright -- sending somebody to look for a TODO that
+     does not exist is worse than saying nothing. */
+  var letter = (demo.todos || {})[step.line];
+  var tb = document.getElementById("todobar");
+  if (letter) {
+    tb.className = "todobar";
+    tb.innerHTML = "&#9997; <b>This is TODO " + demo.part + letter +
+      "</b> &mdash; when it makes sense, go and write it in " +
+      "<code>main.py</code>, Part " + demo.part + ".";
+  } else {
+    tb.className = "todobar bg";
+    tb.innerHTML = "Background for Part " + demo.part +
+      " &mdash; no TODO of its own. Worth seeing, nothing to write yet.";
+  }
+  backBtn.disabled = at === 0;
+  nextBtn.disabled = at === demo.steps.length - 1;
+}
+
+function buildTabs() {
+  tabsEl.innerHTML = "";
+  order.forEach(function (key) {
+    var b = document.createElement("button");
+    b.className = "tab";
+    b.type = "button";
+    var ls = [];
+    Object.keys(DEMOS[key].todos || {}).forEach(function (k) {
+      var v = DEMOS[key].todos[k];
+      if (v && ls.indexOf(v) === -1) { ls.push(v); }
+    });
+    ls.sort();
+    var span = ls.length > 1 ? ls[0] + "\u2013" + ls[ls.length - 1] : ls[0];
+    b.innerHTML = '<span class="tpart">Part ' + DEMOS[key].part +
+                  (span ? " \u00b7 TODO " + span : "") + "</span>" +
+                  esc(DEMOS[key].label);
+    b.setAttribute("aria-pressed", String(key === current));
+    b.addEventListener("click", function () {
+      current = key; at = 0; buildTabs(); render(); stage.focus();
+    });
+    tabsEl.appendChild(b);
+  });
+}
+
+function go(n) {
+  var max = DEMOS[current].steps.length - 1;
+  at = Math.max(0, Math.min(max, n));
+  render();
+}
+
+nextBtn.addEventListener("click", function () { go(at + 1); });
+backBtn.addEventListener("click", function () { go(at - 1); });
+document.getElementById("reset").addEventListener("click", function () {
+  go(0);
+});
+/* Arrows work anywhere on the page, not only once the stage has been clicked.
+   Bound to the document rather than to the stage: a presenter who has just
+   pressed a tab, or who has not clicked at all, still expects Right to go
+   forward, and "click the panel first" is not something anyone reads.
+
+   Deliberately NOT also bound to the stage -- the event bubbles, so two
+   listeners would advance two steps on one press. */
+document.addEventListener("keydown", function (e) {
+  if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+  var t = e.target || {};
+  var tag = t.tagName;
+  // Leave the arrow keys alone where they already mean something.
+  if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA"
+      || t.isContentEditable) { return; }
+  if (e.key === "ArrowRight" || e.key === "PageDown") {
+    go(at + 1); e.preventDefault();
+  } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+    go(at - 1); e.preventDefault();
+  } else if (e.key === "Home") {
+    go(0); e.preventDefault();
+  } else if (e.key === "End") {
+    go(DEMOS[current].steps.length - 1); e.preventDefault();
+  }
+});
+
+/* Delegated: render() rewrites the stage on every step, so listeners bound to
+   individual lines would have to be rebound each time. A line inside a loop
+   is several steps; the click lands on the FIRST pass, which is where you
+   want to be when you jump to it. */
+function jumpToLine(key) {
+  var demo = DEMOS[current];
+  for (var i = 0; i < demo.steps.length; i++) {
+    if (demo.steps[i].line === key) { go(i); return; }
+  }
+}
+stage.addEventListener("click", function (e) {
+  var row = e.target.closest ? e.target.closest("[data-k]") : null;
+  if (row) { jumpToLine(row.getAttribute("data-k")); }
+});
+stage.addEventListener("keydown", function (e) {
+  if (e.key !== "Enter" && e.key !== " ") { return; }
+  var row = e.target.closest ? e.target.closest("[data-k]") : null;
+  if (row) { e.preventDefault(); jumpToLine(row.getAttribute("data-k")); }
+});
+
+buildTabs();
+render();
+</script>
+</body>
+</html>
