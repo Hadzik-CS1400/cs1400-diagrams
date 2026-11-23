@@ -992,8 +992,11 @@ var DEMOS = {
               "marks what Part 3 adds; the dimmed lines are carried forward " +
               "and the arrow will not stop on them again." },
       { line: "init", panels: [{ blueprint: "Dog", methods: ["__init__"] }],
-        calc: "def __init__  ->  carried forward, one line longer",
-        note: "Same initializer you already wrote, with one new line in it." },
+        calc: "def __init__  ->  from Part 1, but with a NEW line inside it",
+        note: "The method is Part 1's, but look inside: <code>self.energy = 100</code> "
+              + "is green, and it is <strong>TODO a</strong>. The attribute does not "
+              + "exist until this Part — every Dog you built before now had a "
+              + "name and a breed and nothing else." },
       { line: "dbark", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }],
         calc: "def bark  ->  carried forward from Part 2",
         note: "Still on the blueprint. Nothing you wrote has gone away." },
@@ -1019,8 +1022,8 @@ var DEMOS = {
               "by every Dog in the program." },
       { line: "mk2", panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe", "play", "rest"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""], ["energy", "100"]] }, { newobj: true, cls: "Dog", attrs: [], slots: ["name", "breed", "energy"], self: true }],
         calc: "Dog(\"Bella\", \"Beagle\")  ->  a second blank object",
-        note: "Rex is finished and named. Now the same two lines run again " +
-              "for a different dog." },
+        note: "Rex is finished and named. Now the same three lines run again " +
+              "for a different dog — two carried forward, and the new one." },
       { line: "senergy", panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe", "play", "rest"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""], ["energy", "100"]] }, { name: "bella", cls: "Dog", attrs: [["name", "\"Bella\""], ["breed", "\"Beagle\""], ["energy", "100"]], self: true }, { frame: "__init__ of Dog", vars: [["self", "<Dog>"], ["name", "\"Bella\""], ["breed", "\"Beagle\""]] }],
         calc: "self.energy = 100   ->   Bella's own 100",
         note: "The same line of code, filling a different object's box." },
