@@ -205,11 +205,22 @@
   /* A call frame: what is in scope INSIDE the method, as against what is on
      the object. Dashed, because it is temporary -- it is gone the moment
      __init__ returns, which is the whole point of showing it. */
-  .dwrap.frame { border-style: dashed; border-color: #f9e2af; }
-  .dwrap.frame .dhead { background: #4a3f1e; color: #f9e2af;
-                        padding: .3rem .5rem; border-radius: 6px; }
+  /* Measured, not eyeballed. The first version put a dark #4a3f1e bar
+     behind the header, which left the monospace `.dhead .var` at its teal
+     #00897b -- 2.41:1, a plain WCAG failure, and exactly the half of the
+     header that was unreadable. No other panel has a dark bar; this one
+     does not either now. Every pair below passes AA for text (4.5:1) or
+     the 3:1 UI-component threshold for borders:
+         header label  #6b5618 on #fffbeb   6.82:1
+         header name   #7a3e00 on #fffbeb   8.05:1
+         box text      #5c4600 on #fdf6e3   8.35:1
+         borders       #8a6d1f              4.54:1 / 4.90:1  */
+  .dwrap.frame { border-style: dashed; border-color: #8a6d1f;
+                 background: #fffbeb; }
+  .dwrap.frame .dhead { color: #6b5618; }
+  .dwrap.frame .dhead .var { color: #7a3e00; }
   .dwrap.frame .kbox, .dwrap.frame .vbox2 {
-    border-color: #c9a227; background: #fdf6e3; color: #5c4600;
+    border-color: #8a6d1f; background: #fdf6e3; color: #5c4600;
   }
   .dwrap {
     flex: 1 1 320px;
