@@ -359,7 +359,10 @@
   /* Every active row reserves two lines. Without it a long THIS STEP band
      wraps, the block grows, and the whole page jumps between consecutive
      steps -- which it did going from self.name to self.breed. */
-  .code div.active, .code div.bound { min-height: 2.8em; }
+  /* Two lines of the 1.2rem band inside a 1.45rem/1.65 block need ~4rem.
+     Reserved on every active row so a one-line step and a two-line step
+     are the same height and nothing below them moves. */
+  .code div.active, .code div.bound { min-height: 3.1em; }
 
   .code div.dead, .code div.dead span {
     color: #f38ba8; text-decoration: line-through; font-style: normal;
@@ -605,7 +608,7 @@ var DEMOS = {
               "It describes what a Dog will look like. Nothing is a Dog yet." },
       { line: "init",
         panels: [{ blueprint: "Dog" }],
-        calc: "def __init__  ->  the INITIALIZER, stored on the blueprint",
+        calc: "def __init__  ->  the INITIALIZER, a \"dunder\" Python calls for you\nself = the object being built     name, breed = values you pass in",
         note: "The <code>def</code> line <em>runs</em> here — it creates the " +
               "method and hands it to the blueprint. It does not call it. Still " +
               "zero objects.<br><br>" +
@@ -630,7 +633,7 @@ var DEMOS = {
       { line: "mk1",
         panels: [{ blueprint: "Dog" },
                  { newobj: true, cls: "Dog", attrs: [], self: true }],
-        calc: 'Dog("Rex", "Border Collie")  ->  a blank object, then __init__ on it',
+        calc: 'Dog("Rex", "Border Collie")  ->  a blank object, then __init__ on it\nyou pass 2 values, __init__ takes 3  ->  Python supplies self',
         note: "<strong>The call binds all three parameters at once.</strong> " +
               "<code>self</code> is the empty box on the right; <code>name</code> " +
               "and <code>breed</code> are the two values you typed, now sitting " +
