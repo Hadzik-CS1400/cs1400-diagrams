@@ -507,6 +507,117 @@
    object at that line. */
 
 var DEMOS = {
+  inside: {
+    part: 2,
+    label: "Inside the class, or outside it",
+    covers: "TODOs a and c \u2014 a method written inside the class, against the same work written outside.",
+    aside: {
+      title: "So what does `inside the class` actually buy me?",
+      html: "<p>Exactly one thing, and it is the whole reason to bother: " +
+            "<strong>the object arrives on its own.</strong></p>" +
+            "<p><code>rex.bark()</code> and <code>describe(rex)</code> print " +
+            "almost the same sentence. The difference is who supplies the " +
+            "dog. Inside the class, whatever is left of the dot becomes " +
+            "<code>self</code> and you never type it. Outside, there is no " +
+            "dot and no self, so you must hand the object over by hand \u2014 " +
+            "and nothing stops you calling <code>describe(42)</code>.</p>" +
+            "<p><strong>Indentation is what decides which you wrote.</strong> " +
+            "A <code>def</code> indented one level sits in the class. Flush " +
+            "left, it is an ordinary function that merely mentions dogs. " +
+            "Indent it one level further again and it lands inside " +
+            "<code>__init__</code>, where nothing can call it at all.</p>"
+    },
+    todos: { cls: "", init: "", sname: "", b1: "",
+             dbark: "a", pbark: "a", b2: "",
+             mk: "", call: "c", b3: "",
+             outside: "", pout: "", b4: "", call2: "" },
+    code: [
+      { k: "cls", t: "class Dog:" },
+      { k: "init", t: "    def __init__(self, name):" },
+      { k: "sname", t: "        self.name = name" },
+      { k: "b1", t: "" },
+      { k: "dbark", t: "    def bark(self):" },
+      { k: "pbark", t: "        print(f\"{self.name} says Woof!\")" },
+      { k: "b2", t: "" },
+      { k: "mk", t: "rex = Dog(\"Rex\")" },
+      { k: "call", t: "rex.bark()" },
+      { k: "b3", t: "" },
+      { k: "outside", t: "def describe(dog):" },
+      { k: "pout", t: "    print(f\"{dog.name} is a dog.\")" },
+      { k: "b4", t: "" },
+      { k: "call2", t: "describe(rex)" }
+    ],
+    steps: [
+      { line: "cls", panels: [ { blueprint: "Dog" } ],
+        calc: "class Dog:  ->  a blueprint",
+        note: "Everything indented under this line belongs to the class. " +
+              "Watch where the indentation stops." },
+      { line: "init", panels: [ { blueprint: "Dog" } ],
+        calc: "def __init__  ->  filed on the blueprint",
+        note: "Indented one level, so it is a <strong>method</strong>." },
+      { line: "dbark", panels: [ { blueprint: "Dog" } ],
+        calc: "def bark  ->  filed on the blueprint, beside __init__",
+        note: "Also indented one level, so also a method. It is a sibling of " +
+              "<code>__init__</code>, not something inside it \u2014 indent " +
+              "it one step further and nothing could ever call it." },
+      { line: "mk", panels: [ { blueprint: "Dog" },
+                              { newobj: true, cls: "Dog", attrs: [],
+                                slots: ["name"], self: true } ],
+        calc: "Dog(\"Rex\")  ->  a blank object",
+        note: "One object, about to be filled in." },
+      { line: "sname", panels: [ { blueprint: "Dog" },
+                                 { name: "rex", cls: "Dog",
+                                   attrs: [ [ "name", "\"Rex\"" ] ],
+                                   added: 0, self: true },
+                                 { frame: "__init__ of Dog",
+                                   vars: [ [ "self", "<Dog>" ],
+                                           [ "name", "\"Rex\"" ] ] } ],
+        calc: "self.name = name   ->   \"Rex\"",
+        note: "One attribute on the object. Now the two ways of using it." },
+      { line: "call", panels: [ { blueprint: "Dog" },
+                                { name: "rex", cls: "Dog",
+                                  attrs: [ [ "name", "\"Rex\"" ] ],
+                                  self: true } ],
+        calc: "rex.bark()  ->  Dog.bark(rex)",
+        note: "<strong>You passed nothing.</strong> The object is to the left " +
+              "of the dot, and Python hands it over as <code>self</code>." },
+      { line: "pbark", panels: [ { blueprint: "Dog" },
+                                 { name: "rex", cls: "Dog",
+                                   attrs: [ [ "name", "\"Rex\"" ] ],
+                                   self: true },
+                                 { frame: "bark of Dog",
+                                   vars: [ [ "self", "<Dog>" ] ] } ],
+        out: "Rex says Woof!",
+        calc: "print(f\"{self.name} says Woof!\")",
+        note: "Look at the frame: <strong>one local, and it is " +
+              "<code>self</code></strong>. Being inside the class is what " +
+              "put it there." },
+      { line: "outside", panels: [ { blueprint: "Dog" },
+                                   { name: "rex", cls: "Dog",
+                                     attrs: [ [ "name", "\"Rex\"" ] ] } ],
+        calc: "def describe(dog)  ->  a plain function, NOT on the blueprint",
+        note: "Flush left. Same work, but it is not a method \u2014 the " +
+              "class box does not grow, because nothing was added to it." },
+      { line: "call2", panels: [ { blueprint: "Dog" },
+                                 { name: "rex", cls: "Dog",
+                                   attrs: [ [ "name", "\"Rex\"" ] ] } ],
+        calc: "describe(rex)  ->  you hand the dog over yourself",
+        note: "No dot, no <code>self</code>. <strong>You</strong> have to " +
+              "supply the object, and nothing would stop you writing " +
+              "<code>describe(42)</code>." },
+      { line: "pout", panels: [ { blueprint: "Dog" },
+                                { name: "rex", cls: "Dog",
+                                  attrs: [ [ "name", "\"Rex\"" ] ] },
+                                { frame: "describe (a plain function)",
+                                  vars: [ [ "dog", "<Dog>" ] ] } ],
+        out: "Rex is a dog.",
+        calc: "print(f\"{dog.name} is a dog.\")",
+        note: "The same sentence, reached a different way. The local is " +
+              "called <code>dog</code> because you named the parameter, not " +
+              "because Python knew anything \u2014 and that is the whole " +
+              "difference between a method and a function." }
+    ]
+  },
   moved: {
     part: 8,
     label: "Two classes, one name",
@@ -1171,7 +1282,7 @@ var DEMOS = {
   }
 };
 
-var order = ["init", "dot", "sign", "show", "moved"];
+var order = ["init", "inside", "dot", "sign", "show", "moved"];
 
 var current = order[0];
 var at = 0;
@@ -1448,7 +1559,6 @@ function render() {
    static listing cannot show, and watching bark() print a string is not
    that. Saying so on the tab is cheaper than being asked. */
 var NO_DEMO = {
-  2: "nothing new to watch",
   4: "read it in main.py",
   5: "a Module 8 list"
 };
