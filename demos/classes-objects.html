@@ -565,14 +565,16 @@ var DEMOS = {
       { k: "body", t: "    print(one.owner, one.balance)" }
     ],
     steps: [
-      { line: "a1", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { newobj: true, cls: "BankAccount", attrs: [], slots: ["owner", "_balance"], self: true }],
+      { line: "a1", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }],
         calc: "BankAccount(\"Ada\", 120.00)  ->  one account, not yet in a list",
-        note: "The class is carried forward from Part 4, dimmed. Each line " +
-              "inside the brackets builds an object before the list exists." },
-      { line: "a2", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { newobj: true, cls: "BankAccount", attrs: [], slots: ["owner", "_balance"], self: true }],
+        note: "An account now exists \u2014 and <strong>nothing points at it " +
+              "yet</strong>. The list does not exist until the bracket " +
+              "closes, so there is no name to draw it under. That is why " +
+              "the panel shows only the class." },
+      { line: "a2", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }],
         calc: "BankAccount(\"Grace\", 540.25)  ->  a second",
         note: "Three separate objects, built one at a time." },
-      { line: "a3", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { newobj: true, cls: "BankAccount", attrs: [], slots: ["owner", "_balance"], self: true }],
+      { line: "a3", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }],
         calc: "BankAccount(\"Alan\", 8.75)  ->  a third",
         note: "Still no list. The brackets have not closed yet." },
       { line: "mk", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }],
@@ -583,7 +585,7 @@ var DEMOS = {
         calc: "for one in accounts:  ->  pass 1, one = the Ada account",
         note: "<code>one</code> is not an index and not a copy. It IS the " +
               "first account \u2014 the same object that is in the list." },
-      { line: "body", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { name: "one", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]], self: true }], out: "Ada 120.0",
+      { line: "body", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { name: "one", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]] }], out: "Ada 120.0",
         calc: "print(one.owner, one.balance)",
         note: "The dot works on <code>one</code> exactly as it did on a name " +
               "you chose yourself, and <code>one.balance</code> runs the " +
@@ -591,14 +593,14 @@ var DEMOS = {
       { line: "loop", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { name: "one", cls: "BankAccount", attrs: [["owner", "\"Grace\""], ["_balance", "540.25"]] }],
         calc: "for one in accounts:  ->  pass 2, one = the Grace account",
         note: "Same name, a different object. Nothing about Ada changed." },
-      { line: "body", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { name: "one", cls: "BankAccount", attrs: [["owner", "\"Grace\""], ["_balance", "540.25"]], self: true }], out: "Grace 540.25",
+      { line: "body", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { name: "one", cls: "BankAccount", attrs: [["owner", "\"Grace\""], ["_balance", "540.25"]] }], out: "Grace 540.25",
         calc: "print(one.owner, one.balance)",
         note: "The same line of code, a different answer, because " +
               "<code>one</code> points somewhere else now." },
       { line: "loop", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { name: "one", cls: "BankAccount", attrs: [["owner", "\"Alan\""], ["_balance", "8.75"]] }],
         calc: "for one in accounts:  ->  pass 3, one = the Alan account",
         note: "Last one." },
-      { line: "body", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { name: "one", cls: "BankAccount", attrs: [["owner", "\"Alan\""], ["_balance", "8.75"]], self: true }], out: "Alan 8.75",
+      { line: "body", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { name: "one", cls: "BankAccount", attrs: [["owner", "\"Alan\""], ["_balance", "8.75"]] }], out: "Alan 8.75",
         calc: "print(one.owner, one.balance)",
         note: "Three passes, three objects, one loop body." },
       { line: "loop", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { name: "one", cls: "BankAccount", attrs: [["owner", "\"Alan\""], ["_balance", "8.75"]] }],
@@ -701,11 +703,11 @@ var DEMOS = {
         calc: "def withdraw  ->  the class now holds 4",
         note: "<strong>TODO d.</strong> Part 6 will put a guard in this one. " +
               "For now it just subtracts." },
-      { line: "mk1", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { newobj: true, cls: "BankAccount", attrs: [], slots: ["owner", "_balance"], self: true }],
+      { line: "mk1", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "0.0"]] }],
         calc: "BankAccount(\"Ada\")  ->  one argument, two parameters",
         note: "<strong>TODO e.</strong> No balance given, so the default " +
               "fills it in." },
-      { line: "mk2", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "0.0"]] }, { newobj: true, cls: "BankAccount", attrs: [], slots: ["owner", "_balance"], self: true }],
+      { line: "mk2", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "0.0"]] }, { name: "grace", cls: "BankAccount", attrs: [["owner", "\"Grace\""], ["_balance", "540.25"]] }],
         calc: "BankAccount(\"Grace\", 540.25)  ->  the default overridden",
         note: "Ada opened with 0.0 because nobody said otherwise; Grace with " +
               "540.25 because somebody did. Same line of code." },
@@ -1222,8 +1224,9 @@ var DEMOS = {
         calc: "def rest  ->  NEW in Part 3",
         note: "<strong>TODO c.</strong> Five methods on the blueprint now, " +
               "and still not a single dog." },
-      { line: "mk1", panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe", "play", "rest"] }, { newobj: true, cls: "Dog", attrs: [], slots: ["name", "breed", "energy"], self: true }],
-        calc: "Dog(\"Rex\", \"Border Collie\")  ->  a blank object",
+      { line: "mk1", panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe", "play", "rest"] }, { newobj: true, cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]],
+                   slots: ["energy"], self: true }],
+        calc: "Dog(\"Rex\", \"Border Collie\")  ->  name and breed in, energy next",
         note: "Three boxes coming, because <code>__init__</code> now sets " +
               "three. The walk skips the two you watched fill in Part 1." },
       { line: "senergy", panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe", "play", "rest"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""], ["energy", "100"]], self: true }, { frame: "__init__ of Dog", vars: [["self", "<Dog>"], ["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }],
@@ -1231,8 +1234,9 @@ var DEMOS = {
         note: "<strong>TODO a.</strong> It lives in <code>__init__</code>, " +
               "so each dog gets its OWN energy \u2014 not one number shared " +
               "by every Dog in the program." },
-      { line: "mk2", panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe", "play", "rest"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""], ["energy", "100"]] }, { newobj: true, cls: "Dog", attrs: [], slots: ["name", "breed", "energy"], self: true }],
-        calc: "Dog(\"Bella\", \"Beagle\")  ->  a second blank object",
+      { line: "mk2", panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe", "play", "rest"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""], ["energy", "100"]] }, { newobj: true, cls: "Dog", attrs: [["name", "\"Bella\""], ["breed", "\"Beagle\""]],
+                   slots: ["energy"], self: true }],
+        calc: "Dog(\"Bella\", \"Beagle\")  ->  a second dog, energy next",
         note: "Rex is finished and named. Now the same three lines run again " +
               "for a different dog — two carried forward, and the new one." },
       { line: "senergy", panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe", "play", "rest"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""], ["energy", "100"]] }, { name: "bella", cls: "Dog", attrs: [["name", "\"Bella\""], ["breed", "\"Beagle\""], ["energy", "100"]], self: true }, { frame: "__init__ of Dog", vars: [["self", "<Dog>"], ["name", "\"Bella\""], ["breed", "\"Beagle\""]] }],
@@ -1314,7 +1318,7 @@ var DEMOS = {
         calc: "class BankAccount:  ->  the class you already have",
         note: "Everything Part 4 built is still here. The dimmed lines are " +
               "carried forward; the green rule marks Part 6's work." },
-      { line: "init", panels: [{ blueprint: "BankAccount", methods: ["__init__"] }],
+      { line: "init", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }],
         calc: "def __init__  ->  carried forward from Part 4",
         note: "The underscore on <code>_balance</code> was your choice in " +
               "Part 4. It changes nothing about how Python stores it." },
@@ -1326,8 +1330,8 @@ var DEMOS = {
         calc: "def withdraw  ->  the one with the rule in it",
         note: "Four members on the blueprint. This is the only door with a " +
               "lock on it, which matters when step 14 walks round the back." },
-      { line: "mk", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { newobj: true, cls: "BankAccount", attrs: [], slots: ["owner", "_balance"], self: true }],
-        calc: "BankAccount(\"Ada\", 100.0)  ->  a blank object",
+      { line: "mk", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "100.0"]] }],
+        calc: "BankAccount(\"Ada\", 100.0)  ->  built, filled and named",
         note: "Two boxes coming, both filled by code you wrote in Part 4." },
       { line: "tryl", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "100.0"]] }],
         calc: "try:  ->  anything raised below lands at the except",
@@ -1458,10 +1462,10 @@ var DEMOS = {
         calc: "def __repr__  ->  NEW in Part 7",
         note: "<strong>TODO d.</strong> Three members on the account, two " +
               "of them for printing." },
-      { line: "mkd", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { newobj: true, cls: "Dog", attrs: [], slots: ["name", "breed"], self: true }],
+      { line: "mkd", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }],
         calc: "Dog(\"Rex\", \"Border Collie\")  ->  a blank Dog",
         note: "The box-filling is carried forward; you watched it in Part 1." },
-      { line: "mka", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }, { newobj: true, cls: "BankAccount", attrs: [], slots: ["owner", "_balance"], self: true }],
+      { line: "mka", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]] }],
         calc: "BankAccount(\"Ada\", 120.0)  ->  a blank account",
         note: "One of each, about to be printed." },
       { line: "pd", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]] }],
