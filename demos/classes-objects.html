@@ -575,8 +575,8 @@ var DEMOS = {
               "It describes what a Dog will look like. Nothing is a Dog yet." },
       { line: "init",
         panels: [{ blueprint: "Dog" }],
-        calc: "def __init__(self, name, breed):  ->  stored on the blueprint",
-        note: "The <code>def</code> line <em>runs</em> here — it creates the " +
+        calc: "def __init__  ->  a DUNDER, stored on the blueprint",
+        note: "The <code>def</code> line <em>runs</em> here — it creates the method and hands it to the blueprint. It does not call it. Still zero objects.<br><br><strong>Two underscores each side makes it a &quot;dunder&quot;</strong>, short for double-underscore. A dunder is a method <em>Python</em> calls for you, never one you call yourself: you write <code>Dog(\"Rex\", \"Border Collie\")</code>, not <code>rex.__init__(...)</code>. You will meet two more in Part 7." +
               "method and hands it to the blueprint. It does not call it. Still " +
               "zero objects." },
       { line: "mk1",
@@ -985,7 +985,7 @@ var DEMOS = {
         note: "Identical to Plain's so far." },
       { line: "i3",
         panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" }],
-        calc: "def __str__(self):  ->  stored on Labeled",
+        calc: "def __str__  ->  another DUNDER, stored on Labeled",
         note: "<strong>This is the entire difference.</strong> Labeled has a " +
               "<code>__str__</code>; Plain does not." },
       { line: "mk1",
