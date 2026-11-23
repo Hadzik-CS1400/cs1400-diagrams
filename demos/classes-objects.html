@@ -1264,15 +1264,10 @@ function codeHTML(demo, step, stepIndex) {
 function attrsHTML(p) {
   var rows = [];
   var attrs = p.attrs || [];
-  if (!attrs.length) {
+  if (!attrs.length && !(p.slots || []).length) {
     rows.push('<p class="empty">no attributes yet &mdash; ' +
               "nothing has been put on it</p>");
   }
-  (p.slots || []).forEach(function (n) {
-    rows.push('<div class="pair slot"><div class="kbox">' + esc(n) +
-              '</div><div class="arrow">&rarr;</div>' +
-              '<div class="vbox2 slotbox">not set yet</div></div>');
-  });
   attrs.forEach(function (kv, i) {
     var cls = "pair";
     if (p.added === i) { cls += " added"; }
@@ -1285,6 +1280,15 @@ function attrsHTML(p) {
       (p.changed === i && p.was
          ? '<div class="was">was ' + esc(p.was) + "</div>" : "") +
       "</div>");
+  });
+  /* AFTER the real ones. __init__ assigns top to bottom, so an attribute
+     that is already set was set first -- drawing the reserved boxes above
+     them put `breed` over `name`, which is the opposite of the order the
+     student is watching. */
+  (p.slots || []).forEach(function (n) {
+    rows.push('<div class="pair slot"><div class="kbox">' + esc(n) +
+              '</div><div class="arrow">&rarr;</div>' +
+              '<div class="vbox2 slotbox">not set yet</div></div>');
   });
   return '<div class="pairs">' + rows.join("") + "</div>";
 }
