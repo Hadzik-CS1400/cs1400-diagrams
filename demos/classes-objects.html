@@ -198,7 +198,15 @@
   /* ---- the dictionary itself, first and large --------------------------- */
   /* This is the lesson, not a footnote to the code, so it leads and it is
      sized to read from the back of a room. */
-  .panels { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  /* Reserved so panels appearing and disappearing between steps cannot move
+     everything below them. Blank space is the price, and it is worth it. */
+  .panels { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;
+            align-items: flex-start; min-height: 15.5rem; }
+  /* A call frame: what is in scope INSIDE the method, as against what is on
+     the object. Dashed, because it is temporary -- it is gone the moment
+     __init__ returns, which is the whole point of showing it. */
+  .dwrap.frame { border-style: dashed; border-color: #f9e2af; }
+  .dwrap.frame .dhead { background: #4a3f1e; color: #f9e2af; }
   .dwrap {
     flex: 1 1 320px;
     border: 2px solid var(--line); border-radius: 10px;
@@ -646,7 +654,8 @@ var DEMOS = {
       { line: "sname",
         panels: [{ blueprint: "Dog" },
                  { newobj: true, cls: "Dog", attrs: [["name", '"Rex"']],
-                   self: true, added: 0 }],
+                   self: true, added: 0 },
+                 { frame: "__init__ of Dog", vars: [ [ "self", '<Dog>' ], [ "name", '"Rex"' ], [ "breed", '"Border Collie"' ] ] }],
         params: { line: "init", vars: [ [ "name", '"Rex"' ], [ "breed", '"Border Collie"' ] ] },
         calc: 'self.name = name   ->   "Rex"',
         note: "<code>self</code> is that blank object, so <code>self.name</code> " +
@@ -656,7 +665,8 @@ var DEMOS = {
         panels: [{ blueprint: "Dog" },
                  { name: "rex", cls: "Dog",
                    attrs: [["name", '"Rex"'], ["breed", '"Border Collie"']],
-                   added: 1, self: true }],
+                   added: 1, self: true },
+                 { frame: "__init__ of Dog", vars: [ [ "self", '<Dog>' ], [ "name", '"Rex"' ], [ "breed", '"Border Collie"' ] ] }],
         params: { line: "init", vars: [ [ "name", '"Rex"' ], [ "breed", '"Border Collie"' ] ] },
         calc: 'self.breed = breed   ->   "Border Collie"',
         note: "Both boxes filled, <code>__init__</code> returns, and " +
@@ -675,7 +685,8 @@ var DEMOS = {
                  { name: "rex", cls: "Dog",
                    attrs: [["name", '"Rex"'], ["breed", '"Border Collie"']] },
                  { newobj: true, cls: "Dog", attrs: [["name", '"Bella"']],
-                   self: true, added: 0 }],
+                   self: true, added: 0 },
+                 { frame: "__init__ of Dog", vars: [ [ "self", '<Dog>' ], [ "name", '"Bella"' ], [ "breed", '"Beagle"' ] ] }],
         params: { line: "init", vars: [ [ "name", '"Bella"' ], [ "breed", '"Beagle"' ] ] },
         calc: 'self.name = name   ->   "Bella" now',
         note: "<strong>Same line, different self.</strong> Nobody typed " +
@@ -687,7 +698,8 @@ var DEMOS = {
                    attrs: [["name", '"Rex"'], ["breed", '"Border Collie"']] },
                  { name: "bella", cls: "Dog",
                    attrs: [["name", '"Bella"'], ["breed", '"Beagle"']],
-                   added: 1, self: true }],
+                   added: 1, self: true },
+                 { frame: "__init__ of Dog", vars: [ [ "self", '<Dog>' ], [ "name", '"Bella"' ], [ "breed", '"Beagle"' ] ] }],
         params: { line: "init", vars: [ [ "name", '"Bella"' ], [ "breed", '"Beagle"' ] ] },
         calc: 'self.breed = breed   ->   "Beagle"',
         note: "Two objects, <strong>two sets of boxes</strong>. They share the " +
@@ -930,11 +942,13 @@ var DEMOS = {
         note: "Blank, and about to be filled in." },
       { line: "sowner", panels: [ { blueprint: "BankAccount" }, { newobj: true, cls: "BankAccount",
                                         attrs: [ [ "owner", "\"Ada\"" ] ],
-                                        added: 0, self: true } ],
+                                        added: 0, self: true } ,
+                 { frame: "__init__ of BankAccount", vars: [ [ "self", '<BankAccount>' ], [ "owner", '"Ada"' ], [ "balance", "100.0" ] ] }],
         params: { line: "init", vars: [ [ "owner", '"Ada"' ], [ "balance", "100.0" ] ] },
         calc: "self.owner = owner   ->   \"Ada\"",
         note: "One box filled." },
-      { line: "sbal", panels: [ { blueprint: "BankAccount" }, { name: "acct", cls: "BankAccount", attrs: [ [ "owner", "\"Ada\"" ], [ "_balance", "100.0" ] ], self: true } ],
+      { line: "sbal", panels: [ { blueprint: "BankAccount" }, { name: "acct", cls: "BankAccount", attrs: [ [ "owner", "\"Ada\"" ], [ "_balance", "100.0" ] ], self: true } ,
+                 { frame: "__init__ of BankAccount", vars: [ [ "self", '<BankAccount>' ], [ "owner", '"Ada"' ], [ "balance", "100.0" ] ] }],
         params: { line: "init", vars: [ [ "owner", '"Ada"' ], [ "balance", "100.0" ] ] },
         calc: "self._balance = balance   ->   100.0",
         note: "And the guarded one. <strong>The underscore changes nothing " +
@@ -1237,8 +1251,21 @@ function panelHTML(p) {
   if (p.blueprint) {
     return '<div class="dwrap bp"><div class="dhead"><span class="var">' +
       esc(p.blueprint) + "</span> &middot; the class</div>" +
-      '<p class="bpbody">a blueprint &mdash; holds the methods, ' +
-      "holds no values</p></div>";
+      '<p class="bpbody"><strong>The recipe, not the cake.</strong> ' +
+      "It stores the <em>methods</em> &mdash; the code every " +
+      esc(p.blueprint) + " object will share &mdash; and no data of its " +
+      "own. There is one of these no matter how many objects you build, " +
+      "and asking it for a name would be asking <em>which</em> " +
+      esc(p.blueprint) + "?</p></div>";
+  }
+  if (p.frame) {
+    return '<div class="dwrap frame"><div class="dhead">' +
+      '<span class="var">' + esc(p.frame) + "</span> &middot; local " +
+      "variables, alive only while it runs</div>" +
+      '<table class="attrs">' + (p.vars || []).map(function (kv) {
+        return "<tr><td>" + esc(kv[0]) + "</td><td>" + esc(kv[1]) +
+               "</td></tr>";
+      }).join("") + "</table></div>";
   }
   var n = (p.attrs || []).length;
   var title = p.newobj
