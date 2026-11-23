@@ -612,8 +612,8 @@ var DEMOS = {
     part: 4,
     label: "A class with a rule in it",
     covers: "All five TODOs \u2014 the class, the property, deposit, withdraw, and using them.",
-    skip: ["so", "sb", "dprop"],
-    fresh: ["cls", "init", "dprop", "dbal", "rbal", "ddep", "adep", "dwd", "awd"],
+    skip: ["so", "sb"],
+    fresh: ["cls", "init", "so", "sb", "dprop", "dbal", "rbal", "ddep", "adep", "dwd", "awd"],
     aside: {
       title: "Why a property instead of get_balance()?",
       html: "<p>Because the caller should not have to know whether reading a " +
@@ -666,14 +666,32 @@ var DEMOS = {
               "6, on a class this time. It is what lets " +
               "<code>BankAccount(\"Ada\")</code> mean an account with nothing " +
               "in it." },
+      { line: "dprop", panels: [{ blueprint: "BankAccount", methods: ["__init__"] }],
+        calc: "@property  ->  a line of code, and it runs first",
+        note: "<strong>TODO b, and this line is the new thing.</strong> " +
+              "<code>@property</code> is a <em>decorator</em>: it takes the " +
+              "method written under it and hands back something else to " +
+              "store in its place. Nothing is on the class yet \u2014 look " +
+              "at the box, still just <code>__init__</code>." },
       { line: "dbal", panels: [{ blueprint: "BankAccount", methods: ["__init__"] }],
-        calc: "def balance  ->  with @property on the line above it",
-        note: "<strong>TODO b.</strong> The decorator runs first and wraps " +
-              "this method, which is why the walk touches the def twice." },
+        calc: "def balance(self)  ->  an ordinary method, built but unnamed",
+        note: "The method now exists. <strong>It is still not on the " +
+              "class</strong> \u2014 the decorator has not had it yet, which " +
+              "is why the box has not changed." },
+      { line: "dprop", panels: [{ blueprint: "BankAccount", methods: ["__init__"] }],
+        calc: "property(balance)  ->  the decorator is applied to it",
+        note: "Now the decorator runs on the method it was sitting above. " +
+              "What comes back is a <em>property object</em>: something that " +
+              "runs the method when anybody reads the name." },
       { line: "dbal", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }],
-        calc: "@property applied  ->  the class now has `balance`",
-        note: "Not a method any more as far as a caller is concerned. " +
-              "<code>ada.balance</code>, no brackets." },
+        calc: "balance  ->  stored on the class, no longer a method to callers",
+        note: "<strong>Only now does the box change.</strong> From here " +
+              "<code>ada.balance</code> has no brackets and runs that code " +
+              "anyway.<br><br>This is ordinary Python, not a classroom " +
+              "trick: 32 of the 253 classes in a sample of the standard " +
+              "library use <code>@property</code>, and you have already used " +
+              "one \u2014 <code>Path(\"a/b/c.txt\").name</code> looks like an " +
+              "attribute and is a method." },
       { line: "ddep", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit"] }],
         calc: "def deposit  ->  the class now holds 3",
         note: "<strong>TODO c.</strong> Note what it does NOT do: no print. " +
