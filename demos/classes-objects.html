@@ -296,8 +296,6 @@
   }
   .pair.slot .kbox { color: #4b5563; }
   .slotbox { font-style: italic; }
-  .empty { color: var(--muted); font-style: italic; font-size: 1rem;
-           margin: .4rem 0 .1rem; }
   /* A view (.keys(), .values(), .items()) or a plain list -- a row of cells,
      deliberately NOT drawn as pairs, because a view is one thing in a row and
      a dictionary is two things side by side. */
@@ -436,20 +434,10 @@
   .code div.carried { box-shadow: inset 3px 0 0 #45475a; }
   .code div.fresh { box-shadow: inset 3px 0 0 #a6e3a1; }
 
-  .code div.dead, .code div.dead span {
-    color: #f38ba8; text-decoration: line-through; font-style: normal;
-  }
   /* inline-block, and not merely `text-decoration: none`: a line-through set
      on an ancestor is drawn ACROSS its descendants and a child cannot turn
      it off. Only a new formatting context escapes it -- without this the
      label reading "never runs" is itself struck through. */
-  .code div.dead::after {
-    content: "\2717  never runs"; display: inline-block; margin-left: 1.4rem;
-    font-size: .78rem; font-weight: 800; letter-spacing: .04em;
-    color: #f38ba8; text-decoration: none;
-    font-family: 'Segoe UI', Arial, sans-serif;
-  }
-  .code div.dead::before { display: inline-block; text-decoration: none; }
 </style>
 </head>
 <body>
@@ -949,111 +937,6 @@ var DEMOS = {
     ]
   },
 
-  moved: {
-    part: 8,
-    label: "Two classes, one name",
-    covers: "TODOs b and c \u2014 the class moved, and the copy nobody deleted.",
-    aside: {
-      title: "Why does the second one win?",
-      html: "<p><code>from dog import Dog</code> is not a special kind of " +
-            "statement. It runs <code>dog.py</code> top to bottom, then binds " +
-            "the name <code>Dog</code> in this file to the class it found.</p>" +
-            "<p>A <code>class Dog:</code> statement further down <strong>binds " +
-            "the same name again</strong>. Nothing warns you, because nothing " +
-            "is wrong: rebinding a name is ordinary Python, and it is exactly " +
-            "what <code>x = 1</code> then <code>x = 2</code> does.</p>" +
-            "<p>So the class you get is whichever statement ran last, and the " +
-            "other one is still in memory with nothing pointing at it. That is " +
-            "why editing the wrong file appears to do nothing at all \u2014 " +
-            "your edit is real, it compiled, and the name moved on without " +
-            "it.</p><p>The fix is not cleverness. It is deleting the copy.</p>"
-    },
-    todos: { f1: "a", c1: "b", i1: "b", s1: "b", d1: "b", p1: "b", b1: "",
-             f2: "c", c2: "b", i2: "b", s2: "b", d2: "b", p2: "b", b2: "",
-             mk: "", cl: "" },
-    code: [
-      { k: "f1", t: "# ---- dog.py -------------------------------------------" },
-      { k: "c1", t: "class Dog:" },
-      { k: "i1", t: "    def __init__(self, name):" },
-      { k: "s1", t: "        self.name = name" },
-      { k: "d1", t: "    def bark(self):" },
-      { k: "p1", t: "        print(f\"{self.name} says WOOF WOOF!!\")" },
-      { k: "b1", t: "" },
-      { k: "f2", t: "# ---- main.py ----  from dog import Dog ran the lines above" },
-      { k: "c2", t: "class Dog:" },
-      { k: "i2", t: "    def __init__(self, name):" },
-      { k: "s2", t: "        self.name = name" },
-      { k: "d2", t: "    def bark(self):" },
-      { k: "p2", t: "        print(f\"{self.name} says Woof!\")" },
-      { k: "b2", t: "" },
-      { k: "mk", t: "rex = Dog(\"Rex\")" },
-      { k: "cl", t: "rex.bark()" }
-    ],
-    steps: [
-      { line: "c1", panels: [ { blueprint: "Dog" } ],
-        calc: "class Dog:  ->  the blueprint in dog.py",
-        note: "This is the file you moved the class into. Reading it is what " +
-              "<code>from dog import Dog</code> actually does \u2014 the " +
-              "import does not copy anything, it <strong>runs this</strong>." },
-      { line: "i1", panels: [ { blueprint: "Dog" } ],
-        calc: "def __init__  ->  attached to dog.py's Dog",
-        note: "Still no objects. A <code>def</code> inside a class body files " +
-              "the method away on the blueprint." },
-      { line: "d1", panels: [ { blueprint: "Dog" } ],
-        calc: "def bark  ->  prints WOOF WOOF!!",
-        note: "<strong>Note what this bark says.</strong> This is the one you " +
-              "edited. Watch whether it ever runs." },
-      { line: "c2", panels: [ { blueprint: "Dog" } ],
-        calc: "class Dog:  ->  a SECOND blueprint, same name",
-        note: "Here is the copy you forgot to delete when you moved the class " +
-              "out. Python does not object \u2014 it has no rule against two " +
-              "classes with one name, any more than against <code>x</code> " +
-              "being assigned twice." },
-      { line: "i2", panels: [ { blueprint: "Dog" } ],
-        calc: "def __init__  ->  attached to main.py's Dog",
-        note: "A second <code>__init__</code>, on a different blueprint that " +
-              "happens to share a name." },
-      { line: "d2", panels: [ { blueprint: "Dog" } ],
-        calc: "Dog  ->  now means THIS class, not dog.py's",
-        note: "The statement finished, and <strong>the name moved</strong>. " +
-              "<code>Dog</code> no longer refers to the class from " +
-              "<code>dog.py</code>. That class is still in memory with nothing " +
-              "pointing at it, which is why nothing warns you." },
-      { line: "mk", panels: [ { blueprint: "Dog" },
-                              { newobj: true, cls: "Dog", attrs: [] } ],
-        calc: "Dog(\"Rex\")  ->  built from main.py's Dog",
-        note: "A blank object, made from whichever blueprint the name points " +
-              "at <em>now</em>. Nobody chose this; the last statement to run " +
-              "decided it." },
-      { line: "s2", panels: [ { blueprint: "Dog" },
-                              { name: "rex", cls: "Dog",
-                                attrs: [ [ "name", "\"Rex\"" ] ],
-                                added: 0, self: true } ],
-        calc: "self.name = \"Rex\"",
-        note: "Filled in by main.py's <code>__init__</code>. The arrow is in " +
-              "the lower half of the listing \u2014 the half you thought you " +
-              "had deleted." },
-      { line: "cl", panels: [ { blueprint: "Dog" },
-                              { name: "rex", cls: "Dog",
-                                attrs: [ [ "name", "\"Rex\"" ] ],
-                                self: true } ],
-        calc: "rex.bark()  ->  Dog.bark(rex), main.py's Dog",
-        note: "Same dot rule as Part 2. The only question is which " +
-              "<code>bark</code> it finds, and that was settled six steps ago." },
-      { line: "p2", panels: [ { blueprint: "Dog" },
-                              { name: "rex", cls: "Dog",
-                                attrs: [ [ "name", "\"Rex\"" ] ],
-                                self: true } ],
-        dead: ["p1"],
-        out: "Rex says Woof!",
-        calc: "print(f\"{self.name} says Woof!\")",
-        note: "<strong>Woof, not WOOF WOOF.</strong> Look at the struck-through " +
-              "line in dog.py: it never ran. The line you edited in " +
-              "<code>dog.py</code> never ran, and the program did not fail \u2014 " +
-              "it quietly used the other class. Delete the copy and the same " +
-              "program prints the other thing." }
-    ]
-  },
   init: {
     todos: { cls: "", init: "a", sname: "a", sbreed: "a", b1: "",
              mk1: "b", mk2: "b", b2: "", p1: "b", p2: "b" },
@@ -1639,7 +1522,7 @@ var DEMOS = {
   }
 };
 
-var order = ["init", "inside", "dot", "money", "listed", "sign", "show", "shown", "split", "moved"];
+var order = ["init", "inside", "dot", "money", "listed", "sign", "show", "shown", "split"];
 
 var current = order[0];
 var at = 0;
