@@ -525,6 +525,199 @@
    object at that line. */
 
 var DEMOS = {
+  listed: {
+    part: 5,
+    label: "Three accounts in one list",
+    covers: "The whole TODO \u2014 build three, put them in a list, and loop.",
+    skip: ["cls", "init", "so", "sb", "dprop", "dbal", "rbal"],
+    fresh: ["mk", "a1", "a2", "a3", "close", "loop", "body"],
+    aside: {
+      title: "What is actually new here?",
+      html: "<p>Not the list. That is Module 8 and it has not changed.</p>" +
+            "<p>What is new is what the loop variable holds. <code>one</code> " +
+            "is not an index and not a copy \u2014 it IS the account, the same " +
+            "object sitting in the list, and <code>one.balance</code> runs " +
+            "the property on whichever one this pass landed on.</p>" +
+            "<p>Change <code>one._balance</code> inside the loop and the " +
+            "account in the list changes, because there is only one of it.</p>"
+    },
+    todos: { cls: "", init: "", so: "", sb: "", x0: "",
+             dprop: "", dbal: "", rbal: "", x00: "",
+             mk: "a", a1: "a", a2: "a", a3: "a", close: "a", x1: "",
+             loop: "a", body: "a" },
+    code: [
+      { k: "cls", t: "class BankAccount:" },
+      { k: "init", t: "    def __init__(self, owner, balance=0.0):" },
+      { k: "so", t: "        self.owner = owner" },
+      { k: "sb", t: "        self._balance = balance" },
+      { k: "x0", t: "" },
+      { k: "dprop", t: "    @property" },
+      { k: "dbal", t: "    def balance(self):" },
+      { k: "rbal", t: "        return self._balance" },
+      { k: "x00", t: "" },
+      { k: "mk", t: "accounts = [" },
+      { k: "a1", t: "    BankAccount(\"Ada\", 120.00)," },
+      { k: "a2", t: "    BankAccount(\"Grace\", 540.25)," },
+      { k: "a3", t: "    BankAccount(\"Alan\", 8.75)," },
+      { k: "close", t: "]" },
+      { k: "x1", t: "" },
+      { k: "loop", t: "for one in accounts:" },
+      { k: "body", t: "    print(one.owner, one.balance)" }
+    ],
+    steps: [
+      { line: "a1", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { newobj: true, cls: "BankAccount", attrs: [], slots: ["owner", "_balance"], self: true }],
+        calc: "BankAccount(\"Ada\", 120.00)  ->  one account, not yet in a list",
+        note: "The class is carried forward from Part 4, dimmed. Each line " +
+              "inside the brackets builds an object before the list exists." },
+      { line: "a2", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { newobj: true, cls: "BankAccount", attrs: [], slots: ["owner", "_balance"], self: true }],
+        calc: "BankAccount(\"Grace\", 540.25)  ->  a second",
+        note: "Three separate objects, built one at a time." },
+      { line: "a3", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { newobj: true, cls: "BankAccount", attrs: [], slots: ["owner", "_balance"], self: true }],
+        calc: "BankAccount(\"Alan\", 8.75)  ->  a third",
+        note: "Still no list. The brackets have not closed yet." },
+      { line: "mk", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }],
+        calc: "accounts = [ ... ]  ->  now there is a list of three",
+        note: "<strong>The list holds the objects themselves</strong>, not " +
+              "copies of them. Three accounts, one list, one name." },
+      { line: "loop", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { name: "one", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]] }],
+        calc: "for one in accounts:  ->  pass 1, one = the Ada account",
+        note: "<code>one</code> is not an index and not a copy. It IS the " +
+              "first account \u2014 the same object that is in the list." },
+      { line: "body", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { name: "one", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]], self: true }], out: "Ada 120.0",
+        calc: "print(one.owner, one.balance)",
+        note: "The dot works on <code>one</code> exactly as it did on a name " +
+              "you chose yourself, and <code>one.balance</code> runs the " +
+              "property on this account." },
+      { line: "loop", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { name: "one", cls: "BankAccount", attrs: [["owner", "\"Grace\""], ["_balance", "540.25"]] }],
+        calc: "for one in accounts:  ->  pass 2, one = the Grace account",
+        note: "Same name, a different object. Nothing about Ada changed." },
+      { line: "body", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { name: "one", cls: "BankAccount", attrs: [["owner", "\"Grace\""], ["_balance", "540.25"]], self: true }], out: "Grace 540.25",
+        calc: "print(one.owner, one.balance)",
+        note: "The same line of code, a different answer, because " +
+              "<code>one</code> points somewhere else now." },
+      { line: "loop", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { name: "one", cls: "BankAccount", attrs: [["owner", "\"Alan\""], ["_balance", "8.75"]] }],
+        calc: "for one in accounts:  ->  pass 3, one = the Alan account",
+        note: "Last one." },
+      { line: "body", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { name: "one", cls: "BankAccount", attrs: [["owner", "\"Alan\""], ["_balance", "8.75"]], self: true }], out: "Alan 8.75",
+        calc: "print(one.owner, one.balance)",
+        note: "Three passes, three objects, one loop body." },
+      { line: "loop", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }, { name: "one", cls: "BankAccount", attrs: [["owner", "\"Alan\""], ["_balance", "8.75"]] }],
+        calc: "for one in accounts:  ->  nothing left",
+        note: "The list is exhausted and the loop stops. <code>one</code> is " +
+              "still pointing at Alan \u2014 a loop does not tidy up after " +
+              "itself." }
+    ]
+  },
+  money: {
+    part: 4,
+    label: "A class with a rule in it",
+    covers: "All five TODOs \u2014 the class, the property, deposit, withdraw, and using them.",
+    skip: ["so", "sb", "dprop"],
+    fresh: ["cls", "init", "dprop", "dbal", "rbal", "ddep", "adep", "dwd", "awd"],
+    aside: {
+      title: "Why a property instead of get_balance()?",
+      html: "<p>Because the caller should not have to know whether reading a " +
+            "value costs a method call. <code>ada.balance</code> reads like " +
+            "an attribute and runs a method, and if you later need it to do " +
+            "more \u2014 log it, round it, fetch it \u2014 no caller changes.</p>" +
+            "<p>PEP 8 says it directly: expose the attribute name, not an " +
+            "accessor method.</p>" +
+            "<p>There is no setter on purpose, so <code>ada.balance = 500</code> " +
+            "raises <code>AttributeError</code>. The only ways in are " +
+            "<code>deposit</code> and <code>withdraw</code>, which is what " +
+            "Part 6 is built on.</p>"
+    },
+    todos: { cls: "a", init: "a", so: "a", sb: "a", x1: "",
+             dprop: "b", dbal: "b", rbal: "b", x2: "",
+             ddep: "c", adep: "c", x3: "",
+             dwd: "d", awd: "d", x4: "",
+             mk1: "e", mk2: "e", x5: "", dep: "e", wd: "e", pr: "e" },
+    code: [
+      { k: "cls", t: "class BankAccount:" },
+      { k: "init", t: "    def __init__(self, owner, balance=0.0):" },
+      { k: "so", t: "        self.owner = owner" },
+      { k: "sb", t: "        self._balance = balance" },
+      { k: "x1", t: "" },
+      { k: "dprop", t: "    @property" },
+      { k: "dbal", t: "    def balance(self):" },
+      { k: "rbal", t: "        return self._balance" },
+      { k: "x2", t: "" },
+      { k: "ddep", t: "    def deposit(self, amount):" },
+      { k: "adep", t: "        self._balance = self._balance + amount" },
+      { k: "x3", t: "" },
+      { k: "dwd", t: "    def withdraw(self, amount):" },
+      { k: "awd", t: "        self._balance = self._balance - amount" },
+      { k: "x4", t: "" },
+      { k: "mk1", t: "ada = BankAccount(\"Ada\")" },
+      { k: "mk2", t: "grace = BankAccount(\"Grace\", 540.25)" },
+      { k: "x5", t: "" },
+      { k: "dep", t: "ada.deposit(250.00)" },
+      { k: "wd", t: "ada.withdraw(75.50)" },
+      { k: "pr", t: "print(ada.balance)" }
+    ],
+    steps: [
+      { line: "cls", panels: [{ blueprint: "BankAccount", methods: [] }],
+        calc: "class BankAccount:  ->  a second blueprint",
+        note: "<strong>TODO a.</strong> A whole new class, and Dog is " +
+              "untouched. One program can hold as many as you like." },
+      { line: "init", panels: [{ blueprint: "BankAccount", methods: ["__init__"] }],
+        calc: "def __init__(self, owner, balance=0.0)  ->  a DEFAULT",
+        note: "<code>balance=0.0</code> is the default parameter from Module " +
+              "6, on a class this time. It is what lets " +
+              "<code>BankAccount(\"Ada\")</code> mean an account with nothing " +
+              "in it." },
+      { line: "dbal", panels: [{ blueprint: "BankAccount", methods: ["__init__"] }],
+        calc: "def balance  ->  with @property on the line above it",
+        note: "<strong>TODO b.</strong> The decorator runs first and wraps " +
+              "this method, which is why the walk touches the def twice." },
+      { line: "dbal", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }],
+        calc: "@property applied  ->  the class now has `balance`",
+        note: "Not a method any more as far as a caller is concerned. " +
+              "<code>ada.balance</code>, no brackets." },
+      { line: "ddep", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit"] }],
+        calc: "def deposit  ->  the class now holds 3",
+        note: "<strong>TODO c.</strong> Note what it does NOT do: no print. " +
+              "An account is a model of money; what the user sees is the " +
+              "caller's decision." },
+      { line: "dwd", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }],
+        calc: "def withdraw  ->  the class now holds 4",
+        note: "<strong>TODO d.</strong> Part 6 will put a guard in this one. " +
+              "For now it just subtracts." },
+      { line: "mk1", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { newobj: true, cls: "BankAccount", attrs: [], slots: ["owner", "_balance"], self: true }],
+        calc: "BankAccount(\"Ada\")  ->  one argument, two parameters",
+        note: "<strong>TODO e.</strong> No balance given, so the default " +
+              "fills it in." },
+      { line: "mk2", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "0.0"]] }, { newobj: true, cls: "BankAccount", attrs: [], slots: ["owner", "_balance"], self: true }],
+        calc: "BankAccount(\"Grace\", 540.25)  ->  the default overridden",
+        note: "Ada opened with 0.0 because nobody said otherwise; Grace with " +
+              "540.25 because somebody did. Same line of code." },
+      { line: "dep", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "0.0"]], self: true }, { name: "grace", cls: "BankAccount", attrs: [["owner", "\"Grace\""], ["_balance", "540.25"]] }],
+        calc: "ada.deposit(250.00)  ->  BankAccount.deposit(ada, 250.0)",
+        note: "Left of the dot becomes <code>self</code>, exactly as with " +
+              "Dog. Watch which account moves." },
+      { line: "adep", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "250.0"]], changed: 1, was: "0.0", self: true }, { name: "grace", cls: "BankAccount", attrs: [["owner", "\"Grace\""], ["_balance", "540.25"]] }],
+        calc: "self._balance = 0.0 + 250.0  ->  250.0",
+        note: "Ada's balance only. Grace has not moved, and nothing inside " +
+              "<code>deposit</code> mentions either of them." },
+      { line: "wd", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "250.0"]], changed: 1, was: "0.0", self: true }, { name: "grace", cls: "BankAccount", attrs: [["owner", "\"Grace\""], ["_balance", "540.25"]] }],
+        calc: "ada.withdraw(75.50)  ->  BankAccount.withdraw(ada, 75.5)",
+        note: "The same object again." },
+      { line: "awd", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "174.5"]], changed: 1, was: "250.0", self: true }, { name: "grace", cls: "BankAccount", attrs: [["owner", "\"Grace\""], ["_balance", "540.25"]] }],
+        calc: "self._balance = 250.0 - 75.5  ->  174.5",
+        note: "<strong>174.5, not 174.50.</strong> That is a float, and it " +
+              "is why money in floats is a bad habit \u2014 the printing hides " +
+              "it, the arithmetic does not." },
+      { line: "pr", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "174.5"]], changed: 1, was: "250.0", self: true }, { name: "grace", cls: "BankAccount", attrs: [["owner", "\"Grace\""], ["_balance", "540.25"]] }],
+        calc: "print(ada.balance)  ->  no brackets, but a method runs",
+        note: "Watch the next press: the arrow jumps inside the property." },
+      { line: "rbal", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "174.5"]], changed: 1, was: "250.0", self: true }, { name: "grace", cls: "BankAccount", attrs: [["owner", "\"Grace\""], ["_balance", "540.25"]] }, { frame: "balance of BankAccount", vars: [["self", "<BankAccount>"]] }],
+        out: "174.5",
+        calc: "return self._balance  ->  174.5",
+        note: "<strong>That is @property.</strong> It made a method read " +
+              "like an attribute, and the frame shows the one local it gets: " +
+              "<code>self</code>." }
+    ]
+  },
   inside: {
     part: 2,
     label: "Putting methods inside the class",
@@ -826,8 +1019,8 @@ var DEMOS = {
               "method and hands it to the blueprint. It does not call it. Still " +
               "zero objects.<br><br>" +
               "<strong>This is the INITIALIZER, and Python does not call it a " +
-              "constructor.</strong> Other languages do, and the habit travels " +
-              "with people. Python's own documentation is blunt about it: " +
+              "constructor.</strong> Other languages use that word for it. " +
+              "Python's own documentation does not: " +
               "<code>__init__</code> reads <em>&quot;Initialize self&quot;</em>, " +
               "while the method that actually builds the object is " +
               "<code>__new__</code> — <em>&quot;Create and return a new " +
@@ -1285,7 +1478,7 @@ var DEMOS = {
   }
 };
 
-var order = ["init", "inside", "dot", "sign", "show", "moved"];
+var order = ["init", "inside", "dot", "money", "listed", "sign", "show", "moved"];
 
 var current = order[0];
 var at = 0;
@@ -1570,10 +1763,7 @@ function render() {
    apparently lost -- when it is a decision: the stepper is for what a
    static listing cannot show, and watching bark() print a string is not
    that. Saying so on the tab is cheaper than being asked. */
-var NO_DEMO = {
-  4: "read it in main.py",
-  5: "a Module 8 list"
-};
+var NO_DEMO = {};
 
 function buildTabs() {
   tabsEl.innerHTML = "";
