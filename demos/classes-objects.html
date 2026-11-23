@@ -879,6 +879,76 @@ var DEMOS = {
               "split is the whole point of a class." }
     ]
   },
+  split: {
+    part: 8,
+    label: "One class, one file",
+    covers: "All three TODOs \u2014 the class moved out, and main.py importing it.",
+    skip: ["sn", "sb"],
+    fresh: ["f1", "f2", "imp"],
+    aside: {
+      title: "Why is the import shown as a comment?",
+      html: "<p>Because this stepper runs one file, and a real " +
+            "<code>from dog import Dog</code> would need two. The comment " +
+            "marks the spot and the lines above it ARE what the import " +
+            "runs \u2014 that is not a simplification, it is what importing " +
+            "does: it executes dog.py top to bottom, then binds the name " +
+            "<code>Dog</code> here.</p>" +
+            "<p>In your own folder there really are two files, and main.py " +
+            "really does start with that line.</p>"
+    },
+    todos: { f1: "a", cls: "b", init: "b", sn: "b", sb: "b", x1: "",
+             dbark: "b", pbark: "b", x2: "",
+             f2: "", imp: "c", x3: "", mk: "", call: "" },
+    code: [
+      { k: "f1", t: "# ===== dog.py ===================================" },
+      { k: "cls", t: "class Dog:" },
+      { k: "init", t: "    def __init__(self, name, breed):" },
+      { k: "sn", t: "        self.name = name" },
+      { k: "sb", t: "        self.breed = breed" },
+      { k: "x1", t: "" },
+      { k: "dbark", t: "    def bark(self):" },
+      { k: "pbark", t: "        print(f\"{self.name} says Woof!\")" },
+      { k: "x2", t: "" },
+      { k: "f2", t: "# ===== main.py ==================================" },
+      { k: "imp", t: "# from dog import Dog   <- runs dog.py, then names Dog here" },
+      { k: "x3", t: "" },
+      { k: "mk", t: "rex = Dog(\"Rex\", \"Border Collie\")" },
+      { k: "call", t: "rex.bark()" }
+    ],
+    steps: [
+      { line: "cls", panels: [{ blueprint: "Dog", methods: [] }],
+        calc: "class Dog:  ->  and it is in dog.py now",
+        note: "<strong>TODOs a and b.</strong> The whole class is above the " +
+              "main.py banner, which means it is in the other file. Count " +
+              "the <code>class Dog:</code> lines on this screen: there is " +
+              "exactly one." },
+      { line: "init", panels: [{ blueprint: "Dog", methods: ["__init__"] }],
+        calc: "def __init__  ->  moved across with the class",
+        note: "Everything the class had came with it. You cut it out of " +
+              "main.py; you did not retype it." },
+      { line: "dbark", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }],
+        calc: "def bark  ->  moved across too",
+        note: "dog.py holds the whole blueprint. It has no " +
+              "<code>print</code> at the bottom and builds no dogs \u2014 it " +
+              "describes what a Dog IS, and nothing else." },
+      { line: "mk", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }],
+        calc: "Dog(\"Rex\", \"Border Collie\")  ->  built in main.py",
+        note: "<strong>TODO c.</strong> main.py has no class in it at all " +
+              "now, and this line still works \u2014 because the import " +
+              "above brought the name in." },
+      { line: "call", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]], self: true }],
+        calc: "rex.bark()  ->  Dog.bark(rex)",
+        note: "Identical to Part 2. Moving the class changed where the code " +
+              "lives and nothing about what it does." },
+      { line: "pbark", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]], self: true }], out: "Rex says Woof!",
+        calc: "print(f\"{self.name} says Woof!\")",
+        note: "The arrow is up in <strong>dog.py</strong>, running a method " +
+              "from a file main.py never mentions by name again. That is " +
+              "the whole point: main.py reads top to bottom as a program, " +
+              "and the class is somewhere you can reuse it." }
+    ]
+  },
+
   moved: {
     part: 8,
     label: "Two classes, one name",
@@ -1569,7 +1639,7 @@ var DEMOS = {
   }
 };
 
-var order = ["init", "inside", "dot", "money", "listed", "sign", "show", "shown", "moved"];
+var order = ["init", "inside", "dot", "money", "listed", "sign", "show", "shown", "split", "moved"];
 
 var current = order[0];
 var at = 0;
