@@ -339,21 +339,27 @@
     background: rgba(137, 180, 250, .13);
     box-shadow: inset 3px 0 0 #89b4fa;
   }
-  .code .pbind {
-    background: #89b4fa; color: #11111b; font-weight: 700;
-    border-radius: 5px; padding: .05rem .6rem; margin-left: .9rem;
-    font-size: .92rem; white-space: pre-wrap;
+  /* Specificity matters here: `.code div.done span` sets a dim grey, and the
+     def line IS done by the time its parameters are bound -- so the chip was
+     rendered unreadable grey-on-blue until this outranked it. Same recipe as
+     the THIS STEP band, which is legible: dark text on a PALE fill. */
+  .code div.bound .pbind {
+    background: #cfe2ff; color: #0b2545; font-weight: 700;
+    border-radius: 5px; padding: .12rem .7rem; margin-left: .9rem;
+    font-size: 1.1rem; white-space: pre-wrap;
+    font-family: 'Segoe UI', system-ui, Arial, sans-serif;
   }
-  .code .pbind::before {
-    content: "BOUND TO"; font-size: .66rem; font-weight: 800;
-    letter-spacing: .06em; color: #0b2545; background: rgba(255,255,255,.45);
-    border-radius: 3px; padding: .08em .32em; margin-right: .5rem;
-    vertical-align: .1em;
+  .code div.bound .pbind::before {
+    content: "BOUND TO"; font-size: .7rem; font-weight: 800;
+    letter-spacing: .06em; color: #0b2545; background: rgba(11,37,69,.14);
+    border-radius: 3px; padding: .1em .4em; margin-right: .6rem;
+    vertical-align: .12em;
+    font-family: 'Segoe UI', system-ui, Arial, sans-serif;
   }
   /* Every active row reserves two lines. Without it a long THIS STEP band
      wraps, the block grows, and the whole page jumps between consecutive
      steps -- which it did going from self.name to self.breed. */
-  .code div.active, .code div.bound { min-height: 2.6em; }
+  .code div.active, .code div.bound { min-height: 2.8em; }
 
   .code div.dead, .code div.dead span {
     color: #f38ba8; text-decoration: line-through; font-style: normal;
@@ -599,10 +605,28 @@ var DEMOS = {
               "It describes what a Dog will look like. Nothing is a Dog yet." },
       { line: "init",
         panels: [{ blueprint: "Dog" }],
-        calc: "def __init__  ->  a DUNDER, stored on the blueprint",
-        note: "The <code>def</code> line <em>runs</em> here — it creates the method and hands it to the blueprint. It does not call it. Still zero objects.<br><br><strong>Two underscores each side makes it a &quot;dunder&quot;</strong>, short for double-underscore. A dunder is a method <em>Python</em> calls for you, never one you call yourself: you write <code>Dog(\"Rex\", \"Border Collie\")</code>, not <code>rex.__init__(...)</code>. You will meet two more in Part 7." +
+        calc: "def __init__  ->  the INITIALIZER, stored on the blueprint",
+        note: "The <code>def</code> line <em>runs</em> here — it creates the " +
               "method and hands it to the blueprint. It does not call it. Still " +
-              "zero objects." },
+              "zero objects.<br><br>" +
+              "<strong>This is the INITIALIZER, and Python does not call it a " +
+              "constructor.</strong> Other languages do, and the habit travels " +
+              "with people. Python's own documentation is blunt about it: " +
+              "<code>__init__</code> reads <em>&quot;Initialize self&quot;</em>, " +
+              "while the method that actually builds the object is " +
+              "<code>__new__</code> — <em>&quot;Create and return a new " +
+              "object&quot;</em>. You will almost certainly never write " +
+              "<code>__new__</code>.<br><br>" +
+              "That is why <code>__init__</code> has no <code>return</code>: it was " +
+              "handed an object that already existed. Return anything from it and " +
+              "Python raises <code>TypeError: __init__() should return None</code>." +
+              "<br><br>" +
+              "<strong>Two underscores each side makes it a &quot;dunder&quot;</strong>, " +
+              "short for double-underscore. The formal name is a <strong>special " +
+              "method</strong>: one Python calls for you, never one you call " +
+              "yourself. You write <code>Dog(&quot;Rex&quot;, &quot;Border " +
+              "Collie&quot;)</code>, not <code>rex.__init__(...)</code>. Two more " +
+              "wait in Part 7." },
       { line: "mk1",
         panels: [{ blueprint: "Dog" },
                  { newobj: true, cls: "Dog", attrs: [], self: true }],
