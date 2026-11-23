@@ -429,6 +429,12 @@
      Reserved on every active row so a one-line step and a two-line step
      are the same height and nothing below them moves. */
   .code div.active, .code div.bound { min-height: 3.1em; }
+  /* A line carried forward from an earlier Part: shown, so nothing a
+     student built is taken away, but dimmed because the walk does not
+     stop on it again. Green rule marks what is NEW this Part. */
+  .code div.carried, .code div.carried span { color: #6c7486; }
+  .code div.carried { box-shadow: inset 3px 0 0 #45475a; }
+  .code div.fresh { box-shadow: inset 3px 0 0 #a6e3a1; }
 
   .code div.dead, .code div.dead span {
     color: #f38ba8; text-decoration: line-through; font-style: normal;
@@ -930,179 +936,136 @@ var DEMOS = {
   },
 
   dot: {
-    todos: { cls: "", init: "", sname: "", senergy: "a", b1: "",
-             dplay: "b", drop: "b", b2: "", mk1: "", mk2: "", b3: "",
-             call: "d", prex: "d", pbella: "d" },
-    label: "The dot decides what self is",
     part: 3,
-    covers: "TODOs a, b and d — an attribute that changes, and a method that changes it.",
+    label: "The dot decides what self is",
+    covers: "TODOs a, b and d \u2014 an attribute that changes, and which object it changes on.",
+    skip: ["sname", "sbreed"],
+    fresh: ["senergy", "dplay", "drop", "drest", "up", "cap", "capset"],
     aside: {
-      title: "Why self.energy and not just energy?",
-      html:
-        "<p>Both are legal Python. They do completely different things, and " +
-        "this is the bug that costs people an afternoon.</p>" +
-        "<table><thead><tr>" +
-        "<th scope=\"col\">Inside a method</th>" +
-        "<th scope=\"col\">What it is</th>" +
-        "<th scope=\"col\">After the method ends</th></tr></thead><tbody>" +
-        "<tr><th scope=\"row\"><code>self.energy = 80</code></th>" +
-        "<td>a box <strong>on the object</strong></td>" +
-        "<td>still 80</td></tr>" +
-        "<tr><th scope=\"row\"><code>energy = 80</code></th>" +
-        "<td>a plain local variable</td>" +
-        "<td><strong>gone</strong></td></tr>" +
-        "</tbody></table>" +
-        "<p class=\"big\">A method that forgets <code>self.</code> runs " +
-        "without error, prints the right number, and changes nothing. " +
-        "Nothing warns you — you just find the energy back at 100 on " +
-        "the next line.</p>" +
-        "<p>This is the same scope rule from Module 6, not a new one. A name " +
-        "assigned inside a function is local to it. <code>self</code> is the " +
-        "way out: it is a parameter pointing at something that outlives the " +
-        "call.</p>"
+      title: "Why is the whole class here again?",
+      html: "<p>Because this is the class you have. Part 2 added " +
+            "<code>bark</code> and <code>describe</code> and they did not " +
+            "go anywhere \u2014 every Part builds on the last one.</p>" +
+            "<p>The <span style=\"color:#a6e3a1\">green rule</span> marks " +
+            "what Part 3 adds: <code>energy</code>, <code>play</code> and " +
+            "<code>rest</code>. The dimmed lines are carried forward, and " +
+            "the arrow does not stop on them \u2014 you watched those fill " +
+            "in during Part 1 and re-walking them teaches nothing.</p>"
     },
+    todos: { cls: "", init: "", sname: "", sbreed: "", senergy: "a", b1: "",
+             dbark: "", pbark: "", b2: "", ddesc: "", pdesc: "", b3: "",
+             dplay: "b", drop: "b", b4: "", drest: "", up: "", cap: "",
+             capset: "", b5: "", mk1: "", mk2: "", b6: "",
+             call: "d", prex: "d", pbel: "d" },
     code: [
-      { k: "cls",     t: "class Dog:" },
-      { k: "init",    t: "    def __init__(self, name):" },
-      { k: "sname",   t: "        self.name = name" },
+      { k: "cls", t: "class Dog:" },
+      { k: "init", t: "    def __init__(self, name, breed):" },
+      { k: "sname", t: "        self.name = name" },
+      { k: "sbreed", t: "        self.breed = breed" },
       { k: "senergy", t: "        self.energy = 100" },
-      { k: "b1",      t: "" },
-      { k: "dplay",   t: "    def play(self):" },
-      { k: "drop",    t: "        self.energy = self.energy - 20" },
-      { k: "b2",      t: "" },
-      { k: "mk1",     t: 'rex = Dog("Rex")' },
-      { k: "mk2",     t: 'bella = Dog("Bella")' },
-      { k: "b3",      t: "" },
-      { k: "call",    t: "rex.play()" },
-      { k: "prex",    t: "print(rex.energy)" },
-      { k: "pbella",  t: "print(bella.energy)" }
+      { k: "b1", t: "" },
+      { k: "dbark", t: "    def bark(self):" },
+      { k: "pbark", t: "        print(f\"{self.name} says Woof!\")" },
+      { k: "b2", t: "" },
+      { k: "ddesc", t: "    def describe(self):" },
+      { k: "pdesc", t: "        print(f\"{self.name} is a {self.breed}.\")" },
+      { k: "b3", t: "" },
+      { k: "dplay", t: "    def play(self):" },
+      { k: "drop", t: "        self.energy = self.energy - 20" },
+      { k: "b4", t: "" },
+      { k: "drest", t: "    def rest(self):" },
+      { k: "up", t: "        self.energy = self.energy + 30" },
+      { k: "cap", t: "        if self.energy > 100:" },
+      { k: "capset", t: "            self.energy = 100" },
+      { k: "b5", t: "" },
+      { k: "mk1", t: "rex = Dog(\"Rex\", \"Border Collie\")" },
+      { k: "mk2", t: "bella = Dog(\"Bella\", \"Beagle\")" },
+      { k: "b6", t: "" },
+      { k: "call", t: "rex.play()" },
+      { k: "prex", t: "print(rex.energy)" },
+      { k: "pbel", t: "print(bella.energy)" }
     ],
     steps: [
-      { line: "cls",
-        panels: [{ blueprint: "Dog" }],
-        calc: "class Dog:  ->  a blueprint called Dog",
-        note: "No objects yet. Watch how many lines run before one exists." },
-      { line: "init",
-        panels: [{ blueprint: "Dog" }],
-        calc: "def __init__(self, name):  ->  stored on the blueprint",
-        note: "Defining a method, not running one." },
-      { line: "dplay",
-        panels: [{ blueprint: "Dog" }],
-        calc: "def play(self):  ->  a second method on the blueprint",
-        note: "Both <code>def</code> lines run top to bottom before anything " +
-              "else. The blueprint now knows two methods and owns no data." },
-      { line: "mk1",
-        panels: [{ blueprint: "Dog" },
-                 { newobj: true, cls: "Dog", attrs: [], self: true }],
-        calc: 'Dog("Rex")  ->  a blank object, then __init__ on it',
-        note: "An empty object. <code>__init__</code> is about to put two boxes " +
-              "on it." },
-      { line: "sname",
-        panels: [{ blueprint: "Dog" },
-                 { newobj: true, cls: "Dog", attrs: [["name", '"Rex"']],
-                   slots: ["energy"], self: true, added: 0 }],
-        calc: 'self.name = "Rex"',
-        note: "First box." },
-      { line: "senergy",
-        panels: [{ blueprint: "Dog" },
-                 { name: "rex", cls: "Dog",
-                   attrs: [["name", '"Rex"'], ["energy", "100"]],
-                   added: 1, self: true }],
-        calc: "self.energy = 100",
-        note: "<strong>Every</strong> new Dog gets its own energy of 100, " +
-              "because this line runs once per object. It is not one shared 100." },
-      { line: "mk2",
-        panels: [{ blueprint: "Dog" },
-                 { name: "rex", cls: "Dog",
-                   attrs: [["name", '"Rex"'], ["energy", "100"]] },
-                 { newobj: true, cls: "Dog", attrs: [], self: true }],
-        calc: 'Dog("Bella")  ->  a second blank object',
-        note: "Second object on the way." },
-      { line: "sname",
-        panels: [{ blueprint: "Dog" },
-                 { name: "rex", cls: "Dog",
-                   attrs: [["name", '"Rex"'], ["energy", "100"]] },
-                 { newobj: true, cls: "Dog", attrs: [["name", '"Bella"']],
-                   slots: ["energy"], self: true, added: 0 }],
-        calc: 'self.name = "Bella"',
-        note: "Same line as before, filling in a different object." },
-      { line: "senergy",
-        panels: [{ blueprint: "Dog" },
-                 { name: "rex", cls: "Dog",
-                   attrs: [["name", '"Rex"'], ["energy", "100"]] },
-                 { name: "bella", cls: "Dog",
-                   attrs: [["name", '"Bella"'], ["energy", "100"]],
-                   added: 1, self: true }],
-        calc: "self.energy = 100",
-        note: "Two dogs, both on 100. <strong>Two separate boxes</strong> that " +
-              "happen to hold the same number — that is the thing to watch " +
-              "next." },
-      { line: "call",
-        panels: [{ blueprint: "Dog" },
-                 { name: "rex", cls: "Dog",
-                   attrs: [["name", '"Rex"'], ["energy", "100"]], self: true },
-                 { name: "bella", cls: "Dog",
-                   attrs: [["name", '"Bella"'], ["energy", "100"]] }],
+      { line: "cls", panels: [{ blueprint: "Dog", methods: [] }],
+        calc: "class Dog:  ->  the class you already have",
+        note: "Everything from Parts 1 and 2 is still here. The green rule " +
+              "marks what Part 3 adds; the dimmed lines are carried forward " +
+              "and the arrow will not stop on them again." },
+      { line: "init", panels: [{ blueprint: "Dog", methods: ["__init__"] }],
+        calc: "def __init__  ->  carried forward, one line longer",
+        note: "Same initializer you already wrote, with one new line in it." },
+      { line: "dbark", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }],
+        calc: "def bark  ->  carried forward from Part 2",
+        note: "Still on the blueprint. Nothing you wrote has gone away." },
+      { line: "ddesc", panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe"] }],
+        calc: "def describe  ->  carried forward from Part 2",
+        note: "Both Part 2 methods, untouched." },
+      { line: "dplay", panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe", "play"] }],
+        calc: "def play  ->  NEW in Part 3",
+        note: "<strong>TODO b.</strong> The first method that CHANGES the " +
+              "object rather than just reading it." },
+      { line: "drest", panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe", "play", "rest"] }],
+        calc: "def rest  ->  NEW in Part 3",
+        note: "<strong>TODO c.</strong> Five methods on the blueprint now, " +
+              "and still not a single dog." },
+      { line: "mk1", panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe", "play", "rest"] }, { newobj: true, cls: "Dog", attrs: [], slots: ["name", "breed", "energy"], self: true }],
+        calc: "Dog(\"Rex\", \"Border Collie\")  ->  a blank object",
+        note: "Three boxes coming, because <code>__init__</code> now sets " +
+              "three. The walk skips the two you watched fill in Part 1." },
+      { line: "senergy", panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe", "play", "rest"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""], ["energy", "100"]], self: true }, { frame: "__init__ of Dog", vars: [["self", "<Dog>"], ["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }],
+        calc: "self.energy = 100   ->   every new dog starts full",
+        note: "<strong>TODO a.</strong> It lives in <code>__init__</code>, " +
+              "so each dog gets its OWN energy \u2014 not one number shared " +
+              "by every Dog in the program." },
+      { line: "mk2", panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe", "play", "rest"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""], ["energy", "100"]] }, { newobj: true, cls: "Dog", attrs: [], slots: ["name", "breed", "energy"], self: true }],
+        calc: "Dog(\"Bella\", \"Beagle\")  ->  a second blank object",
+        note: "Rex is finished and named. Now the same two lines run again " +
+              "for a different dog." },
+      { line: "senergy", panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe", "play", "rest"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""], ["energy", "100"]] }, { name: "bella", cls: "Dog", attrs: [["name", "\"Bella\""], ["breed", "\"Beagle\""], ["energy", "100"]], self: true }, { frame: "__init__ of Dog", vars: [["self", "<Dog>"], ["name", "\"Bella\""], ["breed", "\"Beagle\""]] }],
+        calc: "self.energy = 100   ->   Bella's own 100",
+        note: "The same line of code, filling a different object's box." },
+      { line: "call", panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe", "play", "rest"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""], ["energy", "100"]], self: true }, { name: "bella", cls: "Dog", attrs: [["name", "\"Bella\""], ["breed", "\"Beagle\""], ["energy", "100"]] }],
         calc: "rex.play()  ->  Dog.play(rex)",
-        note: "Here is the whole idea. <code>rex.play()</code> is Python calling " +
-              "<code>Dog.play(rex)</code>, so <code>self</code> <strong>is " +
-              "rex</strong> — decided by what sits left of the dot." },
-      { line: "drop",
-        panels: [{ blueprint: "Dog" },
-                 { name: "rex", cls: "Dog",
-                   attrs: [["name", '"Rex"'], ["energy", "80"]],
-                   self: true, changed: 1, was: "100" },
-                 { name: "bella", cls: "Dog",
-                   attrs: [["name", '"Bella"'], ["energy", "100"]] }],
+        note: "<strong>TODO d.</strong> Left of the dot becomes " +
+              "<code>self</code>. Watch which energy moves." },
+      { line: "drop", panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe", "play", "rest"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""], ["energy", "80"]], changed: 2, was: "100", self: true }, { name: "bella", cls: "Dog", attrs: [["name", "\"Bella\""], ["breed", "\"Beagle\""], ["energy", "100"]] }],
         calc: "self.energy = 100 - 20  ->  80",
-        note: "One box changed. <code>bella.energy</code> is sitting right there " +
-              "and <strong>did not move</strong>, because <code>self</code> was " +
-              "never her." },
-      { line: "prex",
-        panels: [{ blueprint: "Dog" },
-                 { name: "rex", cls: "Dog",
-                   attrs: [["name", '"Rex"'], ["energy", "80"]], pick: 1 },
-                 { name: "bella", cls: "Dog",
-                   attrs: [["name", '"Bella"'], ["energy", "100"]] }],
-        out: "80",
+        note: "Rex drops to 80. <strong>Bella has not moved</strong>, and " +
+              "nothing inside <code>play</code> names either dog." },
+      { line: "prex", panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe", "play", "rest"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""], ["energy", "80"]], changed: 2, was: "100" }, { name: "bella", cls: "Dog", attrs: [["name", "\"Bella\""], ["breed", "\"Beagle\""], ["energy", "100"]] }], out: "80",
         calc: "print(rex.energy)  ->  80",
-        note: "The change outlived the method. That is what <code>self.</code> " +
-              "bought — a plain <code>energy = energy - 20</code> would read " +
-              "100 here." },
-      { line: "pbella",
-        panels: [{ blueprint: "Dog" },
-                 { name: "rex", cls: "Dog",
-                   attrs: [["name", '"Rex"'], ["energy", "80"]] },
-                 { name: "bella", cls: "Dog",
-                   attrs: [["name", '"Bella"'], ["energy", "100"]], pick: 1 }],
-        out: "100",
+        note: "The object that was left of the dot." },
+      { line: "pbel", panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe", "play", "rest"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""], ["energy", "80"]], changed: 2, was: "100" }, { name: "bella", cls: "Dog", attrs: [["name", "\"Bella\""], ["breed", "\"Beagle\""], ["energy", "100"]] }], out: "100",
         calc: "print(bella.energy)  ->  100",
-        note: "Untouched. One <code>play</code> method, written once, and it " +
-              "tires out exactly the dog you called it on." }
+        note: "Still full. Two boxes, not one shared number \u2014 which is " +
+              "exactly what putting <code>self.energy</code> inside " +
+              "<code>__init__</code> bought you." }
     ]
   },
-
   sign: {
     part: 6,
     label: "A sign, not a lock",
     covers: "TODOs a, b and c \u2014 the guard raising, and what happens when you go around it.",
+    skip: ["sowner", "sbal", "dprop", "dbal"],
+    fresh: ["chk", "refuse", "tryl", "call", "exc", "pex", "poke"],
     aside: {
       title: "Why raise instead of printing?",
       html: "<p>A printed complaint is advice. The caller prints it, carries " +
             "on, and behaves as though the money moved \u2014 and the bug " +
             "surfaces three functions later, nowhere near the cause.</p>" +
             "<p>An exception is not advice. It stops the method where it " +
-            "stands and keeps going up until somebody catches it. Nobody can " +
-            "accidentally ignore it.</p>" +
-            "<p>You met this in Module 10, catching <code>FileNotFoundError</code>. " +
-            "This is the same mechanism from the other end: now you are the " +
-            "one refusing.</p>" +
-            "<p>Watch step 10 leave the method <strong>without running the " +
-            "subtraction</strong>, and land in <code>except</code> at step 11. " +
-            "That jump is the whole reason to raise.</p>"
+            "stands and keeps going up until somebody catches it.</p>" +
+            "<p>You met this in Module 10 catching " +
+            "<code>FileNotFoundError</code>. This is the same mechanism from " +
+            "the other end: now you are the one refusing.</p>" +
+            "<p>Watch the raise leave the method <strong>without running the " +
+            "subtraction</strong>, and land in <code>except</code> on the " +
+            "next press. That jump is the whole reason to raise.</p>"
     },
-    todos: { cls: "a", init: "a", sowner: "a", sbal: "a", b1: "",
-             dwd: "b", chk: "b", refuse: "b", take: "b", b2: "",
+    todos: { cls: "", init: "", sowner: "", sbal: "", b1: "",
+             dprop: "", dbal: "", rbal: "a", b2: "",
+             ddep: "", adep: "", b3: "",
+             dwd: "b", chk: "b", refuse: "b", take: "b", b4: "",
              mk: "", tryl: "b", call: "b", exc: "b", pex: "b",
              p1: "a", poke: "c", p2: "c" },
     code: [
@@ -1111,215 +1074,210 @@ var DEMOS = {
       { k: "sowner", t: "        self.owner = owner" },
       { k: "sbal", t: "        self._balance = balance" },
       { k: "b1", t: "" },
+      { k: "dprop", t: "    @property" },
+      { k: "dbal", t: "    def balance(self):" },
+      { k: "rbal", t: "        return self._balance" },
+      { k: "b2", t: "" },
+      { k: "ddep", t: "    def deposit(self, amount):" },
+      { k: "adep", t: "        self._balance = self._balance + amount" },
+      { k: "b3", t: "" },
       { k: "dwd", t: "    def withdraw(self, amount):" },
       { k: "chk", t: "        if amount > self._balance:" },
       { k: "refuse", t: "            raise ValueError(\"insufficient funds\")" },
       { k: "take", t: "        self._balance = self._balance - amount" },
-      { k: "b2", t: "" },
+      { k: "b4", t: "" },
       { k: "mk", t: "acct = BankAccount(\"Ada\", 100.0)" },
       { k: "tryl", t: "try:" },
       { k: "call", t: "    acct.withdraw(500.0)" },
       { k: "exc", t: "except ValueError as problem:" },
       { k: "pex", t: "    print(f\"refused: {problem}\")" },
-      { k: "p1", t: "print(acct._balance)" },
+      { k: "p1", t: "print(acct.balance)" },
       { k: "poke", t: "acct._balance = -999.0" },
-      { k: "p2", t: "print(acct._balance)" }
+      { k: "p2", t: "print(acct.balance)" }
     ],
     steps: [
-      { line: "cls", panels: [ { blueprint: "BankAccount" } ],
-        calc: "class BankAccount:  ->  a blueprint",
-        note: "No accounts yet. The class says what an account will look like." },
-      { line: "init", panels: [ { blueprint: "BankAccount" } ],
-        calc: "def __init__  ->  filed on the blueprint",
-        note: "Two attributes coming: a public <code>owner</code>, and a " +
-              "<code>_balance</code> with the underscore that asks you to " +
-              "leave it alone." },
-      { line: "dwd", panels: [ { blueprint: "BankAccount" } ],
-        calc: "def withdraw  ->  filed on the blueprint",
-        note: "This method is the only door with a lock on it. Remember that " +
-              "when step 14 walks round the back." },
-      { line: "mk", panels: [ { blueprint: "BankAccount" }, { newobj: true, cls: "BankAccount", attrs: [],
-                 slots: ["owner", "_balance"] } ],
+      { line: "cls", panels: [{ blueprint: "BankAccount", methods: [] }],
+        calc: "class BankAccount:  ->  the class you already have",
+        note: "Everything Part 4 built is still here. The dimmed lines are " +
+              "carried forward; the green rule marks Part 6's work." },
+      { line: "init", panels: [{ blueprint: "BankAccount", methods: ["__init__"] }],
+        calc: "def __init__  ->  carried forward from Part 4",
+        note: "The underscore on <code>_balance</code> was your choice in " +
+              "Part 4. It changes nothing about how Python stores it." },
+      { line: "ddep", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit"] }],
+        calc: "def deposit  ->  carried forward, and the property with it",
+        note: "The <code>balance</code> property is on the blueprint too \u2014 " +
+              "you wrote it in Part 4 and the walk is not re-treading it." },
+      { line: "dwd", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }],
+        calc: "def withdraw  ->  the one with the rule in it",
+        note: "Four members on the blueprint. This is the only door with a " +
+              "lock on it, which matters when step 14 walks round the back." },
+      { line: "mk", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { newobj: true, cls: "BankAccount", attrs: [], slots: ["owner", "_balance"], self: true }],
         calc: "BankAccount(\"Ada\", 100.0)  ->  a blank object",
-        note: "Blank, and about to be filled in." },
-      { line: "sowner", panels: [ { blueprint: "BankAccount" }, { newobj: true, cls: "BankAccount",
-                                        attrs: [ [ "owner", "\"Ada\"" ] ],
-                                        slots: ["_balance"],
-                                        added: 0, self: true } ,
-                 { frame: "__init__ of BankAccount", vars: [ [ "self", '<BankAccount>' ], [ "owner", '"Ada"' ], [ "balance", "100.0" ] ] }],
-        params: { line: "init", vars: [ [ "owner", '"Ada"' ], [ "balance", "100.0" ] ] },
-        calc: "self.owner = owner   ->   \"Ada\"",
-        note: "One box filled." },
-      { line: "sbal", panels: [ { blueprint: "BankAccount" }, { name: "acct", cls: "BankAccount", attrs: [ [ "owner", "\"Ada\"" ], [ "_balance", "100.0" ] ], self: true } ,
-                 { frame: "__init__ of BankAccount", vars: [ [ "self", '<BankAccount>' ], [ "owner", '"Ada"' ], [ "balance", "100.0" ] ] }],
-        params: { line: "init", vars: [ [ "owner", '"Ada"' ], [ "balance", "100.0" ] ] },
-        calc: "self._balance = balance   ->   100.0",
-        note: "And the guarded one. <strong>The underscore changes nothing " +
-              "about how it is stored</strong> \u2014 it is an ordinary " +
-              "attribute with a naming convention on it." },
-      { line: "tryl", panels: [ { blueprint: "BankAccount" }, { name: "acct", cls: "BankAccount", attrs: [ [ "owner", "\"Ada\"" ], [ "_balance", "100.0" ] ] } ],
+        note: "Two boxes coming, both filled by code you wrote in Part 4." },
+      { line: "tryl", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "100.0"]] }],
         calc: "try:  ->  anything raised below lands at the except",
         note: "Same shape as Module 10. You are about to call something that " +
               "can refuse, so you say in advance where a refusal goes." },
-      { line: "call", panels: [ { blueprint: "BankAccount" }, { name: "acct", cls: "BankAccount", attrs: [ [ "owner", "\"Ada\"" ], [ "_balance", "100.0" ] ], self: true } ],
+      { line: "call", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "100.0"]], self: true }],
         calc: "acct.withdraw(500.0)  ->  BankAccount.withdraw(acct, 500.0)",
         note: "500 out of 100. Watch what the method does about it." },
-      { line: "chk", panels: [ { blueprint: "BankAccount" }, { name: "acct", cls: "BankAccount", attrs: [ [ "owner", "\"Ada\"" ], [ "_balance", "100.0" ] ], self: true } ],
+      { line: "chk", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "100.0"]], self: true }],
         calc: "500.0 > 100.0  ->  True",
-        note: "The guard. This is the line that makes the method worth going " +
-              "through." },
-      { line: "refuse", panels: [ { blueprint: "BankAccount" }, { name: "acct", cls: "BankAccount", attrs: [ [ "owner", "\"Ada\"" ], [ "_balance", "100.0" ] ], self: true } ], dead: [ "take" ],
+        note: "The guard. This line is why going through the method is worth " +
+              "anything at all." },
+      { line: "refuse", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "100.0"]], self: true }], dead: ["take"],
         calc: "raise ValueError(\"insufficient funds\")",
-        note: "<strong>The method stops here.</strong> Look at the line below " +
-              "it \u2014 the subtraction never runs, and the balance is " +
-              "untouched at 100.0. A <code>raise</code> does not return a " +
-              "value; it abandons the method entirely." },
-      { line: "exc", panels: [ { blueprint: "BankAccount" }, { name: "acct", cls: "BankAccount", attrs: [ [ "owner", "\"Ada\"" ], [ "_balance", "100.0" ] ] } ],
+        note: "<strong>The method stops here.</strong> Look at the line " +
+              "below \u2014 the subtraction never runs, and the balance is " +
+              "untouched at 100.0. A raise does not return a value; it " +
+              "abandons the method." },
+      { line: "exc", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "100.0"]] }],
         calc: "except ValueError  ->  caught, as `problem`",
         note: "The jump the arrow just made is the point of raising. Nothing " +
-              "between the raise and here got a chance to carry on as though " +
-              "the withdrawal worked." },
-      { line: "pex", panels: [ { blueprint: "BankAccount" }, { name: "acct", cls: "BankAccount", attrs: [ [ "owner", "\"Ada\"" ], [ "_balance", "100.0" ] ] } ],
-        out: "refused: insufficient funds",
+              "in between got a chance to carry on as if it had worked." },
+      { line: "pex", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "100.0"]] }], out: "refused: insufficient funds",
         calc: "print(f\"refused: {problem}\")",
-        note: "The message is printed <em>here</em>, by the caller \u2014 not " +
-              "inside the account. The class decides the rule; main decides " +
-              "what the user sees." },
-      { line: "p1", panels: [ { blueprint: "BankAccount" }, { name: "acct", cls: "BankAccount", attrs: [ [ "owner", "\"Ada\"" ], [ "_balance", "100.0" ] ] } ],
-        out: "100.0",
-        calc: "print(acct._balance)  ->  100.0",
-        note: "Still 100.0. The refusal cost nothing, and notice we just read " +
-              "<code>_balance</code> from outside and Python did not mind." },
-      { line: "poke", panels: [ { blueprint: "BankAccount" }, { name: "acct", cls: "BankAccount", attrs: [ [ "owner", "\"Ada\"" ], [ "_balance", "-999.0" ] ] } ],
+        note: "Printed <em>here</em>, by the caller \u2014 not inside the " +
+              "account. The class decides the rule; main decides what the " +
+              "user sees." },
+      { line: "p1", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "100.0"]], self: true }],
+        calc: "print(acct.balance)  ->  no brackets, but a method is about to run",
+        note: "<strong>Watch the next press.</strong> <code>acct.balance</code> " +
+              "looks like reading an attribute, and the arrow is about to " +
+              "jump inside the property." },
+      { line: "rbal", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "100.0"]], self: true }], out: "100.0",
+        calc: "return self._balance  ->  100.0",
+        note: "<strong>That is what @property does.</strong> It made a method " +
+              "read like an attribute. Still 100.0 \u2014 the refusal cost " +
+              "nothing." },
+      { line: "poke", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "-999.0"]], changed: 1, was: "100.0" }],
         calc: "acct._balance = -999.0",
         note: "<strong>Around the back.</strong> No method, no guard, no " +
               "check. An impossible balance, and not one word of complaint." },
-      { line: "p2", panels: [ { blueprint: "BankAccount" }, { name: "acct", cls: "BankAccount", attrs: [ [ "owner", "\"Ada\"" ], [ "_balance", "-999.0" ] ] } ],
-        out: "-999.0",
-        calc: "print(acct._balance)  ->  -999.0",
-        note: "The underscore is a sign, not a lock. The real protection was " +
-              "never the name \u2014 it was that <code>withdraw()</code> " +
-              "checks, and going around it means nothing checked." }
+      { line: "p2", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "-999.0"]], changed: 1, was: "100.0", self: true }],
+        calc: "print(acct.balance)  ->  into the property again",
+        note: "The property is happy to hand back nonsense. It guards " +
+              "nothing; it only reads." },
+      { line: "rbal", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "-999.0"]], changed: 1, was: "100.0", self: true }], out: "-999.0",
+        calc: "return self._balance  ->  -999.0",
+        note: "The underscore is a sign, not a lock. The protection was never " +
+              "the name \u2014 it was that <code>withdraw()</code> checks, and " +
+              "going around it means nothing checked." }
     ]
   },
   show: {
-    todos: { c1: "", i1: "", s1: "", b1: "", c2: "", i2: "", s2: "",
-             i3: "b", s3: "b", b2: "", mk1: "a", p1: "a", mk2: "b", p2: "b" },
-    label: "What print shows before __str__",
     part: 7,
-    covers: "TODOs a and b — the same object printed, with and without __str__.",
+    label: "What print shows, and what a list shows",
+    covers: "TODOs a, c and d \u2014 an object with no __str__, one with both, and what a list asks for.",
+    skip: ["dn", "db", "ao", "ab"],
+    fresh: ["astr", "rstr", "arepr", "rrepr", "pd", "pa", "pl"],
     aside: {
-      title: "What IS that 0x000001A2 number?",
-      html:
-        "<p>It is where the object currently sits in memory, written in hex. " +
-        "It is real, it is correct, and it tells a student nothing — " +
-        "which is the point of the step.</p>" +
-        "<p><strong>It changes every run.</strong> Run the program twice and " +
-        "you get two different addresses for the same object, so it is never " +
-        "something to copy down or compare against.</p>" +
-        "<p>Python falls back to it because the default answer to " +
-        "<em>“what does this object look like as text?”</em> has to " +
-        "work for every object ever written, including ones with nothing " +
-        "worth saying. The class name plus an address is the only honest " +
-        "answer available without your help.</p>" +
-        "<p><code>__str__</code> is you giving it that help. There is a " +
-        "second one, <code>__repr__</code>, which is what you see at the " +
-        "interactive prompt and inside a list — which is why a list of " +
-        "your objects still prints addresses even after you add " +
-        "<code>__str__</code>. Worth knowing; not needed today.</p>"
+      title: "Why does the list ignore __str__?",
+      html: "<p>Because a container is usually being inspected, not " +
+            "displayed. <code>print(x)</code> asks for <code>__str__</code>; " +
+            "<code>print([x])</code> asks every element for " +
+            "<code>__repr__</code>, and there is no way to talk it out of " +
+            "that.</p><p>So a class with only <code>__str__</code> still " +
+            "prints memory addresses the moment you put it in a list \u2014 " +
+            "which is most of the time. That is why professionals write " +
+            "<code>__repr__</code> first and treat <code>__str__</code> as " +
+            "the optional one.</p><p><code>Dog</code> has neither yet. " +
+            "Watch what printing it gets you.</p>"
     },
+    todos: { dcls: "", dinit: "", dn: "", db: "", x1: "",
+             dbark: "", pbark: "", x2: "",
+             acls: "", ainit: "", ao: "", ab: "", x3: "",
+             astr: "c", rstr: "c", x4: "", arepr: "d", rrepr: "d", x5: "",
+             mkd: "", mka: "", x6: "", pd: "a", pa: "c", pl: "d" },
     code: [
-      { k: "c1",  t: "class Plain:" },
-      { k: "i1",  t: "    def __init__(self, name):" },
-      { k: "s1",  t: "        self.name = name" },
-      { k: "b1",  t: "" },
-      { k: "c2",  t: "class Labeled:" },
-      { k: "i2",  t: "    def __init__(self, name):" },
-      { k: "s2",  t: "        self.name = name" },
-      { k: "i3",  t: "    def __str__(self):" },
-      { k: "s3",  t: '        return self.name + " the Border Collie"' },
-      { k: "b2",  t: "" },
-      { k: "mk1", t: 'a = Plain("Rex")' },
-      { k: "p1",  t: "print(a)" },
-      { k: "mk2", t: 'b = Labeled("Rex")' },
-      { k: "p2",  t: "print(b)" }
+      { k: "dcls", t: "class Dog:" },
+      { k: "dinit", t: "    def __init__(self, name, breed):" },
+      { k: "dn", t: "        self.name = name" },
+      { k: "db", t: "        self.breed = breed" },
+      { k: "x1", t: "" },
+      { k: "dbark", t: "    def bark(self):" },
+      { k: "pbark", t: "        print(f\"{self.name} says Woof!\")" },
+      { k: "x2", t: "" },
+      { k: "acls", t: "class BankAccount:" },
+      { k: "ainit", t: "    def __init__(self, owner, balance=0.0):" },
+      { k: "ao", t: "        self.owner = owner" },
+      { k: "ab", t: "        self._balance = balance" },
+      { k: "x3", t: "" },
+      { k: "astr", t: "    def __str__(self):" },
+      { k: "rstr", t: "        return f\"{self.owner}: {self._balance:.2f}\"" },
+      { k: "x4", t: "" },
+      { k: "arepr", t: "    def __repr__(self):" },
+      { k: "rrepr", t: "        return f\"BankAccount({self.owner!r}, {self._balance!r})\"" },
+      { k: "x5", t: "" },
+      { k: "mkd", t: "rex = Dog(\"Rex\", \"Border Collie\")" },
+      { k: "mka", t: "ada = BankAccount(\"Ada\", 120.0)" },
+      { k: "x6", t: "" },
+      { k: "pd", t: "print(rex)" },
+      { k: "pa", t: "print(ada)" },
+      { k: "pl", t: "print([ada])" }
     ],
     steps: [
-      { line: "c1",
-        panels: [{ blueprint: "Plain" }],
-        calc: "class Plain:  ->  a blueprint with no __str__",
-        note: "Two classes in this demo. They are identical except for one " +
-              "method, and that is the only thing being tested." },
-      { line: "i1",
-        panels: [{ blueprint: "Plain" }],
-        calc: "def __init__(self, name):  ->  stored on Plain",
-        note: "Plain can hold a name. It cannot say anything about itself." },
-      { line: "c2",
-        panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" }],
-        calc: "class Labeled:  ->  a second blueprint",
-        note: "Same shape, about to get one extra method." },
-      { line: "i2",
-        panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" }],
-        calc: "def __init__(self, name):  ->  stored on Labeled",
-        note: "Identical to Plain's so far." },
-      { line: "i3",
-        panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" }],
-        calc: "def __str__  ->  another DUNDER, stored on Labeled",
-        note: "<strong>This is the entire difference.</strong> Labeled has a " +
-              "<code>__str__</code>; Plain does not." },
-      { line: "mk1",
-        panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" },
-                 { newobj: true, cls: "Plain", attrs: [], self: true }],
-        calc: 'Plain("Rex")  ->  a blank object, then __init__ on it',
-        note: "A Plain object on the way." },
-      { line: "s1",
-        panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" },
-                 { name: "a", cls: "Plain", attrs: [["name", '"Rex"']],
-                   added: 0, self: true }],
-        calc: 'self.name = "Rex"',
-        note: "It holds the name perfectly well. Everything is in there." },
-      { line: "p1",
-        panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" },
-                 { name: "a", cls: "Plain", attrs: [["name", '"Rex"']] }],
-        out: "<__main__.Plain object at 0x000001A2>",
-        calc: "print(a)  ->  str(a)  ->  no __str__, so: class name + address",
-        note: "<strong>The name is right there in the box</strong> and print did " +
-              "not use it. <code>print</code> asked the object what it looks like " +
-              "as text, and Plain had no answer to give." },
-      { line: "mk2",
-        panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" },
-                 { name: "a", cls: "Plain", attrs: [["name", '"Rex"']] },
-                 { newobj: true, cls: "Labeled", attrs: [], self: true }],
-        calc: 'Labeled("Rex")  ->  a blank object, then __init__ on it',
-        note: "Now the one with <code>__str__</code>." },
-      { line: "s2",
-        panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" },
-                 { name: "a", cls: "Plain", attrs: [["name", '"Rex"']] },
-                 { name: "b", cls: "Labeled", attrs: [["name", '"Rex"']],
-                   added: 0, self: true }],
-        calc: 'self.name = "Rex"',
-        note: "Same attribute, same value as <code>a</code>. The objects hold " +
-              "identical data." },
-      { line: "p2",
-        panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" },
-                 { name: "a", cls: "Plain", attrs: [["name", '"Rex"']] },
-                 { name: "b", cls: "Labeled", attrs: [["name", '"Rex"']],
-                   self: true }],
-        calc: "print(b)  ->  str(b)  ->  calls b.__str__()",
-        note: "<strong>Nothing printed yet.</strong> <code>print</code> is asking " +
-              "the object, and this time there is a method to ask — the next " +
-              "line is inside it. You never call <code>__str__</code> yourself." },
-      { line: "s3",
-        panels: [{ blueprint: "Plain" }, { blueprint: "Labeled" },
-                 { name: "a", cls: "Plain", attrs: [["name", '"Rex"']] },
-                 { name: "b", cls: "Labeled", attrs: [["name", '"Rex"']],
-                   self: true, pick: 0 }],
-        out: "Rex the Border Collie",
-        calc: 'return "Rex" + " the Border Collie"  ->  "Rex the Border Collie"',
+      { line: "dcls", panels: [{ blueprint: "Dog", methods: [] }],
+        calc: "class Dog:  ->  your Dog, exactly as you left it",
+        note: "Carried forward. Note what it does NOT have yet: no " +
+              "<code>__str__</code>, no <code>__repr__</code>." },
+      { line: "dinit", panels: [{ blueprint: "Dog", methods: ["__init__"] }],
+        calc: "def __init__  ->  carried forward",
+        note: "Dimmed lines are work from earlier Parts; the walk will not " +
+              "stop on them." },
+      { line: "dbark", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }],
+        calc: "def bark  ->  carried forward from Part 2",
+        note: "Two members on Dog, and neither of them tells print anything." },
+      { line: "acls", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: [] }],
+        calc: "class BankAccount:  ->  your other class",
+        note: "Both classes on screen, which is what Part 7 asks you to put " +
+              "<code>__str__</code> on." },
+      { line: "ainit", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__"] }],
+        calc: "def __init__  ->  carried forward from Part 4",
+        note: "Owner and the guarded balance, as before." },
+      { line: "astr", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__"] }],
+        calc: "def __str__  ->  NEW in Part 7",
+        note: "<strong>TODO c.</strong> A dunder, so you will never call it " +
+              "yourself." },
+      { line: "arepr", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }],
+        calc: "def __repr__  ->  NEW in Part 7",
+        note: "<strong>TODO d.</strong> Three members on the account, two " +
+              "of them for printing." },
+      { line: "mkd", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { newobj: true, cls: "Dog", attrs: [], slots: ["name", "breed"], self: true }],
+        calc: "Dog(\"Rex\", \"Border Collie\")  ->  a blank Dog",
+        note: "The box-filling is carried forward; you watched it in Part 1." },
+      { line: "mka", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }, { newobj: true, cls: "BankAccount", attrs: [], slots: ["owner", "_balance"], self: true }],
+        calc: "BankAccount(\"Ada\", 120.0)  ->  a blank account",
+        note: "One of each, about to be printed." },
+      { line: "pd", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]] }],
+        out: "<__main__.Dog object at 0x000001A2>",
+        calc: "print(rex)  ->  Dog has no __str__",
+        note: "<strong>TODO a.</strong> The class name and a memory address. " +
+              "<strong>The arrow did not go anywhere</strong> \u2014 there was " +
+              "no method to run. Rex's name was in the box the whole time " +
+              "and print had no way to ask for it." },
+      { line: "pa", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]], self: true }],
+        calc: "print(ada)  ->  this one HAS a __str__",
+        note: "Watch the arrow jump into the method on the next press. You " +
+              "did not call it; <code>print</code> did." },
+      { line: "rstr", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]], self: true }, { frame: "__str__ of BankAccount", vars: [["self", "<BankAccount>"]] }],
+        out: "Ada: 120.00",
+        calc: "return f\"{self.owner}: {self._balance:.2f}\"",
         note: "The string the object handed back is what print showed. " +
-              "<strong>The object never changed</strong> — <code>a</code> and " +
-              "<code>b</code> still hold the same one attribute. Only what it can " +
-              "say about itself did." }
+              "<strong>The object did not change</strong> \u2014 only what it " +
+              "can say about itself." },
+      { line: "pl", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]], self: true }],
+        calc: "print([ada])  ->  the SAME object, inside a list",
+        note: "One guess before the next press: does a list ask for " +
+              "<code>__str__</code> as well?" },
+      { line: "rrepr", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]], self: true }, { frame: "__repr__ of BankAccount", vars: [["self", "<BankAccount>"]] }],
+        out: "[BankAccount('Ada', 120.0)]",
+        calc: "return f\"BankAccount({self.owner!r}, {self._balance!r})\"",
+        note: "<strong>It asked for __repr__, not __str__.</strong> A list " +
+              "always does. Write only <code>__str__</code> and a list of " +
+              "your objects still prints addresses \u2014 which is why " +
+              "<code>__repr__</code> is the one to write first." }
     ]
   }
 };
@@ -1396,8 +1354,12 @@ function codeHTML(demo, step, stepIndex) {
   var column = (lengths[1] || lengths[0]) + 2;
   var info = passInfo(demo, stepIndex);
   return '<div class="code">' + demo.code.map(function (ln, i) {
+    var carried = (demo.skip || []).indexOf(ln.k) !== -1;
+    var fresh = (demo.fresh || []).indexOf(ln.k) !== -1;
     var cls = i === activeAt ? "active"
-            : (dead[ln.k] ? "dead" : (ran[ln.k] ? "done" : ""));
+            : (dead[ln.k] ? "dead"
+               : (carried ? "carried" : (ran[ln.k] ? "done" : "")));
+    if (fresh && i !== activeAt) { cls += " fresh"; }
     var jump = ' data-k="' + ln.k + '" role="button" tabindex="0"' +
                ' title="Jump to this line"';
     if (i !== activeAt) {
