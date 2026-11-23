@@ -200,8 +200,12 @@
      sized to read from the back of a room. */
   /* Reserved so panels appearing and disappearing between steps cannot move
      everything below them. Blank space is the price, and it is worth it. */
-  .panels { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;
-            align-items: flex-start; min-height: 15.5rem; }
+  /* A GRID, not a flex row. Flex made every panel resize the moment
+     another appeared, so the whole row slid left and right between steps.
+     One column per panel the demo will ever show; a panel that is not
+     there yet leaves its column empty. */
+  .panels { display: grid; gap: 1rem; margin-bottom: 1rem;
+            align-items: start; min-height: 15.5rem; }
   /* A call frame: what is in scope INSIDE the method, as against what is on
      the object. Dashed, because it is temporary -- it is gone the moment
      __init__ returns, which is the whole point of showing it. */
@@ -223,7 +227,7 @@
     border-color: #8a6d1f; background: #fdf6e3; color: #5c4600;
   }
   .dwrap {
-    flex: 1 1 320px;
+    min-width: 0;
     border: 2px solid var(--line); border-radius: 10px;
     padding: .7rem .9rem .9rem; background: #fcfdfd;
   }
@@ -274,6 +278,15 @@
     font-size: .82rem; font-weight: 700; color: var(--green);
   }
   .tagline.warn { color: #8f3000; }
+  /* A box kept in place before its value exists, so filling it in does
+     not push everything below and to the right of it. #6b7280 on #f3f4f6
+     is 5.28:1 -- it is quiet, not invisible. */
+  .pair.slot .kbox, .pair.slot .vbox2 {
+    border-style: dashed; border-color: #9ca3af; background: #f3f4f6;
+    color: #6b7280;
+  }
+  .pair.slot .kbox { color: #4b5563; }
+  .slotbox { font-style: italic; }
   .empty { color: var(--muted); font-style: italic; font-size: 1rem;
            margin: .4rem 0 .1rem; }
   /* A view (.keys(), .values(), .items()) or a plain list -- a row of cells,
@@ -664,7 +677,8 @@ var DEMOS = {
               "wait in Part 7." },
       { line: "mk1",
         panels: [{ blueprint: "Dog" },
-                 { newobj: true, cls: "Dog", attrs: [], self: true }],
+                 { newobj: true, cls: "Dog", attrs: [],
+                   slots: ["name", "breed"], self: true }],
         calc: 'Dog("Rex", "Border Collie")  ->  a blank object, then __init__ on it\nyou pass 2 values, __init__ takes 3  ->  Python supplies self',
         note: "<strong>The call binds all three parameters at once.</strong> " +
               "<code>self</code> is the empty box on the right; <code>name</code> " +
@@ -678,7 +692,7 @@ var DEMOS = {
       { line: "sname",
         panels: [{ blueprint: "Dog" },
                  { newobj: true, cls: "Dog", attrs: [["name", '"Rex"']],
-                   self: true, added: 0 },
+                   slots: ["breed"], self: true, added: 0 },
                  { frame: "__init__ of Dog", vars: [ [ "self", '<Dog>' ], [ "name", '"Rex"' ], [ "breed", '"Border Collie"' ] ] }],
         params: { line: "init", vars: [ [ "name", '"Rex"' ], [ "breed", '"Border Collie"' ] ] },
         calc: 'self.name = name   ->   "Rex"',
@@ -700,7 +714,8 @@ var DEMOS = {
         panels: [{ blueprint: "Dog" },
                  { name: "rex", cls: "Dog",
                    attrs: [["name", '"Rex"'], ["breed", '"Border Collie"']] },
-                 { newobj: true, cls: "Dog", attrs: [], self: true }],
+                 { newobj: true, cls: "Dog", attrs: [],
+                   slots: ["name", "breed"], self: true }],
         calc: 'Dog("Bella", "Beagle")  ->  a SECOND blank object',
         note: "One blueprint, a second object. The same two lines of " +
               "<code>__init__</code> are about to run again — on this one." },
@@ -709,7 +724,7 @@ var DEMOS = {
                  { name: "rex", cls: "Dog",
                    attrs: [["name", '"Rex"'], ["breed", '"Border Collie"']] },
                  { newobj: true, cls: "Dog", attrs: [["name", '"Bella"']],
-                   self: true, added: 0 },
+                   slots: ["breed"], self: true, added: 0 },
                  { frame: "__init__ of Dog", vars: [ [ "self", '<Dog>' ], [ "name", '"Bella"' ], [ "breed", '"Beagle"' ] ] }],
         params: { line: "init", vars: [ [ "name", '"Bella"' ], [ "breed", '"Beagle"' ] ] },
         calc: 'self.name = name   ->   "Bella" now',
@@ -823,7 +838,7 @@ var DEMOS = {
       { line: "sname",
         panels: [{ blueprint: "Dog" },
                  { newobj: true, cls: "Dog", attrs: [["name", '"Rex"']],
-                   self: true, added: 0 }],
+                   slots: ["energy"], self: true, added: 0 }],
         calc: 'self.name = "Rex"',
         note: "First box." },
       { line: "senergy",
@@ -846,7 +861,7 @@ var DEMOS = {
                  { name: "rex", cls: "Dog",
                    attrs: [["name", '"Rex"'], ["energy", "100"]] },
                  { newobj: true, cls: "Dog", attrs: [["name", '"Bella"']],
-                   self: true, added: 0 }],
+                   slots: ["energy"], self: true, added: 0 }],
         calc: 'self.name = "Bella"',
         note: "Same line as before, filling in a different object." },
       { line: "senergy",
@@ -961,11 +976,13 @@ var DEMOS = {
         calc: "def withdraw  ->  filed on the blueprint",
         note: "This method is the only door with a lock on it. Remember that " +
               "when step 14 walks round the back." },
-      { line: "mk", panels: [ { blueprint: "BankAccount" }, { newobj: true, cls: "BankAccount", attrs: [] } ],
+      { line: "mk", panels: [ { blueprint: "BankAccount" }, { newobj: true, cls: "BankAccount", attrs: [],
+                 slots: ["owner", "_balance"] } ],
         calc: "BankAccount(\"Ada\", 100.0)  ->  a blank object",
         note: "Blank, and about to be filled in." },
       { line: "sowner", panels: [ { blueprint: "BankAccount" }, { newobj: true, cls: "BankAccount",
                                         attrs: [ [ "owner", "\"Ada\"" ] ],
+                                        slots: ["_balance"],
                                         added: 0, self: true } ,
                  { frame: "__init__ of BankAccount", vars: [ [ "self", '<BankAccount>' ], [ "owner", '"Ada"' ], [ "balance", "100.0" ] ] }],
         params: { line: "init", vars: [ [ "owner", '"Ada"' ], [ "balance", "100.0" ] ] },
@@ -1251,6 +1268,11 @@ function attrsHTML(p) {
     rows.push('<p class="empty">no attributes yet &mdash; ' +
               "nothing has been put on it</p>");
   }
+  (p.slots || []).forEach(function (n) {
+    rows.push('<div class="pair slot"><div class="kbox">' + esc(n) +
+              '</div><div class="arrow">&rarr;</div>' +
+              '<div class="vbox2 slotbox">not set yet</div></div>');
+  });
   attrs.forEach(function (kv, i) {
     var cls = "pair";
     if (p.added === i) { cls += " added"; }
@@ -1339,7 +1361,12 @@ function render() {
 
   /* The dictionary leads. The code moves underneath it, so the pairs stay in
      one place while the arrow walks down the program. */
-  html += '<div class="panels">' +
+  var widest = 1;
+  demo.steps.forEach(function (st) {
+    widest = Math.max(widest, (st.panels || []).length);
+  });
+  html += '<div class="panels" style="grid-template-columns: repeat(' +
+          widest + ', minmax(0, 1fr))">' +
           step.panels.map(panelHTML).join("") + "</div>";
 
   /* Loop variables, under the panels and above the code: they are filled in
