@@ -331,6 +331,30 @@
   .var.anon { font-style: italic; opacity: .8; font-weight: 600; }
 
   /* ---- a line an early return abandoned (from CT12) -------------------- */
+  /* The `def` line while its parameters are bound. CPython fires no line
+     event there during a call, so the arrow can never be on it -- but the
+     parameters are live, and not showing them left a gap between "the call
+     passes Rex" and "self.name = name". */
+  .code div.bound {
+    background: rgba(137, 180, 250, .13);
+    box-shadow: inset 3px 0 0 #89b4fa;
+  }
+  .code .pbind {
+    background: #89b4fa; color: #11111b; font-weight: 700;
+    border-radius: 5px; padding: .05rem .6rem; margin-left: .9rem;
+    font-size: .92rem; white-space: pre-wrap;
+  }
+  .code .pbind::before {
+    content: "BOUND TO"; font-size: .66rem; font-weight: 800;
+    letter-spacing: .06em; color: #0b2545; background: rgba(255,255,255,.45);
+    border-radius: 3px; padding: .08em .32em; margin-right: .5rem;
+    vertical-align: .1em;
+  }
+  /* Every active row reserves two lines. Without it a long THIS STEP band
+     wraps, the block grows, and the whole page jumps between consecutive
+     steps -- which it did going from self.name to self.breed. */
+  .code div.active, .code div.bound { min-height: 2.6em; }
+
   .code div.dead, .code div.dead span {
     color: #f38ba8; text-decoration: line-through; font-style: normal;
   }
@@ -582,7 +606,7 @@ var DEMOS = {
       { line: "mk1",
         panels: [{ blueprint: "Dog" },
                  { newobj: true, cls: "Dog", attrs: [], self: true }],
-        calc: 'Dog("Rex", "Border Collie")  ->  self = the blank, name = "Rex", breed = "Border Collie"',
+        calc: 'Dog("Rex", "Border Collie")  ->  a blank object, then __init__ on it',
         note: "<strong>The call binds all three parameters at once.</strong> " +
               "<code>self</code> is the empty box on the right; <code>name</code> " +
               "and <code>breed</code> are the two values you typed, now sitting " +
@@ -596,7 +620,8 @@ var DEMOS = {
         panels: [{ blueprint: "Dog" },
                  { newobj: true, cls: "Dog", attrs: [["name", '"Rex"']],
                    self: true, added: 0 }],
-        calc: 'self.name = name   ->   name is "Rex", from the call',
+        params: { line: "init", vars: [ [ "name", '"Rex"' ], [ "breed", '"Border Collie"' ] ] },
+        calc: 'self.name = name   ->   "Rex"',
         note: "<code>self</code> is that blank object, so <code>self.name</code> " +
               "puts a box on <strong>it</strong>. This is the line that turns an " +
               "empty object into one with something in it." },
@@ -605,7 +630,8 @@ var DEMOS = {
                  { name: "rex", cls: "Dog",
                    attrs: [["name", '"Rex"'], ["breed", '"Border Collie"']],
                    added: 1, self: true }],
-        calc: 'self.breed = breed   ->   breed is "Border Collie"',
+        params: { line: "init", vars: [ [ "name", '"Rex"' ], [ "breed", '"Border Collie"' ] ] },
+        calc: 'self.breed = breed   ->   "Border Collie"',
         note: "Both boxes filled, <code>__init__</code> returns, and " +
               "<strong>only now</strong> does the object get the name " +
               "<code>rex</code>. That is the order: build, fill, name." },
@@ -614,7 +640,7 @@ var DEMOS = {
                  { name: "rex", cls: "Dog",
                    attrs: [["name", '"Rex"'], ["breed", '"Border Collie"']] },
                  { newobj: true, cls: "Dog", attrs: [], self: true }],
-        calc: 'Dog("Bella", "Beagle")  ->  self = a NEW blank, name = "Bella", breed = "Beagle"',
+        calc: 'Dog("Bella", "Beagle")  ->  a SECOND blank object',
         note: "One blueprint, a second object. The same two lines of " +
               "<code>__init__</code> are about to run again — on this one." },
       { line: "sname",
@@ -623,7 +649,8 @@ var DEMOS = {
                    attrs: [["name", '"Rex"'], ["breed", '"Border Collie"']] },
                  { newobj: true, cls: "Dog", attrs: [["name", '"Bella"']],
                    self: true, added: 0 }],
-        calc: 'self.name = name   ->   same line, but name is "Bella" this time',
+        params: { line: "init", vars: [ [ "name", '"Bella"' ], [ "breed", '"Beagle"' ] ] },
+        calc: 'self.name = name   ->   "Bella" now',
         note: "<strong>Same line, different self.</strong> Nobody typed " +
               "<code>self</code> and nobody passed it. Which object it means was " +
               "decided by which <code>Dog(...)</code> call is running." },
@@ -634,7 +661,8 @@ var DEMOS = {
                  { name: "bella", cls: "Dog",
                    attrs: [["name", '"Bella"'], ["breed", '"Beagle"']],
                    added: 1, self: true }],
-        calc: 'self.breed = breed   ->   breed is "Beagle"',
+        params: { line: "init", vars: [ [ "name", '"Bella"' ], [ "breed", '"Beagle"' ] ] },
+        calc: 'self.breed = breed   ->   "Beagle"',
         note: "Two objects, <strong>two sets of boxes</strong>. They share the " +
               "blueprint and share nothing else." },
       { line: "p1",
@@ -871,15 +899,17 @@ var DEMOS = {
         note: "This method is the only door with a lock on it. Remember that " +
               "when step 14 walks round the back." },
       { line: "mk", panels: [ { blueprint: "BankAccount" }, { newobj: true, cls: "BankAccount", attrs: [] } ],
-        calc: "BankAccount(\"Ada\", 100.0)  ->  self = the blank, owner = \"Ada\", balance = 100.0",
+        calc: "BankAccount(\"Ada\", 100.0)  ->  a blank object",
         note: "Blank, and about to be filled in." },
       { line: "sowner", panels: [ { blueprint: "BankAccount" }, { newobj: true, cls: "BankAccount",
                                         attrs: [ [ "owner", "\"Ada\"" ] ],
                                         added: 0, self: true } ],
-        calc: "self.owner = owner   ->   owner is \"Ada\", from the call",
+        params: { line: "init", vars: [ [ "owner", '"Ada"' ], [ "balance", "100.0" ] ] },
+        calc: "self.owner = owner   ->   \"Ada\"",
         note: "One box filled." },
       { line: "sbal", panels: [ { blueprint: "BankAccount" }, { name: "acct", cls: "BankAccount", attrs: [ [ "owner", "\"Ada\"" ], [ "_balance", "100.0" ] ], self: true } ],
-        calc: "self._balance = balance   ->   balance is 100.0",
+        params: { line: "init", vars: [ [ "owner", '"Ada"' ], [ "balance", "100.0" ] ] },
+        calc: "self._balance = balance   ->   100.0",
         note: "And the guarded one. <strong>The underscore changes nothing " +
               "about how it is stored</strong> \u2014 it is an ordinary " +
               "attribute with a naming convention on it." },
@@ -1112,6 +1142,11 @@ function codeHTML(demo, step, stepIndex) {
   for (var s = 0; s < stepIndex; s++) { ran[demo.steps[s].line] = true; }
   var dead = {};
   (step.dead || []).forEach(function (k) { dead[k] = true; });
+  var bindLine = step.params ? step.params.line : null;
+  var bindText = step.params
+    ? (step.params.vars || []).map(function (kv) { return kv[0] + " = " + kv[1]; })
+        .join(",   ")
+    : "";
   var lengths = demo.code.map(function (ln) { return ln.t.length; })
                          .sort(function (a, b) { return b - a; });
   var column = (lengths[1] || lengths[0]) + 2;
@@ -1122,6 +1157,11 @@ function codeHTML(demo, step, stepIndex) {
     var jump = ' data-k="' + ln.k + '" role="button" tabindex="0"' +
                ' title="Jump to this line"';
     if (i !== activeAt) {
+      if (ln.k === bindLine) {
+        return '<div class="' + (cls ? cls + " " : "") + 'bound"' + jump + ">" +
+               hi(ln.t) +
+               '<span class="pbind">' + esc(bindText) + "</span></div>";
+      }
       return '<div' + (cls ? ' class="' + cls + '"' : "") + jump + ">" +
              hi(ln.t) + "</div>";
     }
