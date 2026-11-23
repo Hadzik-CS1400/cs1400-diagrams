@@ -366,6 +366,18 @@
   }
   .bplist li { margin: .18rem 0; }
   .bplist strong { color: #2f2350; }
+  /* The methods a class is holding, appearing as each def runs. "Holds the
+     methods" was a claim in a bullet; this is the claim being shown.
+     #2f2350 on #e4ddf5 is 11.2:1. */
+  .mlist { margin-top: .55rem; display: flex; flex-wrap: wrap;
+           align-items: center; gap: .4rem; }
+  .mlab { font-size: .78rem; font-weight: 800; letter-spacing: .05em;
+          text-transform: uppercase; color: #5b4a8a; margin-right: .2rem; }
+  .mname {
+    font-family: Consolas, 'Courier New', monospace; font-size: 1.05rem;
+    font-weight: 700; color: #2f2350; background: #e4ddf5;
+    border: 2px solid #c9bde6; border-radius: 6px; padding: .1rem .55rem;
+  }
   .dwrap.obj { background: #fcfcfd; }
   /* The object self currently points at. A ring rather than a different
      fill: the fill already means "just changed", and two meanings on one
@@ -509,113 +521,143 @@
 var DEMOS = {
   inside: {
     part: 2,
-    label: "Inside the class, or outside it",
-    covers: "TODOs a and c \u2014 a method written inside the class, against the same work written outside.",
+    label: "Putting methods inside the class",
+    covers: "All three TODOs \u2014 bark, describe, and calling them on your dog.",
     aside: {
-      title: "So what does `inside the class` actually buy me?",
-      html: "<p>Exactly one thing, and it is the whole reason to bother: " +
-            "<strong>the object arrives on its own.</strong></p>" +
-            "<p><code>rex.bark()</code> and <code>describe(rex)</code> print " +
-            "almost the same sentence. The difference is who supplies the " +
-            "dog. Inside the class, whatever is left of the dot becomes " +
-            "<code>self</code> and you never type it. Outside, there is no " +
-            "dot and no self, so you must hand the object over by hand \u2014 " +
-            "and nothing stops you calling <code>describe(42)</code>.</p>" +
-            "<p><strong>Indentation is what decides which you wrote.</strong> " +
-            "A <code>def</code> indented one level sits in the class. Flush " +
-            "left, it is an ordinary function that merely mentions dogs. " +
-            "Indent it one level further again and it lands inside " +
-            "<code>__init__</code>, where nothing can call it at all.</p>"
+      title: "What does being inside the class actually buy me?",
+      html: "<p>One thing, and it is the whole reason to bother: " +
+            "<strong>the object arrives on its own.</strong> You write " +
+            "<code>rex.bark()</code> and pass nothing; whatever is left of " +
+            "the dot becomes <code>self</code>.</p>" +
+            "<p>The same code written flush left would be an ordinary " +
+            "function, and you would have to hand it a dog every time " +
+            "&mdash; <code>describe(rex)</code> &mdash; with nothing " +
+            "stopping you writing <code>describe(42)</code>.</p>" +
+            "<p><strong>Indentation alone decides which you wrote.</strong> " +
+            "One level in, it joins the class and appears in the box on the " +
+            "left. Flush left, the box never grows. Indent one level further " +
+            "again and it lands inside <code>__init__</code>, where nothing " +
+            "can call it at all, and Python will not warn you.</p>"
     },
-    todos: { cls: "", init: "", sname: "", b1: "",
+    todos: { cls: "", init: "", sname: "", sbreed: "", b1: "",
              dbark: "a", pbark: "a", b2: "",
-             mk: "", call: "c", b3: "",
-             outside: "", pout: "", b4: "", call2: "" },
+             ddesc: "b", pdesc: "b", b3: "",
+             mk: "", c1: "c", c2: "c" },
     code: [
       { k: "cls", t: "class Dog:" },
-      { k: "init", t: "    def __init__(self, name):" },
+      { k: "init", t: "    def __init__(self, name, breed):" },
       { k: "sname", t: "        self.name = name" },
+      { k: "sbreed", t: "        self.breed = breed" },
       { k: "b1", t: "" },
       { k: "dbark", t: "    def bark(self):" },
       { k: "pbark", t: "        print(f\"{self.name} says Woof!\")" },
       { k: "b2", t: "" },
-      { k: "mk", t: "rex = Dog(\"Rex\")" },
-      { k: "call", t: "rex.bark()" },
+      { k: "ddesc", t: "    def describe(self):" },
+      { k: "pdesc", t: "        print(f\"{self.name} is a {self.breed}.\")" },
       { k: "b3", t: "" },
-      { k: "outside", t: "def describe(dog):" },
-      { k: "pout", t: "    print(f\"{dog.name} is a dog.\")" },
-      { k: "b4", t: "" },
-      { k: "call2", t: "describe(rex)" }
+      { k: "mk", t: "rex = Dog(\"Rex\", \"Border Collie\")" },
+      { k: "c1", t: "rex.bark()" },
+      { k: "c2", t: "rex.describe()" }
     ],
     steps: [
-      { line: "cls", panels: [ { blueprint: "Dog" } ],
-        calc: "class Dog:  ->  a blueprint",
-        note: "Everything indented under this line belongs to the class. " +
-              "Watch where the indentation stops." },
-      { line: "init", panels: [ { blueprint: "Dog" } ],
-        calc: "def __init__  ->  filed on the blueprint",
-        note: "Indented one level, so it is a <strong>method</strong>." },
-      { line: "dbark", panels: [ { blueprint: "Dog" } ],
-        calc: "def bark  ->  filed on the blueprint, beside __init__",
-        note: "Also indented one level, so also a method. It is a sibling of " +
-              "<code>__init__</code>, not something inside it \u2014 indent " +
-              "it one step further and nothing could ever call it." },
-      { line: "mk", panels: [ { blueprint: "Dog" },
-                              { newobj: true, cls: "Dog", attrs: [],
-                                slots: ["name"], self: true } ],
-        calc: "Dog(\"Rex\")  ->  a blank object",
-        note: "One object, about to be filled in." },
-      { line: "sname", panels: [ { blueprint: "Dog" },
-                                 { name: "rex", cls: "Dog",
-                                   attrs: [ [ "name", "\"Rex\"" ] ],
-                                   added: 0, self: true },
-                                 { frame: "__init__ of Dog",
-                                   vars: [ [ "self", "<Dog>" ],
-                                           [ "name", "\"Rex\"" ] ] } ],
+      { line: "cls",
+        panels: [{ blueprint: "Dog", methods: [] }],
+        calc: "class Dog:  ->  a blueprint, holding nothing yet",
+        note: "Everything indented under this line joins the class. Watch " +
+              "the box on the left fill up as each <code>def</code> runs." },
+
+      { line: "init",
+        panels: [{ blueprint: "Dog", methods: ["__init__"] }],
+        calc: "def __init__  ->  the class now holds 1",
+        note: "The initializer is a method like any other. It is in the box " +
+              "because it is indented one level, and for no other reason." },
+
+      { line: "dbark",
+        panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }],
+        calc: "def bark  ->  the class now holds 2",
+        note: "<strong>TODO a, and this is what adding a method looks " +
+              "like.</strong> No dog has barked; nothing has even been " +
+              "built. The <code>def</code> files the method on the " +
+              "blueprint, and that is all it does." },
+
+      { line: "ddesc",
+        panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe"] }],
+        calc: "def describe  ->  the class now holds 3",
+        note: "<strong>TODO b.</strong> Three methods on one blueprint, and " +
+              "still zero objects. The class is where the methods live." },
+
+      { line: "mk",
+        panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe"] },
+                 { newobj: true, cls: "Dog", attrs: [],
+                   slots: ["name", "breed"], self: true }],
+        calc: "Dog(\"Rex\", \"Border Collie\")  ->  a blank object",
+        note: "Now an object. It gets its own name and breed boxes \u2014 and " +
+              "no copy of the methods, which stay on the class and are " +
+              "shared by every Dog." },
+
+      { line: "sname",
+        panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe"] },
+                 { newobj: true, cls: "Dog", attrs: [["name", "\"Rex\""]],
+                   slots: ["breed"], added: 0, self: true },
+                 { frame: "__init__ of Dog",
+                   vars: [["self", "<Dog>"], ["name", "\"Rex\""],
+                          ["breed", "\"Border Collie\""]] }],
         calc: "self.name = name   ->   \"Rex\"",
-        note: "One attribute on the object. Now the two ways of using it." },
-      { line: "call", panels: [ { blueprint: "Dog" },
-                                { name: "rex", cls: "Dog",
-                                  attrs: [ [ "name", "\"Rex\"" ] ],
-                                  self: true } ],
+        note: "Filling in the first box." },
+
+      { line: "sbreed",
+        panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe"] },
+                 { name: "rex", cls: "Dog",
+                   attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]],
+                   added: 1, self: true },
+                 { frame: "__init__ of Dog",
+                   vars: [["self", "<Dog>"], ["name", "\"Rex\""],
+                          ["breed", "\"Border Collie\""]] }],
+        calc: "self.breed = breed   ->   \"Border Collie\"",
+        note: "Both boxes filled. This is the same dog Part 1 built \u2014 " +
+              "nothing has been taken away." },
+
+      { line: "c1",
+        panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe"] },
+                 { name: "rex", cls: "Dog",
+                   attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]],
+                   self: true }],
         calc: "rex.bark()  ->  Dog.bark(rex)",
-        note: "<strong>You passed nothing.</strong> The object is to the left " +
-              "of the dot, and Python hands it over as <code>self</code>." },
-      { line: "pbark", panels: [ { blueprint: "Dog" },
-                                 { name: "rex", cls: "Dog",
-                                   attrs: [ [ "name", "\"Rex\"" ] ],
-                                   self: true },
-                                 { frame: "bark of Dog",
-                                   vars: [ [ "self", "<Dog>" ] ] } ],
+        note: "<strong>TODO c.</strong> You passed nothing. The method came " +
+              "from the class box on the left; the object came from the left " +
+              "of the dot." },
+
+      { line: "pbark",
+        panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe"] },
+                 { name: "rex", cls: "Dog",
+                   attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]],
+                   self: true },
+                 { frame: "bark of Dog", vars: [["self", "<Dog>"]] }],
         out: "Rex says Woof!",
         calc: "print(f\"{self.name} says Woof!\")",
         note: "Look at the frame: <strong>one local, and it is " +
               "<code>self</code></strong>. Being inside the class is what " +
-              "put it there." },
-      { line: "outside", panels: [ { blueprint: "Dog" },
-                                   { name: "rex", cls: "Dog",
-                                     attrs: [ [ "name", "\"Rex\"" ] ] } ],
-        calc: "def describe(dog)  ->  a plain function, NOT on the blueprint",
-        note: "Flush left. Same work, but it is not a method \u2014 the " +
-              "class box does not grow, because nothing was added to it." },
-      { line: "call2", panels: [ { blueprint: "Dog" },
-                                 { name: "rex", cls: "Dog",
-                                   attrs: [ [ "name", "\"Rex\"" ] ] } ],
-        calc: "describe(rex)  ->  you hand the dog over yourself",
-        note: "No dot, no <code>self</code>. <strong>You</strong> have to " +
-              "supply the object, and nothing would stop you writing " +
-              "<code>describe(42)</code>." },
-      { line: "pout", panels: [ { blueprint: "Dog" },
-                                { name: "rex", cls: "Dog",
-                                  attrs: [ [ "name", "\"Rex\"" ] ] },
-                                { frame: "describe (a plain function)",
-                                  vars: [ [ "dog", "<Dog>" ] ] } ],
-        out: "Rex is a dog.",
-        calc: "print(f\"{dog.name} is a dog.\")",
-        note: "The same sentence, reached a different way. The local is " +
-              "called <code>dog</code> because you named the parameter, not " +
-              "because Python knew anything \u2014 and that is the whole " +
-              "difference between a method and a function." }
+              "put it there \u2014 you never typed it." },
+
+      { line: "c2",
+        panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe"] },
+                 { name: "rex", cls: "Dog",
+                   attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]],
+                   self: true }],
+        calc: "rex.describe()  ->  Dog.describe(rex)",
+        note: "Same dog, a different method off the same blueprint." },
+
+      { line: "pdesc",
+        panels: [{ blueprint: "Dog", methods: ["__init__", "bark", "describe"] },
+                 { name: "rex", cls: "Dog",
+                   attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]],
+                   self: true },
+                 { frame: "describe of Dog", vars: [["self", "<Dog>"]] }],
+        out: "Rex is a Border Collie.",
+        calc: "print(f\"{self.name} is a {self.breed}.\")",
+        note: "Both attributes read off the one object. Three methods shared " +
+              "by every Dog, two values belonging to this one \u2014 that " +
+              "split is the whole point of a class." }
     ]
   },
   moved: {
@@ -1427,7 +1469,12 @@ function panelHTML(p) {
       " shares</li>" +
       "<li>holds <strong>no data</strong> of its own</li>" +
       "<li><strong>one</strong> class, however many objects</li>" +
-      "</ul></div>";
+      "</ul>" + (p.methods
+        ? '<div class="mlist"><span class="mlab">methods it holds</span>' +
+          p.methods.map(function (m) {
+            return '<span class="mname">' + esc(m) + "()</span>";
+          }).join("") + "</div>"
+        : "") + "</div>";
   }
   if (p.frame) {
     return '<div class="dwrap frame"><div class="dhead">' +
