@@ -1388,10 +1388,71 @@ var DEMOS = {
   },
   show: {
     part: 7,
-    label: "What print shows, and what a list shows",
-    covers: "TODOs a, c and d \u2014 an object with no __str__, one with both, and what a list asks for.",
+    label: "Before __str__: what print falls back to",
+    covers: "TODO a \u2014 print an object that has no __str__ yet, and read what you get.",
+    skip: ["sn", "sb"],
+    fresh: ["pr"],
+    aside: {
+      title: "What IS that 0x000001A2 number?",
+      html: "<p>Where the object currently sits in memory, written in hex. " +
+            "It is real, it is correct, and it tells you nothing \u2014 which " +
+            "is the point of the step.</p>" +
+            "<p><strong>It changes every run.</strong> Two runs give two " +
+            "addresses for the same object, so it is never something to " +
+            "copy down or compare.</p>" +
+            "<p>Python falls back to it because the default answer to " +
+            "<em>what does this object look like as text?</em> has to work " +
+            "for every object ever written, including ones with nothing " +
+            "worth saying. The class name and an address is the only honest " +
+            "answer available without your help.</p>"
+    },
+    todos: { cls: "", init: "", sn: "", sb: "", x1: "",
+             dbark: "", pbark: "", x2: "", mk: "", pr: "a" },
+    code: [
+      { k: "cls", t: "class Dog:" },
+      { k: "init", t: "    def __init__(self, name, breed):" },
+      { k: "sn", t: "        self.name = name" },
+      { k: "sb", t: "        self.breed = breed" },
+      { k: "x1", t: "" },
+      { k: "dbark", t: "    def bark(self):" },
+      { k: "pbark", t: "        print(f\"{self.name} says Woof!\")" },
+      { k: "x2", t: "" },
+      { k: "mk", t: "rex = Dog(\"Rex\", \"Border Collie\")" },
+      { k: "pr", t: "print(rex)" }
+    ],
+    steps: [
+      { line: "cls", panels: [{ blueprint: "Dog", methods: [] }],
+        calc: "class Dog:  ->  your Dog, exactly as Part 2 left it",
+        note: "Carried forward. Note what it does NOT have: no " +
+              "<code>__str__</code>, no <code>__repr__</code>. That is the " +
+              "state your file is in when Part 7 begins." },
+      { line: "init", panels: [{ blueprint: "Dog", methods: ["__init__"] }],
+        calc: "def __init__  ->  carried forward",
+        note: "Nothing new until the last line of this demo." },
+      { line: "dbark", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }],
+        calc: "def bark  ->  carried forward from Part 2",
+        note: "Two members, and neither of them tells <code>print</code> " +
+              "anything about a Dog." },
+      { line: "mk", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }],
+        calc: "Dog(\"Rex\", \"Border Collie\")  ->  built and named",
+        note: "The name and breed are sitting in the object, in plain sight." },
+      { line: "pr", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }],
+        out: "<__main__.Dog object at 0x000001A2>",
+        calc: "print(rex)  ->  Dog has no __str__",
+        note: "<strong>TODO a.</strong> The class name and a memory address. " +
+              "<strong>The arrow did not go anywhere</strong> \u2014 there was " +
+              "no method to run. Rex's name was in the box the whole time " +
+              "and <code>print</code> had no way to ask for it.<br><br>Now " +
+              "go to the next tab and watch the same line after TODO b." }
+    ]
+  },
+
+  shown: {
+    part: 7,
+    label: "After: __str__ and __repr__ on both",
+    covers: "TODOs b, c and d \u2014 __str__ on Dog, on BankAccount, and __repr__ on both.",
     skip: ["dn", "db", "ao", "ab"],
-    fresh: ["astr", "rstr", "arepr", "rrepr", "pd", "pa", "pl"],
+    fresh: ["dstr", "dstrr", "drepr", "dreprr", "astr", "astrr", "arepr", "areprr", "pd", "pa", "pl"],
     aside: {
       title: "Why does the list ignore __str__?",
       html: "<p>Because a container is usually being inspected, not " +
@@ -1399,99 +1460,105 @@ var DEMOS = {
             "<code>print([x])</code> asks every element for " +
             "<code>__repr__</code>, and there is no way to talk it out of " +
             "that.</p><p>So a class with only <code>__str__</code> still " +
-            "prints memory addresses the moment you put it in a list \u2014 " +
-            "which is most of the time. That is why professionals write " +
-            "<code>__repr__</code> first and treat <code>__str__</code> as " +
-            "the optional one.</p><p><code>Dog</code> has neither yet. " +
-            "Watch what printing it gets you.</p>"
+            "prints memory addresses the moment you put it in a list, which " +
+            "is most of the time. That is why <code>__repr__</code> is the " +
+            "one to write first and <code>__str__</code> is the optional " +
+            "one.</p>"
     },
     todos: { dcls: "", dinit: "", dn: "", db: "", x1: "",
-             dbark: "", pbark: "", x2: "",
-             acls: "", ainit: "", ao: "", ab: "", x3: "",
-             astr: "c", rstr: "c", x4: "", arepr: "d", rrepr: "d", x5: "",
-             mkd: "", mka: "", x6: "", pd: "a", pa: "c", pl: "d" },
+             dstr: "b", dstrr: "b", x2: "", drepr: "d", dreprr: "d", x3: "",
+             acls: "", ainit: "", ao: "", ab: "", x4: "",
+             astr: "c", astrr: "c", x5: "", arepr: "d", areprr: "d", x6: "",
+             mkd: "", mka: "", x7: "", pd: "b", pa: "c", pl: "d" },
     code: [
       { k: "dcls", t: "class Dog:" },
       { k: "dinit", t: "    def __init__(self, name, breed):" },
       { k: "dn", t: "        self.name = name" },
       { k: "db", t: "        self.breed = breed" },
       { k: "x1", t: "" },
-      { k: "dbark", t: "    def bark(self):" },
-      { k: "pbark", t: "        print(f\"{self.name} says Woof!\")" },
+      { k: "dstr", t: "    def __str__(self):" },
+      { k: "dstrr", t: "        return f\"{self.name} the {self.breed}\"" },
       { k: "x2", t: "" },
+      { k: "drepr", t: "    def __repr__(self):" },
+      { k: "dreprr", t: "        return f\"Dog({self.name!r}, {self.breed!r})\"" },
+      { k: "x3", t: "" },
       { k: "acls", t: "class BankAccount:" },
       { k: "ainit", t: "    def __init__(self, owner, balance=0.0):" },
       { k: "ao", t: "        self.owner = owner" },
       { k: "ab", t: "        self._balance = balance" },
-      { k: "x3", t: "" },
-      { k: "astr", t: "    def __str__(self):" },
-      { k: "rstr", t: "        return f\"{self.owner}: {self._balance:.2f}\"" },
       { k: "x4", t: "" },
-      { k: "arepr", t: "    def __repr__(self):" },
-      { k: "rrepr", t: "        return f\"BankAccount({self.owner!r}, {self._balance!r})\"" },
+      { k: "astr", t: "    def __str__(self):" },
+      { k: "astrr", t: "        return f\"{self.owner}: {self._balance:.2f}\"" },
       { k: "x5", t: "" },
+      { k: "arepr", t: "    def __repr__(self):" },
+      { k: "areprr", t: "        return f\"BankAccount({self.owner!r}, {self._balance!r})\"" },
+      { k: "x6", t: "" },
       { k: "mkd", t: "rex = Dog(\"Rex\", \"Border Collie\")" },
       { k: "mka", t: "ada = BankAccount(\"Ada\", 120.0)" },
-      { k: "x6", t: "" },
+      { k: "x7", t: "" },
       { k: "pd", t: "print(rex)" },
       { k: "pa", t: "print(ada)" },
       { k: "pl", t: "print([ada])" }
     ],
     steps: [
       { line: "dcls", panels: [{ blueprint: "Dog", methods: [] }],
-        calc: "class Dog:  ->  your Dog, exactly as you left it",
-        note: "Carried forward. Note what it does NOT have yet: no " +
-              "<code>__str__</code>, no <code>__repr__</code>." },
+        calc: "class Dog:  ->  the same Dog, about to gain two methods",
+        note: "This is the previous tab's class. Watch the box." },
       { line: "dinit", panels: [{ blueprint: "Dog", methods: ["__init__"] }],
         calc: "def __init__  ->  carried forward",
-        note: "Dimmed lines are work from earlier Parts; the walk will not " +
-              "stop on them." },
-      { line: "dbark", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }],
-        calc: "def bark  ->  carried forward from Part 2",
-        note: "Two members on Dog, and neither of them tells print anything." },
-      { line: "acls", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: [] }],
+        note: "Unchanged from Part 1." },
+      { line: "dstr", panels: [{ blueprint: "Dog", methods: ["__init__", "__str__"] }],
+        calc: "def __str__  ->  NEW, and the box gains it",
+        note: "<strong>TODO b.</strong> This is the method that was missing " +
+              "on the previous tab. One <code>def</code>, and " +
+              "<code>print(rex)</code> will never show an address again." },
+      { line: "drepr", panels: [{ blueprint: "Dog", methods: ["__init__", "__str__", "__repr__"] }],
+        calc: "def __repr__  ->  NEW",
+        note: "<strong>TODO d, first half.</strong> Three members on Dog." },
+      { line: "acls", panels: [{ blueprint: "Dog", methods: ["__init__", "__str__", "__repr__"] }, { blueprint: "BankAccount", methods: [] }],
         calc: "class BankAccount:  ->  your other class",
         note: "Both classes on screen, which is what Part 7 asks you to put " +
               "<code>__str__</code> on." },
-      { line: "ainit", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__"] }],
+      { line: "ainit", panels: [{ blueprint: "Dog", methods: ["__init__", "__str__", "__repr__"] }, { blueprint: "BankAccount", methods: ["__init__"] }],
         calc: "def __init__  ->  carried forward from Part 4",
         note: "Owner and the guarded balance, as before." },
-      { line: "astr", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__"] }],
-        calc: "def __str__  ->  NEW in Part 7",
-        note: "<strong>TODO c.</strong> A dunder, so you will never call it " +
-              "yourself." },
-      { line: "arepr", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }],
-        calc: "def __repr__  ->  NEW in Part 7",
-        note: "<strong>TODO d.</strong> Three members on the account, two " +
-              "of them for printing." },
-      { line: "mkd", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }],
-        calc: "Dog(\"Rex\", \"Border Collie\")  ->  a blank Dog",
-        note: "The box-filling is carried forward; you watched it in Part 1." },
-      { line: "mka", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]] }],
-        calc: "BankAccount(\"Ada\", 120.0)  ->  a blank account",
+      { line: "astr", panels: [{ blueprint: "Dog", methods: ["__init__", "__str__", "__repr__"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__"] }],
+        calc: "def __str__  ->  NEW on this class too",
+        note: "<strong>TODO c.</strong> A formatted balance, which is what " +
+              "a person reading output wants." },
+      { line: "arepr", panels: [{ blueprint: "Dog", methods: ["__init__", "__str__", "__repr__"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }],
+        calc: "def __repr__  ->  NEW",
+        note: "<strong>TODO d, second half.</strong> Both classes now have " +
+              "both." },
+      { line: "mkd", panels: [{ blueprint: "Dog", methods: ["__init__", "__str__", "__repr__"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }],
+        calc: "Dog(\"Rex\", \"Border Collie\")  ->  built and named",
+        note: "The same dog as the previous tab." },
+      { line: "mka", panels: [{ blueprint: "Dog", methods: ["__init__", "__str__", "__repr__"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]] }],
+        calc: "BankAccount(\"Ada\", 120.0)  ->  built and named",
         note: "One of each, about to be printed." },
-      { line: "pd", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]] }],
-        out: "<__main__.Dog object at 0x000001A2>",
-        calc: "print(rex)  ->  Dog has no __str__",
-        note: "<strong>TODO a.</strong> The class name and a memory address. " +
-              "<strong>The arrow did not go anywhere</strong> \u2014 there was " +
-              "no method to run. Rex's name was in the box the whole time " +
-              "and print had no way to ask for it." },
-      { line: "pa", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]], self: true }],
-        calc: "print(ada)  ->  this one HAS a __str__",
-        note: "Watch the arrow jump into the method on the next press. You " +
-              "did not call it; <code>print</code> did." },
-      { line: "rstr", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]], self: true }, { frame: "__str__ of BankAccount", vars: [["self", "<BankAccount>"]] }],
+      { line: "pd", panels: [{ blueprint: "Dog", methods: ["__init__", "__str__", "__repr__"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]], self: true }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]] }],
+        calc: "print(rex)  ->  the line that gave you an address",
+        note: "Identical to the last press on the previous tab. Watch the " +
+              "arrow jump into the method this time." },
+      { line: "dstrr", panels: [{ blueprint: "Dog", methods: ["__init__", "__str__", "__repr__"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]], self: true }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]] }, { frame: "__str__ of Dog", vars: [["self", "<Dog>"]] }],
+        out: "Rex the Border Collie",
+        calc: "return f\"{self.name} the {self.breed}\"",
+        note: "<strong>TODO b, done.</strong> Same object, same print, " +
+              "different answer \u2014 and the object did not change. Only " +
+              "what it can say about itself did." },
+      { line: "pa", panels: [{ blueprint: "Dog", methods: ["__init__", "__str__", "__repr__"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]], self: true }],
+        calc: "print(ada)  ->  the other class",
+        note: "Same mechanism, second class." },
+      { line: "astrr", panels: [{ blueprint: "Dog", methods: ["__init__", "__str__", "__repr__"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]], self: true }, { frame: "__str__ of BankAccount", vars: [["self", "<BankAccount>"]] }],
         out: "Ada: 120.00",
         calc: "return f\"{self.owner}: {self._balance:.2f}\"",
-        note: "The string the object handed back is what print showed. " +
-              "<strong>The object did not change</strong> \u2014 only what it " +
-              "can say about itself." },
-      { line: "pl", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]], self: true }],
+        note: "<strong>TODO c, done.</strong> 120.00, formatted by " +
+              "<code>__str__</code> rather than by whoever prints it." },
+      { line: "pl", panels: [{ blueprint: "Dog", methods: ["__init__", "__str__", "__repr__"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]], self: true }],
         calc: "print([ada])  ->  the SAME object, inside a list",
         note: "One guess before the next press: does a list ask for " +
               "<code>__str__</code> as well?" },
-      { line: "rrepr", panels: [{ blueprint: "Dog", methods: ["__init__", "bark"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]], self: true }, { frame: "__repr__ of BankAccount", vars: [["self", "<BankAccount>"]] }],
+      { line: "areprr", panels: [{ blueprint: "Dog", methods: ["__init__", "__str__", "__repr__"] }, { blueprint: "BankAccount", methods: ["__init__", "__str__", "__repr__"] }, { name: "rex", cls: "Dog", attrs: [["name", "\"Rex\""], ["breed", "\"Border Collie\""]] }, { name: "ada", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "120.0"]], self: true }, { frame: "__repr__ of BankAccount", vars: [["self", "<BankAccount>"]] }],
         out: "[BankAccount('Ada', 120.0)]",
         calc: "return f\"BankAccount({self.owner!r}, {self._balance!r})\"",
         note: "<strong>It asked for __repr__, not __str__.</strong> A list " +
@@ -1502,7 +1569,7 @@ var DEMOS = {
   }
 };
 
-var order = ["init", "inside", "dot", "money", "listed", "sign", "show", "moved"];
+var order = ["init", "inside", "dot", "money", "listed", "sign", "show", "shown", "moved"];
 
 var current = order[0];
 var at = 0;
