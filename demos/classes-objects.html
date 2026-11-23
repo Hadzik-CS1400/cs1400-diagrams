@@ -974,9 +974,11 @@ var DEMOS = {
                               { name: "rex", cls: "Dog",
                                 attrs: [ [ "name", "\"Rex\"" ] ],
                                 self: true } ],
+        dead: ["p1"],
         out: "Rex says Woof!",
         calc: "print(f\"{self.name} says Woof!\")",
-        note: "<strong>Woof, not WOOF WOOF.</strong> The line you edited in " +
+        note: "<strong>Woof, not WOOF WOOF.</strong> Look at the struck-through " +
+              "line in dog.py: it never ran. The line you edited in " +
               "<code>dog.py</code> never ran, and the program did not fail \u2014 " +
               "it quietly used the other class. Delete the copy and the same " +
               "program prints the other thing." }
@@ -1263,30 +1265,28 @@ var DEMOS = {
   sign: {
     part: 6,
     label: "A sign, not a lock",
-    covers: "TODOs a, b and c \u2014 the guard raising, and what reaching past it costs.",
+    covers: "TODOs a, b and c \u2014 the guard refusing, and the guard defeated.",
     skip: ["sowner", "sbal", "dprop", "dbal"],
-    fresh: ["chk", "refuse", "tryl", "call", "exc", "pex", "poke", "try2", "call2", "exc2", "pex2"],
+    fresh: ["chk", "refuse", "tryl", "call", "exc", "pex", "poke", "call2", "p2"],
     aside: {
-      title: "Nobody types _balance = -999 on purpose. So what is this for?",
-      html: "<p>Nobody types that line deliberately. People do write " +
-            "<code>thing._field = x</code> in a hurry, to get past something " +
-            "that is in the way \u2014 and that is the same line.</p>" +
-            "<p>Watch what it costs. The account is left holding a number " +
-            "<code>withdraw</code> would never have allowed, and from then " +
-            "on <strong>every withdrawal is refused</strong>: any amount you " +
-            "ask for is larger than -999. The account is unusable.</p>" +
-            "<p>And the message it gives you is <em>insufficient funds</em>, " +
-            "which blames the money. The actual fault is one line, somewhere " +
-            "else, that reached past the method. That is the cost of going " +
-            "around your own guard: not that Python stops you, but that " +
-            "nothing afterwards can tell you what went wrong.</p>"
+      title: "Why -999 would have been the wrong thing to show",
+      html: "<p>Setting <code>_balance</code> to nonsense announces itself: " +
+            "every withdrawal afterwards is refused, because any amount is " +
+            "larger than -999, and somebody notices within a minute.</p>" +
+            "<p>A believable number does not announce anything. That is the " +
+            "version worth fearing, and it is the one on screen: the " +
+            "withdrawal the guard refused a moment ago goes straight " +
+            "through, and no method misbehaves at any point.</p>" +
+            "<p>The rule was never in the name. It was in " +
+            "<code>withdraw</code>, and an assignment does not call " +
+            "<code>withdraw</code>.</p>"
     },
     todos: { cls: "", init: "", sowner: "", sbal: "", b1: "",
              dprop: "", dbal: "", rbal: "a", b2: "",
              ddep: "", adep: "", b3: "",
              dwd: "b", chk: "b", refuse: "b", take: "b", b4: "",
              mk: "", tryl: "b", call: "b", exc: "b", pex: "b", b5: "",
-             poke: "c", try2: "c", call2: "c", exc2: "c", pex2: "c" },
+             poke: "c", call2: "c", p2: "c" },
     code: [
       { k: "cls", t: "class BankAccount:" },
       { k: "init", t: "    def __init__(self, owner, balance=0.0):" },
@@ -1311,16 +1311,14 @@ var DEMOS = {
       { k: "exc", t: "except ValueError as problem:" },
       { k: "pex", t: "    print(f\"refused: {problem}\")" },
       { k: "b5", t: "" },
-      { k: "poke", t: "acct._balance = -999.0" },
-      { k: "try2", t: "try:" },
-      { k: "call2", t: "    acct.withdraw(10.0)" },
-      { k: "exc2", t: "except ValueError as problem:" },
-      { k: "pex2", t: "    print(f\"now even 10 is refused: {problem}\")" }
+      { k: "poke", t: "acct._balance = 500.0" },
+      { k: "call2", t: "acct.withdraw(500.0)" },
+      { k: "p2", t: "print(acct.balance)" }
     ],
     steps: [
       { line: "cls", panels: [{ blueprint: "BankAccount", methods: [] }],
         calc: "class BankAccount:  ->  the class you already have",
-        note: "Part 4's work is carried forward and dimmed; the green rule " +
+        note: "Part 4's work carried forward and dimmed; the green rule " +
               "marks what Part 6 adds." },
       { line: "init", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance"] }],
         calc: "def __init__  ->  carried forward, property and all",
@@ -1331,7 +1329,8 @@ var DEMOS = {
         note: "Three members on the blueprint." },
       { line: "dwd", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }],
         calc: "def withdraw  ->  the one with the rule in it",
-        note: "This is the only door with a lock on it." },
+        note: "This method is the only thing in the program that knows you " +
+              "cannot take out more than you have." },
       { line: "mk", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "100.0"]] }],
         calc: "BankAccount(\"Ada\", 100.0)  ->  built and named",
         note: "One account, 100.00 in it." },
@@ -1340,54 +1339,51 @@ var DEMOS = {
         note: "Same shape as Module 10." },
       { line: "call", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "100.0"]], self: true }],
         calc: "acct.withdraw(500.0)  ->  through the front door",
-        note: "500 out of 100, asked for properly." },
+        note: "500 out of 100, asked for properly. <strong>Remember this " +
+              "line</strong>; it comes back." },
       { line: "chk", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "100.0"]], self: true }],
         calc: "500.0 > 100.0  ->  True",
-        note: "The guard. This is the line the method exists for." },
-      { line: "refuse", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "100.0"]] , self: true }], dead: ["take"],
+        note: "The guard reads <code>self._balance</code> and compares." },
+      { line: "refuse", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "100.0"]], self: true }],
         calc: "raise ValueError(\"insufficient funds\")",
-        note: "<strong>The method stops here.</strong> The subtraction below " +
-              "never runs and the balance is untouched at 100.0." },
+        note: "<strong>Refused.</strong> The arrow leaves the method from " +
+              "here, so the subtraction below is skipped THIS time and the " +
+              "balance is untouched at 100.0." },
       { line: "exc", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "100.0"]] }],
         calc: "except ValueError  ->  caught",
-        note: "The refusal cannot be ignored. That is the front door working." },
+        note: "The front door works exactly as designed." },
       { line: "pex", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "100.0"]] }], out: "refused: insufficient funds",
         calc: "print(f\"refused: {problem}\")",
-        note: "Balance still 100.0. Nothing was lost, and the caller was " +
-              "told why." },
-      { line: "poke", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "-999.0"]], changed: 1, was: "100.0" }],
-        calc: "acct._balance = -999.0  ->  around the back",
-        note: "No method, no guard, no check \u2014 and Python says nothing. " +
-              "<strong>Now watch what it costs</strong>, because the cost is " +
-              "not that Python allowed it." },
-      { line: "try2", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "-999.0"]], changed: 1, was: "100.0" }],
-        calc: "try:  ->  asking the account for 10.00, properly this time",
-        note: "A perfectly ordinary withdrawal, through the front door, on " +
-              "an account that is supposed to be usable." },
-      { line: "call2", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "-999.0"]], changed: 1, was: "100.0", self: true }],
-        calc: "acct.withdraw(10.0)  ->  10 is surely fine?",
-        note: "Ten pounds. Nothing unreasonable about it." },
-      { line: "chk", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "-999.0"]], changed: 1, was: "100.0", self: true }],
-        calc: "10.0 > -999.0  ->  True",
-        note: "<strong>There it is.</strong> Any amount at all is larger " +
-              "than -999, so the guard refuses \u2014 and it will refuse every " +
-              "amount, forever. The account cannot be used again." },
-      { line: "refuse", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "-999.0"]], changed: 1, was: "100.0" , self: true }], dead: ["take"],
-        calc: "raise ValueError(\"insufficient funds\")",
-        note: "The guard is not broken. It is doing exactly its job on a " +
-              "number it was never allowed to see." },
-      { line: "exc2", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "-999.0"]], changed: 1, was: "100.0" }],
-        calc: "except ValueError  ->  caught again",
-        note: "The caller did nothing wrong and gets an error anyway." },
-      { line: "pex2", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "-999.0"]], changed: 1, was: "100.0" }],
-        out: "now even 10 is refused: insufficient funds",
-        calc: "print(f\"now even 10 is refused: {problem}\")",
-        note: "<strong>And the message blames the money.</strong> It says " +
-              "insufficient funds; the real fault was one line, earlier, " +
-              "somewhere else entirely. That is what the underscore is " +
-              "warning you about \u2014 not that Python will stop you, but " +
-              "that nothing afterwards will be able to tell you what went " +
-              "wrong." }
+        note: "Balance still 100.0. Nothing was taken." },
+      { line: "poke", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "500.0"]], changed: 1, was: "100.0" }],
+        calc: "acct._balance = 500.0  ->  around the back",
+        note: "Not nonsense \u2014 a perfectly believable balance. No method " +
+              "was called, so no rule was consulted. Python allows it " +
+              "without a word, and <strong>nothing looks wrong</strong>." },
+      { line: "call2", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "500.0"]], changed: 1, was: "100.0", self: true }],
+        calc: "acct.withdraw(500.0)  ->  the SAME line that was refused",
+        note: "Identical to the call eight steps ago, on the same account, " +
+              "through the same front door." },
+      { line: "chk", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "500.0"]], changed: 1, was: "100.0", self: true }],
+        calc: "500.0 > 500.0  ->  False",
+        note: "<strong>And now it passes.</strong> The guard is not broken " +
+              "and was not bypassed \u2014 it is checking against a number " +
+              "somebody edited behind its back." },
+      { line: "take", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "0.0"]], changed: 1, was: "500.0", self: true }],
+        calc: "self._balance = 500.0 - 500.0  ->  0.0",
+        note: "The withdrawal goes through. <strong>400.00 that never " +
+              "existed has just been spent</strong>, and not one line of " +
+              "this program misbehaved." },
+      { line: "p2", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "0.0"]], changed: 1, was: "500.0", self: true }],
+        calc: "print(acct.balance)  ->  into the property",
+        note: "No error. No warning. Nothing to find." },
+      { line: "rbal", panels: [{ blueprint: "BankAccount", methods: ["__init__", "balance", "deposit", "withdraw"] }, { name: "acct", cls: "BankAccount", attrs: [["owner", "\"Ada\""], ["_balance", "0.0"]], changed: 1, was: "500.0", self: true }], out: "0.0",
+        calc: "return self._balance  ->  0.0",
+        note: "A tidy, believable zero. <strong>That is why the underscore " +
+              "is written.</strong> It cannot stop you \u2014 it marks the " +
+              "one attribute whose rule lives in a method, so that reaching " +
+              "past it is a thing you do on purpose rather than by " +
+              "accident." }
     ]
   },
   show: {
