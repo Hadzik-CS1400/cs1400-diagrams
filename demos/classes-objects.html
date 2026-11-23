@@ -206,7 +206,11 @@
      the object. Dashed, because it is temporary -- it is gone the moment
      __init__ returns, which is the whole point of showing it. */
   .dwrap.frame { border-style: dashed; border-color: #f9e2af; }
-  .dwrap.frame .dhead { background: #4a3f1e; color: #f9e2af; }
+  .dwrap.frame .dhead { background: #4a3f1e; color: #f9e2af;
+                        padding: .3rem .5rem; border-radius: 6px; }
+  .dwrap.frame .kbox, .dwrap.frame .vbox2 {
+    border-color: #c9a227; background: #fdf6e3; color: #5c4600;
+  }
   .dwrap {
     flex: 1 1 320px;
     border: 2px solid var(--line); border-radius: 10px;
@@ -320,6 +324,15 @@
     margin: .35rem 0 .1rem; font-size: .82rem; color: #6b5f85;
     font-style: italic;
   }
+  /* Read off a projector from the back of a room, which is why these are
+     bullets at 1.1rem and not a paragraph at .82rem italic. Four of them,
+     each short enough not to wrap. */
+  .bplist {
+    margin: .5rem 0 .2rem; padding-left: 1.3rem; color: #4a3b6b;
+    font-size: 1.1rem; line-height: 1.55;
+  }
+  .bplist li { margin: .18rem 0; }
+  .bplist strong { color: #2f2350; }
   .dwrap.obj { background: #fcfcfd; }
   /* The object self currently points at. A ring rather than a different
      fill: the fill already means "just changed", and two meanings on one
@@ -1251,21 +1264,23 @@ function panelHTML(p) {
   if (p.blueprint) {
     return '<div class="dwrap bp"><div class="dhead"><span class="var">' +
       esc(p.blueprint) + "</span> &middot; the class</div>" +
-      '<p class="bpbody"><strong>The recipe, not the cake.</strong> ' +
-      "It stores the <em>methods</em> &mdash; the code every " +
-      esc(p.blueprint) + " object will share &mdash; and no data of its " +
-      "own. There is one of these no matter how many objects you build, " +
-      "and asking it for a name would be asking <em>which</em> " +
-      esc(p.blueprint) + "?</p></div>";
+      '<ul class="bplist">' +
+      "<li>the <strong>recipe</strong>, not the cake</li>" +
+      "<li>holds the <strong>methods</strong> every " + esc(p.blueprint) +
+      " shares</li>" +
+      "<li>holds <strong>no data</strong> of its own</li>" +
+      "<li><strong>one</strong> class, however many objects</li>" +
+      "</ul></div>";
   }
   if (p.frame) {
     return '<div class="dwrap frame"><div class="dhead">' +
       '<span class="var">' + esc(p.frame) + "</span> &middot; local " +
       "variables, alive only while it runs</div>" +
-      '<table class="attrs">' + (p.vars || []).map(function (kv) {
-        return "<tr><td>" + esc(kv[0]) + "</td><td>" + esc(kv[1]) +
-               "</td></tr>";
-      }).join("") + "</table></div>";
+      '<div class="pairs">' + (p.vars || []).map(function (kv) {
+        return '<div class="pair"><div class="kbox">' + esc(kv[0]) +
+               '</div><div class="arrow">&rarr;</div>' +
+               '<div class="vbox2">' + esc(kv[1]) + "</div></div>";
+      }).join("") + "</div></div>";
   }
   var n = (p.attrs || []).length;
   var title = p.newobj
